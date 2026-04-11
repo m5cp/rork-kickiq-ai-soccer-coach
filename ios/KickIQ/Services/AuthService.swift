@@ -34,6 +34,12 @@ class AuthService {
         isLoading = true
         errorMessage = nil
 
+        guard supabase.isConfigured else {
+            errorMessage = "Authentication is not configured yet. Please try again later."
+            isLoading = false
+            return
+        }
+
         switch result {
         case .success(let auth):
             guard let credential = auth.credential as? ASAuthorizationAppleIDCredential,

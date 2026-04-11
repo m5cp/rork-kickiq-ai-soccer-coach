@@ -199,6 +199,18 @@ class AIAnalysisService {
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            let secretKey = Config.EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY
+            if !secretKey.isEmpty {
+                request.setValue("Bearer \(secretKey)", forHTTPHeaderField: "Authorization")
+            }
+            let appKey = Config.allValues["EXPO_PUBLIC_RORK_APP_KEY"] ?? ""
+            if !appKey.isEmpty {
+                request.setValue(appKey, forHTTPHeaderField: "x-app-key")
+            }
+            let projectId = Config.EXPO_PUBLIC_PROJECT_ID
+            if !projectId.isEmpty {
+                request.setValue(projectId, forHTTPHeaderField: "x-project-id")
+            }
             request.httpBody = jsonData
             request.timeoutInterval = 90
 

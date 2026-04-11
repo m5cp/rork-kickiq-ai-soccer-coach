@@ -7,20 +7,35 @@ class SupabaseService {
     static let shared = SupabaseService()
 
     let client: SupabaseClient
+    private let supabaseURL: String
+    private let supabaseKey: String
 
     private init() {
         let url = Config.allValues["EXPO_PUBLIC_SUPABASE_URL"] ?? ""
         let key = Config.allValues["EXPO_PUBLIC_SUPABASE_ANON_KEY"] ?? ""
+        self.supabaseURL = url
+        self.supabaseKey = key
 
+        let finalURL = url.isEmpty ? "https://placeholder.supabase.co" : url
         client = SupabaseClient(
-            supabaseURL: URL(string: url.isEmpty ? "https://placeholder.supabase.co" : url)!,
+            supabaseURL: URL(string: finalURL)!,
             supabaseKey: key.isEmpty ? "placeholder" : key
         )
+
+        if url.isEmpty || key.isEmpty {
+            print("[KickIQ] Supabase not configured. URL empty: \(url.isEmpty), Key empty: \(key.isEmpty)")
+            print("[KickIQ] Available Config keys: \(Config.allValues.keys.sorted())")
+        }
     }
 
     var isConfigured: Bool {
-        let url = Config.allValues["EXPO_PUBLIC_SUPABASE_URL"] ?? ""
-        let key = Config.allValues["EXPO_PUBLIC_SUPABASE_ANON_KEY"] ?? ""
-        return !url.isEmpty && !key.isEmpty && url != "https://placeholder.supabase.co"
+        !supabaseURL.isEmpty && !supabaseKey.isEmpty && supabaseURL != "https://placeholder.supabase.co"
+    }
+
+    var configurationStatus: String {
+        if isConfigured { return "Connected" }
+        if supabaseURL.isEmpty { return "Supabase URL not set" }
+        if supabaseKey.isEmpty { return "Supabase key not set" }
+        return "Not configured"
     }
 }
