@@ -361,6 +361,9 @@ struct PostGameDebriefView: View {
     }
 
     private func parseResponseText(_ response: String) -> String {
+        let v4 = parseVercelV4Stream(response)
+        if !v4.isEmpty { return v4 }
+
         if response.contains("data: ") {
             var collected = ""
             let lines = response.components(separatedBy: "\n")
@@ -371,13 +374,20 @@ struct PostGameDebriefView: View {
                 if payload == "[DONE]" { break }
                 guard let data = payload.data(using: .utf8),
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+                if let type = json["type"] as? String {
+                    if type == "text-delta", let delta = json["delta"] as? String { collected += delta }
+                    else if type == "text", let textVal = json["text"] as? String { collected += textVal }
+                    else if type == "content_block_delta", let delta = json["delta"] as? [String: Any], let text = delta["text"] as? String { collected += text }
+                    continue
+                }
                 if let text = json["text"] as? String { collected += text }
                 else if let delta = json["delta"] as? [String: Any], let content = delta["content"] as? String { collected += content }
                 else if let choices = json["choices"] as? [[String: Any]], let first = choices.first, let d = first["delta"] as? [String: Any], let content = d["content"] as? String { collected += content }
                 else if let content = json["content"] as? String { collected += content }
-                else if let type = json["type"] as? String, type == "content_block_delta", let delta = json["delta"] as? [String: Any], let text = delta["text"] as? String { collected += text }
             }
-            return collected.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !collected.isEmpty {
+                return collected.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
         }
 
         if let data = response.data(using: .utf8),
@@ -390,6 +400,27 @@ struct PostGameDebriefView: View {
         let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.hasPrefix("{") || trimmed.hasPrefix("[") { return "" }
         return trimmed
+    }
+
+    private func parseVercelV4Stream(_ response: String) -> String {
+        var collectedText = ""
+        let lines = response.components(separatedBy: "\n")
+        var hasV4Lines = false
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+            if trimmed.hasPrefix("0:") {
+                hasV4Lines = true
+                let payload = String(trimmed.dropFirst(2))
+                if let data = payload.data(using: .utf8),
+                   let text = try? JSONSerialization.jsonObject(with: data) as? String {
+                    collectedText += text
+                }
+            } else if trimmed.hasPrefix("f:") || trimmed.hasPrefix("d:") || trimmed.hasPrefix("e:") {
+                hasV4Lines = true
+            }
+        }
+        return hasV4Lines ? collectedText.trimmingCharacters(in: .whitespacesAndNewlines) : ""
     }
 
     private func buildFallbackResponse() -> String {

@@ -45,11 +45,20 @@ class AIChatService {
             let response = try await callAI(storage: storage)
             let assistantMessage = ChatMessage(role: .assistant, content: response)
             messages.append(assistantMessage)
+        } catch let chatErr as ChatError {
+            tokenService.refundToken()
+            let errorMsg = ChatMessage(
+                role: .assistant,
+                content: chatErr.userMessage,
+                isError: true
+            )
+            messages.append(errorMsg)
+            errorMessage = chatErr.localizedDescription
         } catch {
             tokenService.refundToken()
             let errorMsg = ChatMessage(
                 role: .assistant,
-                content: "Sorry, something went wrong. No charge for that — your token has been refunded. Please try again.",
+                content: "Connection error — your token has been refunded. Check your internet and try again.",
                 isError: true
             )
             messages.append(errorMsg)
@@ -70,7 +79,10 @@ class AIChatService {
             throw ChatError.notConfigured
         }
 
-        let url = URL(string: "\(toolkitURL)/agent/chat")!
+        let baseURL = toolkitURL.hasSuffix("/") ? String(toolkitURL.dropLast()) : toolkitURL
+        guard let url = URL(string: "\(baseURL)/agent/chat") else {
+            throw ChatError.notConfigured
+        }
 
         let systemContext = buildSystemContext(storage: storage)
 
@@ -109,13 +121,13 @@ class AIChatService {
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw ChatError.serverError
+            throw ChatError.networkError
         }
 
         guard httpResponse.statusCode == 200 else {
             let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
             print("[KickIQ] AI Chat API error (\(httpResponse.statusCode)): \(errorBody)")
-            throw ChatError.serverError
+            throw ChatError.httpError(statusCode: httpResponse.statusCode, body: errorBody)
         }
 
         let responseText = String(data: data, encoding: .utf8) ?? ""
@@ -126,6 +138,7 @@ class AIChatService {
 
         let cleaned = extractTextContent(from: responseText)
         if cleaned.isEmpty {
+            print("[KickIQ] AI Chat: could not parse response: \(responseText.prefix(500))")
             throw ChatError.emptyResponse
         }
 
@@ -133,8 +146,16 @@ class AIChatService {
     }
 
     private func extractTextContent(from response: String) -> String {
+        let v4Text = parseVercelV4Stream(response)
+        if !v4Text.isEmpty {
+            return v4Text
+        }
+
         if response.contains("data: ") {
-            return parseSSEResponse(response)
+            let sseText = parseSSEResponse(response)
+            if !sseText.isEmpty {
+                return sseText
+            }
         }
 
         if let jsonData = response.data(using: .utf8),
@@ -189,6 +210,30 @@ class AIChatService {
         return trimmed
     }
 
+    private func parseVercelV4Stream(_ response: String) -> String {
+        var collectedText = ""
+        let lines = response.components(separatedBy: "\n")
+        var hasV4Lines = false
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+
+            if trimmed.hasPrefix("0:") {
+                hasV4Lines = true
+                let payload = String(trimmed.dropFirst(2))
+                if let data = payload.data(using: .utf8),
+                   let text = try? JSONSerialization.jsonObject(with: data) as? String {
+                    collectedText += text
+                }
+            } else if trimmed.hasPrefix("f:") || trimmed.hasPrefix("d:") || trimmed.hasPrefix("e:") {
+                hasV4Lines = true
+            }
+        }
+
+        return hasV4Lines ? collectedText.trimmingCharacters(in: .whitespacesAndNewlines) : ""
+    }
+
     private func parseSSEResponse(_ response: String) -> String {
         var collectedText = ""
         let lines = response.components(separatedBy: "\n")
@@ -205,6 +250,24 @@ class AIChatService {
                 continue
             }
 
+            if let type = json["type"] as? String {
+                if type == "text-delta" {
+                    if let delta = json["delta"] as? String {
+                        collectedText += delta
+                    }
+                } else if type == "text" {
+                    if let textVal = json["text"] as? String {
+                        collectedText += textVal
+                    }
+                } else if type == "content_block_delta" {
+                    if let delta = json["delta"] as? [String: Any],
+                       let text = delta["text"] as? String {
+                        collectedText += text
+                    }
+                }
+                continue
+            }
+
             if let text = json["text"] as? String {
                 collectedText += text
             } else if let delta = json["delta"] as? [String: Any],
@@ -217,15 +280,6 @@ class AIChatService {
                 collectedText += content
             } else if let content = json["content"] as? String {
                 collectedText += content
-            } else if let type = json["type"] as? String, type == "text" {
-                if let textVal = json["text"] as? String {
-                    collectedText += textVal
-                }
-            } else if let type = json["type"] as? String, type == "content_block_delta" {
-                if let delta = json["delta"] as? [String: Any],
-                   let text = delta["text"] as? String {
-                    collectedText += text
-                }
             }
         }
 
@@ -288,14 +342,29 @@ class AIChatService {
 
 nonisolated enum ChatError: Error, LocalizedError, Sendable {
     case notConfigured
-    case serverError
+    case networkError
+    case httpError(statusCode: Int, body: String)
     case emptyResponse
 
     var errorDescription: String? {
         switch self {
         case .notConfigured: "AI service is not configured."
-        case .serverError: "Server returned an error. Please try again."
-        case .emptyResponse: "Received an empty response. Please try again."
+        case .networkError: "Could not connect to the server."
+        case .httpError(let code, _): "Server error (\(code))."
+        case .emptyResponse: "Received an empty response."
+        }
+    }
+
+    var userMessage: String {
+        switch self {
+        case .notConfigured:
+            "AI Coach isn't configured yet. Please try again later."
+        case .networkError:
+            "Couldn't reach the server — check your internet connection. Your token has been refunded."
+        case .httpError(let code, _):
+            "Server error (\(code)) — your token has been refunded. Please try again."
+        case .emptyResponse:
+            "Got an empty response — your token has been refunded. Please try again."
         }
     }
 }
