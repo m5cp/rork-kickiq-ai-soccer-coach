@@ -34,7 +34,6 @@ struct TrainingPlanView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Training Plan")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -736,7 +735,6 @@ struct DayDetailSheet: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle(day.focus)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -993,7 +991,6 @@ struct DrillSwapSheet: View {
             .searchable(text: $searchText, prompt: "Search drills...")
             .navigationTitle("Swap Drill")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -1107,7 +1104,6 @@ struct PlanPreferencesSheet: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Preferences")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

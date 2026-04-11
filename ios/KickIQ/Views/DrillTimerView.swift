@@ -32,7 +32,6 @@ struct DrillTimerView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle(drill.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }

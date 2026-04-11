@@ -35,7 +35,6 @@ struct SessionNotesSheet: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Session Journal")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }

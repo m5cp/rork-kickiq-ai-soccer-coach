@@ -32,7 +32,7 @@ struct ContentView: View {
                 .zIndex(100)
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(ThemeManager.shared.colorScheme)
         .onChange(of: storage.earnedBadges.count) { oldValue, newValue in
             guard newValue > oldValue, oldValue > 0 else {
                 previousBadgeCount = newValue

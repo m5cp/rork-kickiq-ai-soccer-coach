@@ -27,7 +27,6 @@ struct QRCodeShareSheet: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Share via QR")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }

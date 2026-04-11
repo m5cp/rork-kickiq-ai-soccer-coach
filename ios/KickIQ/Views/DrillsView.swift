@@ -26,7 +26,6 @@ struct DrillsView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Drills")
             .navigationBarTitleDisplayMode(.large)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(item: $selectedDrill) { drill in
                 DrillDetailSheet(drill: drill, storage: storage, drillsService: drillsService, completedTrigger: $completedTrigger)
             }

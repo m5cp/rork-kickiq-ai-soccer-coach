@@ -27,7 +27,6 @@ struct ComparisonView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Compare Sessions")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }

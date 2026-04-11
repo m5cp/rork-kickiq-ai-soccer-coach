@@ -28,7 +28,6 @@ struct ProfileView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

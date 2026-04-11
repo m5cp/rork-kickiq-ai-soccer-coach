@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var showDeleteAlert = false
     @State private var showNotificationSettings = false
     @State private var showCalendarSettings = false
+    @State private var showThemeSettings = false
     @State private var appeared = false
 
     var body: some View {
@@ -14,6 +15,9 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: KickIQTheme.Spacing.md) {
                     sectionHeader("PREFERENCES")
+                    settingsRow(icon: "paintbrush.fill", title: "Appearance & Theme") {
+                        showThemeSettings = true
+                    }
                     settingsRow(icon: "bell.fill", title: "Notification Preferences") {
                         showNotificationSettings = true
                     }
@@ -48,7 +52,6 @@ struct SettingsView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -69,6 +72,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showCalendarSettings) {
                 CalendarSettingsSheet(calendarService: calendarService, storage: storage)
+            }
+            .sheet(isPresented: $showThemeSettings) {
+                ThemeSettingsView()
             }
         }
         .presentationDetents([.large])

@@ -35,7 +35,6 @@ struct QRScannerView: View {
             }
             .navigationTitle("Scan QR Code")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -269,7 +268,6 @@ struct QRImportConfirmSheet: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Import Content")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

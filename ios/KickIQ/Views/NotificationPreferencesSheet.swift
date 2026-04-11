@@ -52,7 +52,6 @@ struct NotificationPreferencesSheet: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Notifications")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {

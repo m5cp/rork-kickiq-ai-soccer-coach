@@ -39,7 +39,6 @@ struct ProgressTabView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Progress")
             .navigationBarTitleDisplayMode(.large)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(item: $selectedSession) { session in
                 NavigationStack {
                     AnalysisResultView(session: session, storage: storage) {

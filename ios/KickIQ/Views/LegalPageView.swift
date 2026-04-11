@@ -59,7 +59,6 @@ struct LegalPageView: View {
         .scrollIndicators(.hidden)
         .background(KickIQTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     @ViewBuilder
