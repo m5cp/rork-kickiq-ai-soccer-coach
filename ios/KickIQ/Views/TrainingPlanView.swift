@@ -720,6 +720,7 @@ struct DayDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showSwap = false
     @State private var swapIndex: Int?
+    @State private var showQRShare = false
 
     var body: some View {
         NavigationStack {
@@ -741,6 +742,14 @@ struct DayDetailSheet: View {
                     Button("Done") { dismiss() }
                         .foregroundStyle(KickIQTheme.accent)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showQRShare = true
+                    } label: {
+                        Image(systemName: "qrcode")
+                            .foregroundStyle(KickIQTheme.accent)
+                    }
+                }
             }
         }
         .presentationDetents([.large])
@@ -750,6 +759,13 @@ struct DayDetailSheet: View {
             if let idx = swapIndex {
                 DrillSwapSheet(viewModel: viewModel, dayID: day.id, drillIndex: idx)
             }
+        }
+        .sheet(isPresented: $showQRShare) {
+            QRCodeShareSheet(
+                payload: QRCodeService.payloadFromDailyPlan(day),
+                title: "Share Session",
+                subtitle: "Let your teammate scan to import this training session"
+            )
         }
     }
 

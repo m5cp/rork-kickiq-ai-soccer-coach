@@ -11,6 +11,7 @@ struct HomeView: View {
     @State private var showReassessment = false
     @State private var showWeeklyGoal = false
     @State private var showTrainingPlan = false
+    @State private var showQRScanner = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
@@ -47,6 +48,14 @@ struct HomeView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showQRScanner = true
+                    } label: {
+                        Image(systemName: "qrcode.viewfinder")
+                            .foregroundStyle(KickIQTheme.accent)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showSettings = true
@@ -64,6 +73,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showTrainingPlan) {
                 TrainingPlanView(storage: storage)
+            }
+            .sheet(isPresented: $showQRScanner) {
+                QRScannerView(storage: storage)
             }
         }
         .onAppear {

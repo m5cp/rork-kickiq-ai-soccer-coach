@@ -9,6 +9,7 @@ struct AnalysisResultView: View {
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var showSessionNotes = false
+    @State private var showQRShare = false
 
     var body: some View {
         ScrollView {
@@ -46,6 +47,13 @@ struct AnalysisResultView: View {
         }
         .sheet(isPresented: $showSessionNotes) {
             SessionNotesSheet(sessionID: session.id, storage: storage)
+        }
+        .sheet(isPresented: $showQRShare) {
+            QRCodeShareSheet(
+                payload: QRCodeService.payloadFromSession(session),
+                title: "Share Analysis",
+                subtitle: "Let your teammate scan to see your results"
+            )
         }
     }
 
@@ -567,23 +575,43 @@ struct AnalysisResultView: View {
     }
 
     private var actionButtons: some View {
-        HStack(spacing: KickIQTheme.Spacing.sm) {
-            Button {
-                generateShareCard()
-            } label: {
-                HStack(spacing: KickIQTheme.Spacing.sm) {
-                    Image(systemName: "square.and.arrow.up")
-                    Text("Share")
+        VStack(spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                Button {
+                    generateShareCard()
+                } label: {
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("Share")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
+                            .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
+                    )
                 }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(KickIQTheme.accent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
-                .overlay(
-                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
-                        .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
-                )
+
+                Button {
+                    showQRShare = true
+                } label: {
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Image(systemName: "qrcode")
+                        Text("QR Code")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
+                            .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
+                    )
+                }
             }
 
             Button {

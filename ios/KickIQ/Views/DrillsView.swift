@@ -250,6 +250,7 @@ struct DrillDetailSheet: View {
     @Binding var completedTrigger: Int
     @Environment(\.dismiss) private var dismiss
     @State private var showTimer = false
+    @State private var showQRShare = false
 
     private var isCompleted: Bool {
         storage.completedDrillIDs.contains(drill.id)
@@ -379,6 +380,14 @@ struct DrillDetailSheet: View {
                     Button("Done") { dismiss() }
                         .foregroundStyle(KickIQTheme.accent)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showQRShare = true
+                    } label: {
+                        Image(systemName: "qrcode")
+                            .foregroundStyle(KickIQTheme.accent)
+                    }
+                }
             }
         }
         .presentationDetents([.large])
@@ -386,6 +395,13 @@ struct DrillDetailSheet: View {
         .presentationBackground(KickIQTheme.background)
         .sheet(isPresented: $showTimer) {
             DrillTimerView(drill: drill)
+        }
+        .sheet(isPresented: $showQRShare) {
+            QRCodeShareSheet(
+                payload: QRCodeService.payloadFromDrill(drill),
+                title: "Share Drill",
+                subtitle: "Let your teammate scan to import this drill"
+            )
         }
     }
 
