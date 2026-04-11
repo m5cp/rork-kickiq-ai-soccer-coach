@@ -3,6 +3,7 @@ import PhotosUI
 
 struct ProfileView: View {
     let storage: StorageService
+    let calendarService: CalendarService
     @State private var appeared = false
     @State private var showEditProfile = false
     @State private var showSettings = false
@@ -42,7 +43,7 @@ struct ProfileView: View {
                 ProfileEditSheet(storage: storage)
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView(storage: storage)
+                SettingsView(storage: storage, calendarService: calendarService)
             }
             .sheet(isPresented: $showCoachReport) {
                 CoachReportView(storage: storage)

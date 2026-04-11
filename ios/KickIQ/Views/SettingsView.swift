@@ -2,9 +2,11 @@ import SwiftUI
 
 struct SettingsView: View {
     let storage: StorageService
+    let calendarService: CalendarService
     @Environment(\.dismiss) private var dismiss
     @State private var showDeleteAlert = false
     @State private var showNotificationSettings = false
+    @State private var showCalendarSettings = false
     @State private var appeared = false
 
     var body: some View {
@@ -14,6 +16,9 @@ struct SettingsView: View {
                     sectionHeader("PREFERENCES")
                     settingsRow(icon: "bell.fill", title: "Notification Preferences") {
                         showNotificationSettings = true
+                    }
+                    settingsRow(icon: "calendar", title: "Calendar Sync") {
+                        showCalendarSettings = true
                     }
 
                     sectionHeader("DATA")
@@ -61,6 +66,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showNotificationSettings) {
                 NotificationPreferencesSheet()
+            }
+            .sheet(isPresented: $showCalendarSettings) {
+                CalendarSettingsSheet(calendarService: calendarService, storage: storage)
             }
         }
         .presentationDetents([.large])

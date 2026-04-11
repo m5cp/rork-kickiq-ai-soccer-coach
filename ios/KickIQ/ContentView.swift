@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var storage = StorageService()
     @State private var notificationService = NotificationService()
+    @State private var calendarService = CalendarService()
     @State private var selectedTab: Int = 0
     @State private var celebratingBadge: MilestoneBadge?
     @State private var previousBadgeCount: Int = 0
@@ -64,7 +65,7 @@ struct ContentView: View {
     private var mainTabView: some View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: 0) {
-                HomeView(storage: storage, selectedTab: $selectedTab)
+                HomeView(storage: storage, calendarService: calendarService, selectedTab: $selectedTab)
             }
 
             Tab("Analyze", systemImage: "video.fill", value: 1) {
@@ -80,7 +81,7 @@ struct ContentView: View {
             }
 
             Tab("Profile", systemImage: "person.fill", value: 4) {
-                ProfileView(storage: storage)
+                ProfileView(storage: storage, calendarService: calendarService)
             }
         }
         .tint(KickIQTheme.accent)

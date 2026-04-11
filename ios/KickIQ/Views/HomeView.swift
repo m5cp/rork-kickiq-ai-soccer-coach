@@ -3,6 +3,7 @@ import StoreKit
 
 struct HomeView: View {
     let storage: StorageService
+    let calendarService: CalendarService
     @Binding var selectedTab: Int
     @State private var appeared = false
     @State private var streakBounce = false
@@ -66,7 +67,7 @@ struct HomeView: View {
                 }
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView(storage: storage)
+                SettingsView(storage: storage, calendarService: calendarService)
             }
             .sheet(isPresented: $showWeeklyGoal) {
                 WeeklyGoalSheet(storage: storage)
