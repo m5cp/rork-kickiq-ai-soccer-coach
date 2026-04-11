@@ -159,10 +159,25 @@ nonisolated struct DailyPlan: Codable, Sendable, Identifiable {
 nonisolated struct PlanPreferences: Codable, Sendable {
     var preferredDuration: SessionDuration
     var preferredMode: TrainingMode
+    var soloOnly: Bool
+    var maxDrillMinutes: Int?
+    var mixCategories: Bool
+    var weaknessPriorityWeight: Double
 
-    init(preferredDuration: SessionDuration = .thirty, preferredMode: TrainingMode = .solo) {
+    init(
+        preferredDuration: SessionDuration = .thirty,
+        preferredMode: TrainingMode = .solo,
+        soloOnly: Bool = false,
+        maxDrillMinutes: Int? = nil,
+        mixCategories: Bool = true,
+        weaknessPriorityWeight: Double = 0.6
+    ) {
         self.preferredDuration = preferredDuration
         self.preferredMode = preferredMode
+        self.soloOnly = soloOnly
+        self.maxDrillMinutes = maxDrillMinutes
+        self.mixCategories = mixCategories
+        self.weaknessPriorityWeight = min(max(weaknessPriorityWeight, 0), 1)
     }
 }
 

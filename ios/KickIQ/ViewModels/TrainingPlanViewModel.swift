@@ -56,7 +56,7 @@ class TrainingPlanViewModel {
             .medium, .heavy
         ]
 
-        let focusAreas = buildFocusRotation(position: position, weakness: weakness, weakSkills: weakSkills)
+        let focusAreas = buildFocusRotation(position: position, weakness: weakness, weakSkills: weakSkills, prefs: prefs)
 
         var days: [DailyPlan] = []
         let calendar = Calendar.current
@@ -70,16 +70,19 @@ class TrainingPlanViewModel {
             let duration = durationForIntensity(intensity, preferred: prefs.preferredDuration)
             let mode = prefs.preferredMode
 
+            let effectiveMode: TrainingMode = prefs.soloOnly ? .solo : mode
+
             let drills = buildDrills(
                 focus: focus,
                 intensity: intensity,
                 duration: duration,
-                mode: mode,
+                mode: effectiveMode,
                 position: position,
                 weakness: weakness,
                 skillLevel: skillLevel,
                 weakSkills: weakSkills,
-                dayIndex: dayIndex
+                dayIndex: dayIndex,
+                prefs: prefs
             )
 
             let weakPriority = weakSkills.isEmpty
@@ -92,7 +95,7 @@ class TrainingPlanViewModel {
                 focus: focus,
                 intensity: intensity,
                 duration: duration,
-                mode: mode,
+                mode: prefs.soloOnly ? .solo : mode,
                 weaknessPriority: weakPriority,
                 drills: drills
             )
@@ -173,8 +176,9 @@ class TrainingPlanViewModel {
         return groups.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
     }
 
-    private func buildFocusRotation(position: PlayerPosition, weakness: WeaknessArea, weakSkills: [SkillCategory]) -> [String] {
+    private func buildFocusRotation(position: PlayerPosition, weakness: WeaknessArea, weakSkills: [SkillCategory], prefs: PlanPreferences) -> [String] {
         var focuses: [String] = []
+        let weakWeight = prefs.weaknessPriorityWeight
 
         if weakSkills.isEmpty {
             let positionSkills = position.skills
@@ -184,13 +188,19 @@ class TrainingPlanViewModel {
             }
             focuses.append(weakness.rawValue)
         } else {
-            for skill in weakSkills {
-                focuses.append(skill.rawValue)
+            let weakRepeat = max(Int(ceil(Double(weakSkills.count) * weakWeight * 2)), weakSkills.count)
+            for i in 0..<weakRepeat {
+                focuses.append(weakSkills[i % weakSkills.count].rawValue)
             }
-            let otherSkills = position.skills.filter { !weakSkills.contains($0) }
-            for skill in otherSkills.prefix(3) {
-                focuses.append(skill.rawValue)
+
+            if prefs.mixCategories {
+                let otherSkills = position.skills.filter { !weakSkills.contains($0) }
+                let otherCount = max(Int(ceil(Double(weakRepeat) * (1.0 - weakWeight) / max(weakWeight, 0.1))), 1)
+                for i in 0..<otherCount {
+                    focuses.append(otherSkills[i % max(otherSkills.count, 1)].rawValue)
+                }
             }
+
             for skill in weakSkills {
                 focuses.append(skill.rawValue)
             }
@@ -231,7 +241,8 @@ class TrainingPlanViewModel {
         weakness: WeaknessArea,
         skillLevel: SkillLevel,
         weakSkills: [SkillCategory],
-        dayIndex: Int
+        dayIndex: Int,
+        prefs: PlanPreferences
     ) -> [SmartDrill] {
         let targetCount: Int
         switch duration {
@@ -242,35 +253,31 @@ class TrainingPlanViewModel {
         case .ninety: targetCount = 6
         }
 
-        let allDrills = drillsService.allDrills
+        var pool = drillsService.allDrills
+
+        if prefs.soloOnly {
+            pool = pool.filter { $0.trainingMode == .solo }
+        }
+
+        if let maxMin = prefs.maxDrillMinutes {
+            pool = pool.filter { $0.durationMinutes <= maxMin }
+        }
+
+        guard !pool.isEmpty else { return [] }
+
         var selected: [SmartDrill] = []
         var usedNames: Set<String> = []
 
-        let focusDrills = allDrills.filter { $0.targetSkill == focus }
-        let primaryCount = max(targetCount / 2, 1)
-        for drill in focusDrills.shuffled().prefix(primaryCount) {
-            guard !usedNames.contains(drill.name) else { continue }
-            usedNames.insert(drill.name)
-            let isWeakArea = weakSkills.contains(where: { $0.rawValue == drill.targetSkill })
-            let reason = isWeakArea
-                ? "Targets \(drill.targetSkill) — identified as a weakness from your analysis"
-                : "Builds \(drill.targetSkill) — key skill for \(position.rawValue.lowercased())s"
-            selected.append(SmartDrill(
-                name: drill.name,
-                description: drill.description,
-                duration: drill.duration,
-                difficulty: drill.difficulty,
-                targetSkill: drill.targetSkill,
-                coachingCues: drill.coachingCues,
-                reps: drill.reps,
-                reason: reason
-            ))
-        }
+        let weakWeight = prefs.weaknessPriorityWeight
+        let weakSlots = max(Int(ceil(Double(targetCount) * weakWeight)), 1)
+        let focusSlots = max(targetCount - weakSlots, 0)
 
-        let weakDrills = allDrills.filter { drill in
-            weakSkills.contains(where: { $0.rawValue == drill.targetSkill }) && drill.targetSkill != focus
+        let weakPool = pool.filter { drill in
+            weakSkills.contains(where: { $0.rawValue == drill.targetSkill })
         }
-        for drill in weakDrills.shuffled().prefix(max(targetCount - selected.count - 1, 1)) {
+        let _ = pool.filter { $0.targetSkill == focus && !weakSkills.contains(where: { cat in cat.rawValue == focus }) }
+
+        for drill in weakPool.shuffled().prefix(weakSlots) {
             guard !usedNames.contains(drill.name) else { continue }
             usedNames.insert(drill.name)
             selected.append(SmartDrill(
@@ -281,14 +288,41 @@ class TrainingPlanViewModel {
                 targetSkill: drill.targetSkill,
                 coachingCues: drill.coachingCues,
                 reps: drill.reps,
-                reason: "Prioritized — AI analysis flagged \(drill.targetSkill) as needing work"
+                reason: "Prioritized — \(drill.targetSkill) identified as a weak area"
             ))
         }
 
-        let remaining = targetCount - selected.count
-        if remaining > 0 {
-            let otherDrills = allDrills.filter { !usedNames.contains($0.name) }
-            for drill in otherDrills.shuffled().prefix(remaining) {
+        if selected.count < weakSlots {
+            let focusFallback = pool.filter { $0.targetSkill == focus && !usedNames.contains($0.name) }
+            for drill in focusFallback.shuffled().prefix(weakSlots - selected.count) {
+                usedNames.insert(drill.name)
+                selected.append(SmartDrill(
+                    name: drill.name,
+                    description: drill.description,
+                    duration: drill.duration,
+                    difficulty: drill.difficulty,
+                    targetSkill: drill.targetSkill,
+                    coachingCues: drill.coachingCues,
+                    reps: drill.reps,
+                    reason: "Targets \(drill.targetSkill) — today's focus area"
+                ))
+            }
+        }
+
+        if prefs.mixCategories {
+            let mixPool = pool.filter { drill in
+                !usedNames.contains(drill.name)
+                && !weakSkills.contains(where: { $0.rawValue == drill.targetSkill })
+            }
+            let categorized = Dictionary(grouping: mixPool, by: \.targetSkill)
+            var mixCandidates: [Drill] = []
+            for (_, drills) in categorized {
+                if let pick = drills.randomElement() {
+                    mixCandidates.append(pick)
+                }
+            }
+            for drill in mixCandidates.shuffled().prefix(focusSlots) {
+                guard !usedNames.contains(drill.name) else { continue }
                 usedNames.insert(drill.name)
                 let reason: String
                 switch intensity {
@@ -308,6 +342,39 @@ class TrainingPlanViewModel {
                     coachingCues: drill.coachingCues,
                     reps: drill.reps,
                     reason: reason
+                ))
+            }
+        } else {
+            let focusOnly = pool.filter { $0.targetSkill == focus && !usedNames.contains($0.name) }
+            for drill in focusOnly.shuffled().prefix(focusSlots) {
+                usedNames.insert(drill.name)
+                selected.append(SmartDrill(
+                    name: drill.name,
+                    description: drill.description,
+                    duration: drill.duration,
+                    difficulty: drill.difficulty,
+                    targetSkill: drill.targetSkill,
+                    coachingCues: drill.coachingCues,
+                    reps: drill.reps,
+                    reason: "Builds \(drill.targetSkill) — key skill for \(position.rawValue.lowercased())s"
+                ))
+            }
+        }
+
+        let remaining = targetCount - selected.count
+        if remaining > 0 {
+            let leftover = pool.filter { !usedNames.contains($0.name) }
+            for drill in leftover.shuffled().prefix(remaining) {
+                usedNames.insert(drill.name)
+                selected.append(SmartDrill(
+                    name: drill.name,
+                    description: drill.description,
+                    duration: drill.duration,
+                    difficulty: drill.difficulty,
+                    targetSkill: drill.targetSkill,
+                    coachingCues: drill.coachingCues,
+                    reps: drill.reps,
+                    reason: "Supplemental — well-rounded \(drill.targetSkill) development"
                 ))
             }
         }
