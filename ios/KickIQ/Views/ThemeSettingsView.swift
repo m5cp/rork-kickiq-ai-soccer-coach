@@ -154,7 +154,7 @@ struct ThemeSettingsView: View {
     private var presetsSection: some View {
         VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
             HStack {
-                Text("TEAM THEMES")
+                Text("COLOR THEMES")
                     .font(.caption.weight(.bold))
                     .tracking(1)
                     .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
@@ -163,7 +163,7 @@ struct ThemeSettingsView: View {
                     withAnimation(.spring(response: 0.35)) {
                         if themeManager.isUsingCustomColors {
                             themeManager.isUsingCustomColors = false
-                            themeManager.selectedPresetID = "unc"
+                            themeManager.selectedPresetID = "sky"
                         } else {
                             themeManager.isUsingCustomColors = true
                         }
