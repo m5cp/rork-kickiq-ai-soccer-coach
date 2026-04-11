@@ -121,6 +121,7 @@ struct ThemeSettingsView: View {
                     .padding(.vertical, 12)
                     .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.sm))
             }
+            .allowsHitTesting(false)
         }
         .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.xl))

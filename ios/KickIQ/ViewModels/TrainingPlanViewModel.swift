@@ -195,15 +195,21 @@ class TrainingPlanViewModel {
 
             if prefs.mixCategories {
                 let otherSkills = position.skills.filter { !weakSkills.contains($0) }
-                let otherCount = max(Int(ceil(Double(weakRepeat) * (1.0 - weakWeight) / max(weakWeight, 0.1))), 1)
-                for i in 0..<otherCount {
-                    focuses.append(otherSkills[i % max(otherSkills.count, 1)].rawValue)
+                if !otherSkills.isEmpty {
+                    let otherCount = max(Int(ceil(Double(weakRepeat) * (1.0 - weakWeight) / max(weakWeight, 0.1))), 1)
+                    for i in 0..<otherCount {
+                        focuses.append(otherSkills[i % otherSkills.count].rawValue)
+                    }
                 }
             }
 
             for skill in weakSkills {
                 focuses.append(skill.rawValue)
             }
+        }
+
+        if focuses.isEmpty {
+            focuses.append(weakness.rawValue)
         }
 
         return focuses
@@ -314,35 +320,37 @@ class TrainingPlanViewModel {
                 !usedNames.contains(drill.name)
                 && !weakSkills.contains(where: { $0.rawValue == drill.targetSkill })
             }
-            let categorized = Dictionary(grouping: mixPool, by: \.targetSkill)
-            var mixCandidates: [Drill] = []
-            for (_, drills) in categorized {
-                if let pick = drills.randomElement() {
-                    mixCandidates.append(pick)
+            if !mixPool.isEmpty {
+                let categorized = Dictionary(grouping: mixPool, by: \.targetSkill)
+                var mixCandidates: [Drill] = []
+                for (_, drills) in categorized {
+                    if let pick = drills.randomElement() {
+                        mixCandidates.append(pick)
+                    }
                 }
-            }
-            for drill in mixCandidates.shuffled().prefix(focusSlots) {
-                guard !usedNames.contains(drill.name) else { continue }
-                usedNames.insert(drill.name)
-                let reason: String
-                switch intensity {
-                case .light:
-                    reason = "Light session — technique refinement for \(drill.targetSkill)"
-                case .medium:
-                    reason = "Balanced session — developing well-rounded \(drill.targetSkill)"
-                case .heavy:
-                    reason = "High intensity — pushing \(drill.targetSkill) under pressure"
+                for drill in mixCandidates.shuffled().prefix(focusSlots) {
+                    guard !usedNames.contains(drill.name) else { continue }
+                    usedNames.insert(drill.name)
+                    let reason: String
+                    switch intensity {
+                    case .light:
+                        reason = "Light session — technique refinement for \(drill.targetSkill)"
+                    case .medium:
+                        reason = "Balanced session — developing well-rounded \(drill.targetSkill)"
+                    case .heavy:
+                        reason = "High intensity — pushing \(drill.targetSkill) under pressure"
+                    }
+                    selected.append(SmartDrill(
+                        name: drill.name,
+                        description: drill.description,
+                        duration: drill.duration,
+                        difficulty: drill.difficulty,
+                        targetSkill: drill.targetSkill,
+                        coachingCues: drill.coachingCues,
+                        reps: drill.reps,
+                        reason: reason
+                    ))
                 }
-                selected.append(SmartDrill(
-                    name: drill.name,
-                    description: drill.description,
-                    duration: drill.duration,
-                    difficulty: drill.difficulty,
-                    targetSkill: drill.targetSkill,
-                    coachingCues: drill.coachingCues,
-                    reps: drill.reps,
-                    reason: reason
-                ))
             }
         } else {
             let focusOnly = pool.filter { $0.targetSkill == focus && !usedNames.contains($0.name) }
