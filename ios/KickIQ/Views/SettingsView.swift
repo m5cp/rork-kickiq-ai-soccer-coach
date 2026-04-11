@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var showNotificationSettings = false
     @State private var showCalendarSettings = false
     @State private var showThemeSettings = false
+    @State private var showDataBackup = false
 
     var body: some View {
         NavigationStack {
@@ -29,6 +30,9 @@ struct SettingsView: View {
                     }
 
                     settingsSection("DATA") {
+                        settingsRow(icon: "externaldrive.fill", title: "Backup & Restore") {
+                            showDataBackup = true
+                        }
                         settingsRow(icon: "arrow.counterclockwise", title: "Reset Onboarding") {
                             storage.resetOnboarding()
                             dismiss()
@@ -80,6 +84,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showThemeSettings) {
                 ThemeSettingsView()
+            }
+            .sheet(isPresented: $showDataBackup) {
+                DataBackupView(storage: storage)
             }
         }
         .presentationDetents([.large])

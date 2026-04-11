@@ -171,6 +171,8 @@ struct TeamDetailView: View {
             activityFeedSection
         case .assignments:
             assignmentsSection
+        case .plans:
+            CoachTrainingPlansView(teamId: team.id, isCoach: myRole?.isCoachOrOwner == true)
         }
     }
 
@@ -465,6 +467,7 @@ enum TeamSection: String, CaseIterable, Identifiable {
     case challenges = "Challenges"
     case feed = "Feed"
     case assignments = "Assigned"
+    case plans = "Plans"
 
     var id: String { rawValue }
 
@@ -477,6 +480,7 @@ enum TeamSection: String, CaseIterable, Identifiable {
         case .challenges: "trophy.fill"
         case .feed: "bubble.left.fill"
         case .assignments: "clipboard.fill"
+        case .plans: "doc.text.fill"
         }
     }
 }

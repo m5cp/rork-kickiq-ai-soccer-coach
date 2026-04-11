@@ -7,6 +7,9 @@ struct TeamView: View {
     @State private var showCreateTeam = false
     @State private var showJoinTeam = false
     @State private var appeared = false
+    @State private var showCoachTips = false
+
+    private let coachTipsShownKey = "kickiq_coach_tips_shown"
 
     var body: some View {
         NavigationStack {
@@ -51,7 +54,22 @@ struct TeamView: View {
                 await teamService.loadMyTeams()
             }
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
+            if !UserDefaults.standard.bool(forKey: coachTipsShownKey) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    showCoachTips = true
+                }
+            }
         }
+        .overlay {
+            if showCoachTips {
+                CoachTipsOverlay(tips: CoachTipsData.teamFeatureTips) {
+                    showCoachTips = false
+                    UserDefaults.standard.set(true, forKey: coachTipsShownKey)
+                }
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: showCoachTips)
     }
 
     private var emptyTeamsView: some View {

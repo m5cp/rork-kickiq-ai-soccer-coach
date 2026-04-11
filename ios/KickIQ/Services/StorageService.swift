@@ -1,9 +1,11 @@
 import Foundation
 import UserNotifications
+import WidgetKit
 
 @Observable
 @MainActor
 class StorageService {
+    private let widgetSuiteName = "group.app.rork.kickiq.shared"
     var profile: PlayerProfile?
     var sessions: [TrainingSession] = []
     var hasCompletedOnboarding: Bool = false
@@ -60,6 +62,7 @@ class StorageService {
 
     init() {
         loadAll()
+        syncWidgetData()
     }
 
     func loadAll() {
@@ -136,6 +139,7 @@ class StorageService {
         if let data = try? JSONEncoder().encode(newProfile) {
             UserDefaults.standard.set(data, forKey: profileKey)
         }
+        syncWidgetData()
     }
 
     func completeOnboarding() {
@@ -156,6 +160,7 @@ class StorageService {
         UserDefaults.standard.set(Array(sessionDates), forKey: sessionDatesKey)
 
         recordSessionDate()
+        syncWidgetData()
     }
 
     func toggleFavorite(_ drillID: String) {
@@ -191,6 +196,7 @@ class StorageService {
         xpPoints += 25
         UserDefaults.standard.set(xpPoints, forKey: xpKey)
         recordSessionDate()
+        syncWidgetData()
     }
 
     func saveWeeklyGoal(_ goal: WeeklyGoal) {
@@ -459,6 +465,17 @@ class StorageService {
         } else {
             dailyDrillSeed = storedSeed
         }
+    }
+
+    func syncWidgetData() {
+        guard let shared = UserDefaults(suiteName: widgetSuiteName) else { return }
+        shared.set(streakCount, forKey: "widget_streak")
+        shared.set(skillScore, forKey: "widget_skill_score")
+        shared.set(profile?.name ?? "Player", forKey: "widget_player_name")
+        shared.set(xpPoints, forKey: "widget_xp")
+        shared.set(playerLevel.rawValue, forKey: "widget_player_level")
+        shared.set(completedDrillIDs.count, forKey: "widget_drills_completed")
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func updateStreak() {
