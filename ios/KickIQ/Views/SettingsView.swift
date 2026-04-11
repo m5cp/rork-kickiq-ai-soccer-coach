@@ -4,34 +4,38 @@ struct SettingsView: View {
     let storage: StorageService
     let calendarService: CalendarService
     @Environment(\.dismiss) private var dismiss
+    @State private var themeManager = ThemeManager.shared
     @State private var showDeleteAlert = false
     @State private var showNotificationSettings = false
     @State private var showCalendarSettings = false
     @State private var showThemeSettings = false
-    @State private var appeared = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: KickIQTheme.Spacing.md) {
-                    sectionHeader("PREFERENCES")
-                    settingsRow(icon: "paintbrush.fill", title: "Appearance & Theme") {
-                        showThemeSettings = true
-                    }
-                    settingsRow(icon: "bell.fill", title: "Notification Preferences") {
-                        showNotificationSettings = true
-                    }
-                    settingsRow(icon: "calendar", title: "Calendar Sync") {
-                        showCalendarSettings = true
+                VStack(spacing: 20) {
+                    appearanceModeSection
+
+                    settingsSection("PREFERENCES") {
+                        settingsRow(icon: "paintbrush.fill", title: "Colors & Theme") {
+                            showThemeSettings = true
+                        }
+                        settingsRow(icon: "bell.fill", title: "Notifications") {
+                            showNotificationSettings = true
+                        }
+                        settingsRow(icon: "calendar", title: "Calendar Sync") {
+                            showCalendarSettings = true
+                        }
                     }
 
-                    sectionHeader("DATA")
-                    settingsRow(icon: "arrow.counterclockwise", title: "Reset Onboarding") {
-                        storage.resetOnboarding()
-                        dismiss()
-                    }
-                    settingsRow(icon: "trash.fill", title: "Delete All Data", isDestructive: true) {
-                        showDeleteAlert = true
+                    settingsSection("DATA") {
+                        settingsRow(icon: "arrow.counterclockwise", title: "Reset Onboarding") {
+                            storage.resetOnboarding()
+                            dismiss()
+                        }
+                        settingsRow(icon: "trash.fill", title: "Delete All Data", isDestructive: true) {
+                            showDeleteAlert = true
+                        }
                     }
 
                     VStack(spacing: 2) {
@@ -43,10 +47,10 @@ struct SettingsView: View {
                             .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.top, KickIQTheme.Spacing.md)
+                    .padding(.top, 4)
                 }
-                .padding(.horizontal, KickIQTheme.Spacing.md)
-                .padding(.bottom, KickIQTheme.Spacing.xl)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
             }
             .scrollIndicators(.hidden)
             .background(KickIQTheme.background.ignoresSafeArea())
@@ -55,6 +59,7 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
                         .foregroundStyle(KickIQTheme.accent)
                 }
             }
@@ -80,27 +85,67 @@ struct SettingsView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationBackground(KickIQTheme.background)
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.4)) { appeared = true }
+    }
+
+    private var appearanceModeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("APPEARANCE")
+                .font(.caption.weight(.bold))
+                .tracking(0.8)
+                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
+
+            HStack(spacing: 0) {
+                ForEach(AppearanceMode.allCases, id: \.rawValue) { mode in
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            themeManager.appearanceMode = mode
+                        }
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: mode.icon)
+                                .font(.system(size: 18, weight: .medium))
+                                .symbolEffect(.bounce, value: themeManager.appearanceMode == mode)
+                            Text(mode.rawValue)
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(themeManager.appearanceMode == mode ? KickIQTheme.buttonLabel : KickIQTheme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background {
+                            if themeManager.appearanceMode == mode {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(KickIQTheme.accent)
+                            }
+                        }
+                    }
+                    .sensoryFeedback(.selection, trigger: themeManager.appearanceMode == mode)
+                }
+            }
+            .padding(4)
+            .background(KickIQTheme.card, in: .rect(cornerRadius: 14))
         }
     }
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.bold))
-            .tracking(1)
-            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, KickIQTheme.Spacing.sm)
+    private func settingsSection(_ title: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .tracking(0.8)
+                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
+
+            VStack(spacing: 2) {
+                content()
+            }
+        }
     }
 
     private func settingsRow(icon: String, title: String, isDestructive: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: KickIQTheme.Spacing.sm + 2) {
+            HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.subheadline)
                     .foregroundStyle(isDestructive ? .red : KickIQTheme.accent)
-                    .frame(width: 24)
+                    .frame(width: 24, alignment: .center)
 
                 Text(title)
                     .font(.subheadline.weight(.medium))
@@ -110,10 +155,11 @@ struct SettingsView: View {
 
                 Image(systemName: "chevron.right")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.2))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.25))
             }
-            .padding(KickIQTheme.Spacing.md)
-            .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(KickIQTheme.card, in: .rect(cornerRadius: 12))
         }
     }
 }
