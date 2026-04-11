@@ -76,17 +76,19 @@ class AIChatService {
     private func callAI(storage: StorageService) async throws -> String {
         let toolkitURL = Config.EXPO_PUBLIC_TOOLKIT_URL
         guard !toolkitURL.isEmpty else {
-            throw ChatError.notConfigured
+            throw ChatError.configMissing(detail: "TOOLKIT_URL is empty")
         }
 
         let baseURL = toolkitURL.hasSuffix("/") ? String(toolkitURL.dropLast()) : toolkitURL
         guard let url = URL(string: "\(baseURL)/agent/chat") else {
-            throw ChatError.notConfigured
+            throw ChatError.configMissing(detail: "Invalid URL: \(baseURL)/agent/chat")
         }
 
         let systemContext = buildSystemContext(storage: storage)
 
-        var apiMessages: [[String: Any]] = []
+        var apiMessages: [[String: Any]] = [
+            ["role": "system", "content": systemContext]
+        ]
 
         for msg in messages where !msg.isError {
             apiMessages.append([
@@ -96,8 +98,7 @@ class AIChatService {
         }
 
         let body: [String: Any] = [
-            "messages": apiMessages,
-            "system": systemContext
+            "messages": apiMessages
         ]
         let jsonData = try JSONSerialization.data(withJSONObject: body)
 
@@ -106,7 +107,7 @@ class AIChatService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let secretKey = Config.EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY
         if !secretKey.isEmpty {
-            request.setValue("Bearer \(secretKey)", forHTTPHeaderField: "Authorization")
+            request.setValue(secretKey, forHTTPHeaderField: "Authorization")
         }
         let appKey = ConfigHelper.value(forKey: "EXPO_PUBLIC_RORK_APP_KEY")
         if !appKey.isEmpty {
@@ -115,6 +116,10 @@ class AIChatService {
         let projectId = Config.EXPO_PUBLIC_PROJECT_ID
         if !projectId.isEmpty {
             request.setValue(projectId, forHTTPHeaderField: "x-project-id")
+        }
+        let teamId = Config.EXPO_PUBLIC_TEAM_ID
+        if !teamId.isEmpty {
+            request.setValue(teamId, forHTTPHeaderField: "x-team-id")
         }
         request.httpBody = jsonData
         request.timeoutInterval = 60
@@ -126,8 +131,11 @@ class AIChatService {
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
-            print("[KickIQ] AI Chat API error (\(httpResponse.statusCode)): \(errorBody)")
+            let errorBody = String(data: data, encoding: .utf8) ?? "No response body"
+            let hasAuth = !secretKey.isEmpty
+            let hasAppKey = !appKey.isEmpty
+            let hasProject = !projectId.isEmpty
+            print("[KickIQ] AI error \(httpResponse.statusCode) | auth:\(hasAuth) appKey:\(hasAppKey) proj:\(hasProject) | \(errorBody.prefix(300))")
             throw ChatError.httpError(statusCode: httpResponse.statusCode, body: errorBody)
         }
 
@@ -342,14 +350,14 @@ class AIChatService {
 }
 
 nonisolated enum ChatError: Error, LocalizedError, Sendable {
-    case notConfigured
+    case configMissing(detail: String)
     case networkError
     case httpError(statusCode: Int, body: String)
     case emptyResponse
 
     var errorDescription: String? {
         switch self {
-        case .notConfigured: "AI service is not configured."
+        case .configMissing(let detail): "AI service not configured: \(detail)"
         case .networkError: "Could not connect to the server."
         case .httpError(let code, _): "Server error (\(code))."
         case .emptyResponse: "Received an empty response."
@@ -358,12 +366,12 @@ nonisolated enum ChatError: Error, LocalizedError, Sendable {
 
     var userMessage: String {
         switch self {
-        case .notConfigured:
-            "AI Coach isn't configured yet. Please try again later."
+        case .configMissing(let detail):
+            "AI Coach isn't configured (\(detail)). Please try again later."
         case .networkError:
             "Couldn't reach the server — check your internet connection. Your token has been refunded."
-        case .httpError(let code, _):
-            "Server error (\(code)) — your token has been refunded. Please try again."
+        case .httpError(let code, let body):
+            "Server error (\(code)): \(body.prefix(120)). Token refunded."
         case .emptyResponse:
             "Got an empty response — your token has been refunded. Please try again."
         }

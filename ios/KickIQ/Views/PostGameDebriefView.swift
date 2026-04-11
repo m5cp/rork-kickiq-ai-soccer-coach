@@ -324,9 +324,9 @@ struct PostGameDebriefView: View {
 
         let body: [String: Any] = [
             "messages": [
+                ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": userMessage]
-            ],
-            "system": systemPrompt
+            ]
         ]
 
         let jsonData = try JSONSerialization.data(withJSONObject: body)
@@ -336,7 +336,7 @@ struct PostGameDebriefView: View {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let secretKey = Config.EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY
         if !secretKey.isEmpty {
-            request.setValue("Bearer \(secretKey)", forHTTPHeaderField: "Authorization")
+            request.setValue(secretKey, forHTTPHeaderField: "Authorization")
         }
         let appKey = ConfigHelper.value(forKey: "EXPO_PUBLIC_RORK_APP_KEY")
         if !appKey.isEmpty {
@@ -345,6 +345,10 @@ struct PostGameDebriefView: View {
         let projectId = Config.EXPO_PUBLIC_PROJECT_ID
         if !projectId.isEmpty {
             request.setValue(projectId, forHTTPHeaderField: "x-project-id")
+        }
+        let teamId = Config.EXPO_PUBLIC_TEAM_ID
+        if !teamId.isEmpty {
+            request.setValue(teamId, forHTTPHeaderField: "x-team-id")
         }
         request.httpBody = jsonData
         request.timeoutInterval = 60
