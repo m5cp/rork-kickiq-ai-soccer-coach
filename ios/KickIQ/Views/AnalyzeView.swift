@@ -4,6 +4,7 @@ import AVFoundation
 
 struct AnalyzeView: View {
     let storage: StorageService
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var aiService = AIAnalysisService()
     @State private var selectedItem: PhotosPickerItem?
     @State private var thumbnailImage: UIImage?
@@ -15,6 +16,8 @@ struct AnalyzeView: View {
     @State private var pulseAnimation = false
     @State private var showCameraUnavailable = false
     @State private var showFilmingGuide = false
+
+    private var isIPad: Bool { sizeClass == .regular }
 
     var body: some View {
         NavigationStack {
@@ -51,12 +54,12 @@ struct AnalyzeView: View {
 
             VStack(spacing: KickIQTheme.Spacing.sm) {
                 Text("ANALYZE")
-                    .font(.system(.largeTitle, design: .default, weight: .black).width(.compressed))
+                    .font(.system(isIPad ? .largeTitle : .largeTitle, design: .default, weight: .black).width(.compressed))
                     .tracking(3)
                     .foregroundStyle(KickIQTheme.textPrimary)
 
                 Text("Upload a training clip for AI feedback")
-                    .font(.subheadline)
+                    .font(isIPad ? .title3 : .subheadline)
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
             .opacity(appeared ? 1 : 0)
@@ -77,11 +80,19 @@ struct AnalyzeView: View {
 
             clipRequirements
 
-            VStack(spacing: KickIQTheme.Spacing.md) {
-                recordButton
-                uploadButton
+            if isIPad {
+                HStack(spacing: KickIQTheme.Spacing.lg) {
+                    recordButton
+                    uploadButton
+                }
+                .frame(maxWidth: AdaptiveLayout.iPadMaxContentWidth)
+            } else {
+                VStack(spacing: KickIQTheme.Spacing.md) {
+                    recordButton
+                    uploadButton
+                }
+                .padding(.horizontal, KickIQTheme.Spacing.md)
             }
-            .padding(.horizontal, KickIQTheme.Spacing.md)
 
             Spacer()
             Spacer()

@@ -2,12 +2,15 @@ import SwiftUI
 
 struct ProgressTabView: View {
     let storage: StorageService
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var selectedSkill: SkillCategory?
     @State private var appeared = false
     @State private var selectedSession: TrainingSession?
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var showComparison = false
+
+    private var isIPad: Bool { sizeClass == .regular }
 
     private var position: PlayerPosition {
         storage.profile?.position ?? .midfielder
@@ -16,24 +19,11 @@ struct ProgressTabView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                    if storage.sessions.isEmpty {
-                        emptyState
-                    } else {
-                        levelOverviewCard
-                        scoreOverTimeCard
-                        if storage.sessions.count >= 2 {
-                            compareSessionsButton
-                        }
-                        skillBreakdownCard
-                        streakHeatmapCard
-                        badgesSection
-                        sessionHistoryList
-                        shareProgressButton
-                    }
+                if isIPad {
+                    iPadProgressLayout
+                } else {
+                    iPhoneProgressLayout
                 }
-                .padding(.horizontal, KickIQTheme.Spacing.md)
-                .padding(.bottom, KickIQTheme.Spacing.xl)
             }
             .scrollIndicators(.hidden)
             .background(KickIQTheme.background.ignoresSafeArea())
@@ -60,6 +50,60 @@ struct ProgressTabView: View {
         .onAppear {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
         }
+    }
+
+    private var iPhoneProgressLayout: some View {
+        VStack(spacing: KickIQTheme.Spacing.md + 4) {
+            if storage.sessions.isEmpty {
+                emptyState
+            } else {
+                levelOverviewCard
+                scoreOverTimeCard
+                if storage.sessions.count >= 2 {
+                    compareSessionsButton
+                }
+                skillBreakdownCard
+                streakHeatmapCard
+                badgesSection
+                sessionHistoryList
+                shareProgressButton
+            }
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.md)
+        .padding(.bottom, KickIQTheme.Spacing.xl)
+    }
+
+    private var iPadProgressLayout: some View {
+        VStack(spacing: KickIQTheme.Spacing.lg) {
+            if storage.sessions.isEmpty {
+                emptyState
+            } else {
+                HStack(alignment: .top, spacing: KickIQTheme.Spacing.lg) {
+                    VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                        levelOverviewCard
+                        scoreOverTimeCard
+                        if storage.sessions.count >= 2 {
+                            compareSessionsButton
+                        }
+                        shareProgressButton
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                        skillBreakdownCard
+                        streakHeatmapCard
+                        badgesSection
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+
+                sessionHistoryList
+            }
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.lg)
+        .padding(.bottom, KickIQTheme.Spacing.xl)
+        .frame(maxWidth: AdaptiveLayout.iPadWideMaxContentWidth)
+        .frame(maxWidth: .infinity)
     }
 
     private var emptyState: some View {

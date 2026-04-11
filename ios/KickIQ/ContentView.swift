@@ -1,6 +1,37 @@
 import SwiftUI
 
+enum AppTab: Int, CaseIterable, Identifiable {
+    case home = 0
+    case analyze = 1
+    case drills = 2
+    case progress = 3
+    case profile = 4
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .home: "Home"
+        case .analyze: "Analyze"
+        case .drills: "Drills"
+        case .progress: "Progress"
+        case .profile: "Profile"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .home: "house.fill"
+        case .analyze: "video.fill"
+        case .drills: "figure.soccer"
+        case .progress: "chart.line.uptrend.xyaxis"
+        case .profile: "person.fill"
+        }
+    }
+}
+
 struct ContentView: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var storage = StorageService()
     @State private var notificationService = NotificationService()
     @State private var calendarService = CalendarService()
@@ -12,7 +43,11 @@ struct ContentView: View {
         ZStack {
             Group {
                 if storage.hasCompletedOnboarding {
-                    mainTabView
+                    if sizeClass == .regular {
+                        iPadLayout
+                    } else {
+                        mainTabView
+                    }
                 } else {
                     OnboardingView(storage: storage)
                 }
@@ -85,5 +120,111 @@ struct ContentView: View {
             }
         }
         .tint(KickIQTheme.accent)
+    }
+
+    private var iPadLayout: some View {
+        NavigationSplitView {
+            iPadSidebar
+                .navigationTitle("KickIQ")
+        } detail: {
+            iPadDetailView
+        }
+        .tint(KickIQTheme.accent)
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    private var iPadSidebar: some View {
+        VStack(spacing: 0) {
+            List {
+                Section {
+                    ForEach(AppTab.allCases) { tab in
+                        Button {
+                            selectedTab = tab.rawValue
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: tab.icon)
+                                    .font(.body)
+                                    .foregroundStyle(selectedTab == tab.rawValue ? KickIQTheme.accent : KickIQTheme.textSecondary)
+                                    .frame(width: 24)
+                                Text(tab.title)
+                                    .font(.body.weight(selectedTab == tab.rawValue ? .semibold : .regular))
+                                    .foregroundStyle(selectedTab == tab.rawValue ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
+                                Spacer()
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .listRowBackground(
+                            selectedTab == tab.rawValue
+                                ? KickIQTheme.accent.opacity(0.12)
+                                : Color.clear
+                        )
+                    }
+                }
+
+                Section("Quick Stats") {
+                    HStack(spacing: KickIQTheme.Spacing.md) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(storage.skillScore)")
+                                .font(.title2.weight(.black))
+                                .foregroundStyle(KickIQTheme.accent)
+                            Text("Skill Score")
+                                .font(.caption2)
+                                .foregroundStyle(KickIQTheme.textSecondary)
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 2) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "flame.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(KickIQTheme.accent)
+                                Text("\(storage.streakCount)")
+                                    .font(.title2.weight(.black))
+                                    .foregroundStyle(KickIQTheme.textPrimary)
+                            }
+                            Text("Day Streak")
+                                .font(.caption2)
+                                .foregroundStyle(KickIQTheme.textSecondary)
+                        }
+                    }
+                    .listRowBackground(KickIQTheme.card)
+                }
+
+                Section("Player") {
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Image(systemName: storage.playerLevel.icon)
+                            .foregroundStyle(KickIQTheme.accent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(storage.profile?.name ?? "Player")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(KickIQTheme.textPrimary)
+                            Text("\(storage.playerLevel.rawValue) · \(storage.xpPoints) XP")
+                                .font(.caption2)
+                                .foregroundStyle(KickIQTheme.textSecondary)
+                        }
+                    }
+                    .listRowBackground(KickIQTheme.card)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(KickIQTheme.background)
+        }
+    }
+
+    @ViewBuilder
+    private var iPadDetailView: some View {
+        switch selectedTab {
+        case 0:
+            HomeView(storage: storage, calendarService: calendarService, selectedTab: $selectedTab)
+        case 1:
+            AnalyzeView(storage: storage)
+        case 2:
+            DrillsView(storage: storage)
+        case 3:
+            ProgressTabView(storage: storage)
+        case 4:
+            ProfileView(storage: storage, calendarService: calendarService)
+        default:
+            HomeView(storage: storage, calendarService: calendarService, selectedTab: $selectedTab)
+        }
     }
 }

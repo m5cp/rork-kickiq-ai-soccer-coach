@@ -4,6 +4,7 @@ struct AnalysisResultView: View {
     let session: TrainingSession
     let storage: StorageService
     let onDismiss: () -> Void
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var appeared = false
     @State private var scoreAppeared = false
     @State private var showShareSheet = false
@@ -11,25 +12,15 @@ struct AnalysisResultView: View {
     @State private var showSessionNotes = false
     @State private var showQRShare = false
 
+    private var isIPad: Bool { sizeClass == .regular }
+
     var body: some View {
         ScrollView {
-            VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                headerSection
-                videoQualityBanner
-                overallScoreSection
-                strengthsSection
-                needsImprovementSection
-                skillBreakdownSection
-                coachingPointsSection
-                nextSessionFocusSection
-                feedbackSection
-                drillsSection
-                sessionNotesButton
-                sharePromptBanner
-                actionButtons
+            if isIPad {
+                iPadResultLayout
+            } else {
+                iPhoneResultLayout
             }
-            .padding(.horizontal, KickIQTheme.Spacing.md)
-            .padding(.bottom, KickIQTheme.Spacing.xl)
         }
         .scrollIndicators(.hidden)
         .background(KickIQTheme.background.ignoresSafeArea())
@@ -55,6 +46,64 @@ struct AnalysisResultView: View {
                 subtitle: "Let your teammate scan to see your results"
             )
         }
+    }
+
+    private var iPhoneResultLayout: some View {
+        VStack(spacing: KickIQTheme.Spacing.md + 4) {
+            headerSection
+            videoQualityBanner
+            overallScoreSection
+            strengthsSection
+            needsImprovementSection
+            skillBreakdownSection
+            coachingPointsSection
+            nextSessionFocusSection
+            feedbackSection
+            drillsSection
+            sessionNotesButton
+            sharePromptBanner
+            actionButtons
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.md)
+        .padding(.bottom, KickIQTheme.Spacing.xl)
+    }
+
+    private var iPadResultLayout: some View {
+        VStack(spacing: KickIQTheme.Spacing.lg) {
+            headerSection
+            videoQualityBanner
+
+            HStack(alignment: .top, spacing: KickIQTheme.Spacing.lg) {
+                VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                    overallScoreSection
+                    strengthsSection
+                    needsImprovementSection
+                    feedbackSection
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                    skillBreakdownSection
+                    coachingPointsSection
+                    nextSessionFocusSection
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            drillsSection
+            sessionNotesButton
+
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                sharePromptBanner
+                    .frame(maxWidth: .infinity)
+                actionButtons
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.lg)
+        .padding(.bottom, KickIQTheme.Spacing.xl)
+        .frame(maxWidth: AdaptiveLayout.iPadWideMaxContentWidth)
+        .frame(maxWidth: .infinity)
     }
 
     private var headerSection: some View {

@@ -2,11 +2,14 @@ import SwiftUI
 
 struct DrillsView: View {
     let storage: StorageService
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var drillsService = DrillsService()
     @State private var appeared = false
     @State private var selectedDrill: Drill?
     @State private var completedTrigger = 0
     @State private var expandedCategories: Set<String> = []
+
+    private var isIPad: Bool { sizeClass == .regular }
 
     var body: some View {
         NavigationStack {
@@ -94,26 +97,32 @@ struct DrillsView: View {
                 VStack(spacing: 0) {
                     categoryHeader(group.category, icon: group.icon, count: group.drills.count, isExpanded: expandedCategories.contains(group.category))
                         .onAppear {
-                            if sectionIndex < 3 {
+                            if sectionIndex < 3 || isIPad {
                                 expandedCategories.insert(group.category)
                             }
                         }
 
                     if expandedCategories.contains(group.category) {
-                        VStack(spacing: KickIQTheme.Spacing.sm) {
-                            ForEach(Array(group.drills.enumerated()), id: \.element.id) { drillIndex, drill in
-                                Button {
-                                    selectedDrill = drill
-                                } label: {
-                                    drillCard(drill)
+                        if isIPad {
+                            iPadDrillGrid(group.drills)
+                                .padding(.top, KickIQTheme.Spacing.sm)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        } else {
+                            VStack(spacing: KickIQTheme.Spacing.sm) {
+                                ForEach(Array(group.drills.enumerated()), id: \.element.id) { drillIndex, drill in
+                                    Button {
+                                        selectedDrill = drill
+                                    } label: {
+                                        drillCard(drill)
+                                    }
+                                    .opacity(appeared ? 1 : 0)
+                                    .offset(y: appeared ? 0 : 10)
+                                    .animation(.spring(response: 0.35).delay(Double(drillIndex) * 0.04), value: appeared)
                                 }
-                                .opacity(appeared ? 1 : 0)
-                                .offset(y: appeared ? 0 : 10)
-                                .animation(.spring(response: 0.35).delay(Double(drillIndex) * 0.04), value: appeared)
                             }
+                            .padding(.top, KickIQTheme.Spacing.sm)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
-                        .padding(.top, KickIQTheme.Spacing.sm)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 .opacity(appeared ? 1 : 0)
@@ -121,6 +130,67 @@ struct DrillsView: View {
                 .animation(.spring(response: 0.4).delay(Double(sectionIndex) * 0.06), value: appeared)
             }
         }
+    }
+
+    private func iPadDrillGrid(_ drills: [Drill]) -> some View {
+        LazyVGrid(columns: AdaptiveLayout.iPadGridColumns, spacing: KickIQTheme.Spacing.sm) {
+            ForEach(Array(drills.enumerated()), id: \.element.id) { drillIndex, drill in
+                Button {
+                    selectedDrill = drill
+                } label: {
+                    iPadDrillCard(drill)
+                }
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 10)
+                .animation(.spring(response: 0.35).delay(Double(drillIndex) * 0.03), value: appeared)
+            }
+        }
+    }
+
+    private func iPadDrillCard(_ drill: Drill) -> some View {
+        let isCompleted = storage.completedDrillIDs.contains(drill.id)
+
+        return VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                ZStack {
+                    Circle()
+                        .fill(isCompleted ? Color.green.opacity(0.15) : KickIQTheme.surface)
+                        .frame(width: 38, height: 38)
+                    Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 16))
+                        .foregroundStyle(isCompleted ? .green : KickIQTheme.textSecondary.opacity(0.3))
+                }
+
+                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.xs) {
+                    Text(drill.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                Label(drill.duration, systemImage: "clock")
+                Text("·")
+                Text(drill.difficulty.rawValue)
+            }
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(KickIQTheme.textSecondary)
+
+            if !drill.description.isEmpty {
+                Text(drill.description)
+                    .font(.caption)
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+            }
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(KickIQTheme.surface, in: .rect(cornerRadius: KickIQTheme.Radius.md))
     }
 
     private func categoryHeader(_ name: String, icon: String, count: Int, isExpanded: Bool) -> some View {

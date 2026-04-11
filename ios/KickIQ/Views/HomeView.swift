@@ -5,6 +5,7 @@ struct HomeView: View {
     let storage: StorageService
     let calendarService: CalendarService
     @Binding var selectedTab: Int
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var appeared = false
     @State private var streakBounce = false
     @State private var scoreAnimated = false
@@ -23,27 +24,16 @@ struct HomeView: View {
         }
     }
 
+    private var isIPad: Bool { sizeClass == .regular }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                    headerSection
-                    playerLevelCard
-                    skillScoreCard
-                    weeklyGoalCard
-                    streakCard
-                    analyzeCTA
-                    trainingPlanCTA
-                    todaysDrillCard
-                    if storage.shouldShowMonthlyReassessment {
-                        reassessmentCard
-                    }
-                    if let session = storage.latestSession {
-                        recentAnalysisCard(session)
-                    }
+                if isIPad {
+                    iPadHomeLayout
+                } else {
+                    iPhoneHomeLayout
                 }
-                .padding(.horizontal, KickIQTheme.Spacing.md)
-                .padding(.bottom, KickIQTheme.Spacing.xl)
             }
             .scrollIndicators(.hidden)
             .background(KickIQTheme.background.ignoresSafeArea())
@@ -93,6 +83,68 @@ struct HomeView: View {
         }
     }
 
+    // MARK: - iPhone Layout
+
+    private var iPhoneHomeLayout: some View {
+        VStack(spacing: KickIQTheme.Spacing.md + 4) {
+            headerSection
+            playerLevelCard
+            skillScoreCard
+            weeklyGoalCard
+            streakCard
+            analyzeCTA
+            trainingPlanCTA
+            todaysDrillCard
+            if storage.shouldShowMonthlyReassessment {
+                reassessmentCard
+            }
+            if let session = storage.latestSession {
+                recentAnalysisCard(session)
+            }
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.md)
+        .padding(.bottom, KickIQTheme.Spacing.xl)
+    }
+
+    // MARK: - iPad Layout
+
+    private var iPadHomeLayout: some View {
+        VStack(spacing: KickIQTheme.Spacing.lg) {
+            headerSection
+
+            HStack(alignment: .top, spacing: KickIQTheme.Spacing.lg) {
+                VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                    skillScoreCard
+                    playerLevelCard
+                    streakCard
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                    weeklyGoalCard
+                    analyzeCTA
+                    trainingPlanCTA
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            todaysDrillCard
+
+            if storage.shouldShowMonthlyReassessment {
+                reassessmentCard
+            }
+            if let session = storage.latestSession {
+                recentAnalysisCard(session)
+            }
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.lg)
+        .padding(.bottom, KickIQTheme.Spacing.xl)
+        .frame(maxWidth: AdaptiveLayout.iPadWideMaxContentWidth)
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Cards
+
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: KickIQTheme.Spacing.xs) {
             Text("KICKIQ")
@@ -101,7 +153,7 @@ struct HomeView: View {
                 .foregroundStyle(KickIQTheme.accent)
 
             Text("\(greeting), \(storage.profile?.name ?? "Player")")
-                .font(.system(.title2, design: .default, weight: .bold))
+                .font(.system(isIPad ? .title : .title2, design: .default, weight: .bold))
                 .foregroundStyle(KickIQTheme.textPrimary)
 
             HStack(spacing: 6) {
@@ -126,6 +178,7 @@ struct HomeView: View {
 
     private var skillScoreCard: some View {
         let score = storage.skillScore
+        let circleSize: CGFloat = isIPad ? 160 : 140
 
         return VStack(spacing: KickIQTheme.Spacing.md) {
             Text("SKILL SCORE")
@@ -136,7 +189,7 @@ struct HomeView: View {
             ZStack {
                 Circle()
                     .stroke(KickIQTheme.divider, lineWidth: 10)
-                    .frame(width: 140, height: 140)
+                    .frame(width: circleSize, height: circleSize)
 
                 Circle()
                     .trim(from: 0, to: scoreAnimated ? Double(score) / 100.0 : 0)
@@ -147,12 +200,12 @@ struct HomeView: View {
                         ),
                         style: StrokeStyle(lineWidth: 10, lineCap: .round)
                     )
-                    .frame(width: 140, height: 140)
+                    .frame(width: circleSize, height: circleSize)
                     .rotationEffect(.degrees(-90))
 
                 VStack(spacing: 0) {
                     Text("\(score)")
-                        .font(.system(size: 48, weight: .black, design: .default))
+                        .font(.system(size: isIPad ? 56 : 48, weight: .black, design: .default))
                         .foregroundStyle(KickIQTheme.textPrimary)
                         .contentTransition(.numericText())
                     Text("/ 100")
@@ -616,7 +669,7 @@ struct HomeView: View {
             }
 
             HStack(spacing: KickIQTheme.Spacing.sm) {
-                ForEach(session.skillScores.prefix(3)) { score in
+                ForEach(session.skillScores.prefix(isIPad ? 5 : 3)) { score in
                     VStack(spacing: 6) {
                         ZStack {
                             Circle()
@@ -643,7 +696,7 @@ struct HomeView: View {
             Text(session.feedback)
                 .font(.caption)
                 .foregroundStyle(KickIQTheme.textSecondary)
-                .lineLimit(2)
+                .lineLimit(isIPad ? 3 : 2)
         }
         .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -736,6 +789,8 @@ struct ReassessmentSheet: View {
                     }
                 }
                 .padding(.horizontal, KickIQTheme.Spacing.md)
+                .frame(maxWidth: AdaptiveLayout.iPadMaxContentWidth)
+                .frame(maxWidth: .infinity)
             }
             .scrollIndicators(.hidden)
             .background(KickIQTheme.background.ignoresSafeArea())
