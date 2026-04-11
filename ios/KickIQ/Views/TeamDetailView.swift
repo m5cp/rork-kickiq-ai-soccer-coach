@@ -12,6 +12,7 @@ struct TeamDetailView: View {
     @State private var showAssignDrill = false
     @State private var showCreateChallenge = false
     @State private var showLeaveAlert = false
+    @State private var showShareInvite = false
     @State private var appeared = false
 
     private var myRole: TeamRole? {
@@ -36,6 +37,9 @@ struct TeamDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     if myRole?.isCoachOrOwner == true {
+                        Button { showShareInvite = true } label: {
+                            Label("Share Team Invite", systemImage: "square.and.arrow.up")
+                        }
                         Button { showAssignDrill = true } label: {
                             Label("Assign Drill", systemImage: "clipboard")
                         }
@@ -58,6 +62,9 @@ struct TeamDetailView: View {
         }
         .sheet(isPresented: $showCreateChallenge) {
             CreateChallengeSheet(teamId: team.id, storage: storage)
+        }
+        .sheet(isPresented: $showShareInvite) {
+            TeamInviteShareSheet(team: team)
         }
         .alert("Leave Team?", isPresented: $showLeaveAlert) {
             Button("Leave", role: .destructive) {
@@ -123,6 +130,23 @@ struct TeamDetailView: View {
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(KickIQTheme.textSecondary)
                     }
+                }
+            }
+
+            if myRole?.isCoachOrOwner == true {
+                Button {
+                    showShareInvite = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("Share Invite to Players")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.md))
                 }
             }
         }

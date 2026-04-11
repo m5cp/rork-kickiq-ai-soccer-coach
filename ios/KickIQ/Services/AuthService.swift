@@ -1,7 +1,6 @@
 import Foundation
 import AuthenticationServices
 import Supabase
-import CryptoKit
 
 @Observable
 @MainActor
@@ -14,7 +13,6 @@ class AuthService {
     var errorMessage: String?
 
     private let supabase = SupabaseService.shared
-    private var currentNonce: String?
 
     private init() {
         Task { await checkSession() }
@@ -80,6 +78,86 @@ class AuthService {
         isLoading = false
     }
 
+    func signInWithGoogle() async {
+        guard supabase.isConfigured else {
+            errorMessage = "Authentication is not configured"
+            return
+        }
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let session = try await supabase.client.auth.signInWithOAuth(
+                provider: .google
+            ) { (session: ASWebAuthenticationSession) in
+                session.prefersEphemeralWebBrowserSession = false
+            }
+            currentUser = session.user
+            isSignedIn = true
+        } catch {
+            let nsError = error as NSError
+            if nsError.domain == "com.apple.AuthenticationServices.WebAuthenticationSession" && nsError.code == 1 {
+                // User cancelled
+            } else {
+                errorMessage = "Google sign in failed: \(error.localizedDescription)"
+            }
+        }
+
+        isLoading = false
+    }
+
+    func signUpWithEmail(email: String, password: String, displayName: String) async {
+        guard supabase.isConfigured else {
+            errorMessage = "Authentication is not configured"
+            return
+        }
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let response = try await supabase.client.auth.signUp(
+                email: email,
+                password: password
+            )
+
+            if let session = response.session {
+                currentUser = session.user
+                isSignedIn = true
+                if !displayName.isEmpty {
+                    await upsertProfile(userId: session.user.id.uuidString, displayName: displayName)
+                }
+            } else {
+                errorMessage = "Check your email to confirm your account, then sign in."
+            }
+        } catch {
+            errorMessage = "Sign up failed: \(error.localizedDescription)"
+        }
+
+        isLoading = false
+    }
+
+    func signInWithEmail(email: String, password: String) async {
+        guard supabase.isConfigured else {
+            errorMessage = "Authentication is not configured"
+            return
+        }
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let session = try await supabase.client.auth.signIn(
+                email: email,
+                password: password
+            )
+            currentUser = session.user
+            isSignedIn = true
+        } catch {
+            errorMessage = "Invalid email or password"
+        }
+
+        isLoading = false
+    }
+
     func signOut() async {
         do {
             try await supabase.client.auth.signOut()
@@ -98,9 +176,7 @@ class AuthService {
                     "display_name": displayName
                 ])
                 .execute()
-        } catch {
-            // Profile upsert is best-effort
-        }
+        } catch {}
     }
 
     var userDisplayName: String {
