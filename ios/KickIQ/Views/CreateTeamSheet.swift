@@ -1,12 +1,16 @@
 import SwiftUI
+import AuthenticationServices
 
 struct CreateTeamSheet: View {
     let storage: StorageService
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var auth = AuthService.shared
     @State private var teamService = TeamService.shared
     @State private var teamName: String = ""
     @State private var ageGroup: String = ""
     @State private var createdTeam: TeamDTO?
+    @State private var needsAuth = false
 
     private let ageGroups = ["U10", "U12", "U14", "U16", "U18", "Adult", "Mixed"]
 
@@ -16,6 +20,8 @@ struct CreateTeamSheet: View {
                 VStack(spacing: KickIQTheme.Spacing.lg) {
                     if let team = createdTeam {
                         successView(team)
+                    } else if needsAuth && !auth.isSignedIn {
+                        signInSection
                     } else {
                         formView
                     }
@@ -25,7 +31,7 @@ struct CreateTeamSheet: View {
             }
             .scrollIndicators(.hidden)
             .background(KickIQTheme.background.ignoresSafeArea())
-            .navigationTitle(createdTeam != nil ? "Team Created" : "Create Team")
+            .navigationTitle(createdTeam != nil ? "Team Created" : (needsAuth && !auth.isSignedIn ? "Sign In to Create" : "Create Team"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -37,6 +43,11 @@ struct CreateTeamSheet: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationBackground(KickIQTheme.background)
+        .onChange(of: auth.isSignedIn) { _, signedIn in
+            if signedIn && needsAuth {
+                needsAuth = false
+            }
+        }
     }
 
     private var formView: some View {
@@ -97,16 +108,10 @@ struct CreateTeamSheet: View {
             }
 
             Button {
-                Task {
-                    let team = await teamService.createTeam(
-                        name: teamName.trimmingCharacters(in: .whitespaces),
-                        ageGroup: ageGroup.isEmpty ? nil : ageGroup
-                    )
-                    if let team {
-                        withAnimation(.spring(response: 0.4)) {
-                            createdTeam = team
-                        }
-                    }
+                if !auth.isSignedIn {
+                    withAnimation(.spring(response: 0.4)) { needsAuth = true }
+                } else {
+                    createTeam()
                 }
             } label: {
                 HStack(spacing: KickIQTheme.Spacing.sm) {
@@ -123,6 +128,70 @@ struct CreateTeamSheet: View {
             }
             .disabled(teamName.trimmingCharacters(in: .whitespaces).isEmpty || teamService.isLoading)
             .opacity(teamName.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
+        }
+    }
+
+    private var signInSection: some View {
+        VStack(spacing: KickIQTheme.Spacing.lg) {
+            ZStack {
+                Circle()
+                    .fill(KickIQTheme.accent.opacity(0.15))
+                    .frame(width: 80, height: 80)
+                Image(systemName: "person.badge.shield.checkmark.fill")
+                    .font(.system(size: 36))
+                    .foregroundStyle(KickIQTheme.accent)
+            }
+
+            VStack(spacing: KickIQTheme.Spacing.sm) {
+                Text("Sign In Required")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
+                Text("Create an account to set up your team. Your players will use a code to join.")
+                    .font(.subheadline)
+                    .foregroundStyle(KickIQTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            if !teamName.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "shield.fill")
+                        .foregroundStyle(KickIQTheme.accent)
+                    Text("Team: \(teamName)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                }
+                .padding(KickIQTheme.Spacing.md)
+                .frame(maxWidth: .infinity)
+                .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+            }
+
+            InlineAuthButtons { signedIn in
+                if signedIn {
+                    createTeam()
+                }
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.3)) { needsAuth = false }
+            } label: {
+                Text("Back to form")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+        }
+    }
+
+    private func createTeam() {
+        Task {
+            let team = await teamService.createTeam(
+                name: teamName.trimmingCharacters(in: .whitespaces),
+                ageGroup: ageGroup.isEmpty ? nil : ageGroup
+            )
+            if let team {
+                withAnimation(.spring(response: 0.4)) {
+                    createdTeam = team
+                }
+            }
         }
     }
 
@@ -170,6 +239,21 @@ struct CreateTeamSheet: View {
             .padding(KickIQTheme.Spacing.lg)
             .frame(maxWidth: .infinity)
             .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+
+            Button {
+                let message = "Join my team \"\(team.name)\" on KickIQ! Use code: \(team.join_code)"
+                UIPasteboard.general.string = message
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "square.and.arrow.up")
+                    Text("Share Invite")
+                }
+                .font(.headline)
+                .foregroundStyle(KickIQTheme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, KickIQTheme.Spacing.md)
+                .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+            }
         }
     }
 }

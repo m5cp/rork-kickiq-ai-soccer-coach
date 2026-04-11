@@ -12,6 +12,8 @@ struct ProfileView: View {
     @State private var showTeam = false
     @State private var showAICoach = false
     @State private var showDeleteAlert = false
+    @State private var showSignOutAlert = false
+    @State private var auth = AuthService.shared
 
     var body: some View {
         NavigationStack {
@@ -64,14 +66,22 @@ struct ProfileView: View {
             .sheet(isPresented: $showTeam) {
                 TeamView(storage: storage)
             }
-            .alert("Delete Account?", isPresented: $showDeleteAlert) {
+            .alert("Delete All Data?", isPresented: $showDeleteAlert) {
                 Button("Delete", role: .destructive) {
                     storage.deleteAccount()
                     dismiss()
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will permanently delete your profile and all data. This action cannot be undone.")
+                Text("This will permanently delete your profile and all local data. This action cannot be undone.")
+            }
+            .alert("Sign Out?", isPresented: $showSignOutAlert) {
+                Button("Sign Out", role: .destructive) {
+                    Task { await auth.signOut() }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("You'll be signed out of team features. Your local data (drills, progress, scores) stays on your phone.")
             }
         }
         .presentationDetents([.large])
@@ -401,8 +411,15 @@ struct ProfileView: View {
         VStack(spacing: 0) {
             sectionHeader("ACCOUNT")
 
-            settingsActionRow(icon: "trash.fill", title: "Delete Account", isDestructive: true) {
-                showDeleteAlert = true
+            VStack(spacing: 2) {
+                if auth.isSignedIn {
+                    settingsActionRow(icon: "rectangle.portrait.and.arrow.right", title: "Sign Out") {
+                        showSignOutAlert = true
+                    }
+                }
+                settingsActionRow(icon: "trash.fill", title: "Delete All Data", isDestructive: true) {
+                    showDeleteAlert = true
+                }
             }
         }
         .opacity(appeared ? 1 : 0)

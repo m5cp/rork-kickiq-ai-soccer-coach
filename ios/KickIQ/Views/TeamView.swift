@@ -15,12 +15,12 @@ struct TeamView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if !auth.isSignedIn {
-                    AuthView { Task { await teamService.loadMyTeams() } }
-                } else if teamService.myTeams.isEmpty && !teamService.isLoading {
+                if auth.isSignedIn && !teamService.myTeams.isEmpty {
+                    teamsListView
+                } else if auth.isSignedIn && teamService.myTeams.isEmpty && !teamService.isLoading {
                     emptyTeamsView
                 } else {
-                    teamsListView
+                    gettingStartedView
                 }
             }
             .background(KickIQTheme.background.ignoresSafeArea())
@@ -76,6 +76,71 @@ struct TeamView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showCoachTips)
+    }
+
+    private var gettingStartedView: some View {
+        VStack(spacing: KickIQTheme.Spacing.xl) {
+            Spacer()
+
+            VStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(KickIQTheme.accent.opacity(0.1))
+                        .frame(width: 100, height: 100)
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(KickIQTheme.accent.opacity(0.6))
+                }
+
+                Text("Team Features")
+                    .font(.system(.title, design: .default, weight: .bold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
+
+                Text("Create a team as a coach and invite players, or join a team with a code from your coach.")
+                    .font(.subheadline)
+                    .foregroundStyle(KickIQTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, KickIQTheme.Spacing.lg)
+            }
+
+            VStack(spacing: KickIQTheme.Spacing.md) {
+                featureRow(icon: "shield.fill", title: "Coach Creates Team", desc: "Sign in, name your team, and get a unique invite code")
+                featureRow(icon: "link", title: "Share Invite Code", desc: "Send the code to your players via text or in person")
+                featureRow(icon: "person.badge.plus", title: "Players Join", desc: "Players sign in and enter the code to join the team")
+                featureRow(icon: "iphone", title: "Solo Users", desc: "No sign-in needed — everything saves to your phone")
+            }
+            .padding(.horizontal, KickIQTheme.Spacing.md)
+
+            Spacer()
+
+            VStack(spacing: KickIQTheme.Spacing.sm) {
+                Button { showCreateTeam = true } label: {
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Create a Team (Coach)")
+                    }
+                    .font(.headline)
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, KickIQTheme.Spacing.md)
+                    .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                }
+
+                Button { showJoinTeam = true } label: {
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Image(systemName: "person.badge.plus")
+                        Text("Join with Code")
+                    }
+                    .font(.headline)
+                    .foregroundStyle(KickIQTheme.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, KickIQTheme.Spacing.md)
+                    .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                }
+            }
+            .padding(.horizontal, KickIQTheme.Spacing.md)
+            .padding(.bottom, KickIQTheme.Spacing.xl)
+        }
     }
 
     private var emptyTeamsView: some View {
@@ -186,5 +251,27 @@ struct TeamView: View {
         }
         .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+    }
+
+    private func featureRow(icon: String, title: String, desc: String) -> some View {
+        HStack(spacing: KickIQTheme.Spacing.md) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(KickIQTheme.accent)
+                .frame(width: 36)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
+                Text(desc)
+                    .font(.caption)
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+
+            Spacer()
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.md))
     }
 }
