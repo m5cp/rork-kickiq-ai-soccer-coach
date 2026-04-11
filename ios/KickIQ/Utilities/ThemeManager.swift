@@ -30,16 +30,8 @@ nonisolated struct ThemePreset: Identifiable, Codable, Sendable {
     let icon: String
 
     static let allPresets: [ThemePreset] = [
-        ThemePreset(id: "sky", name: "Sky & Navy", primaryHex: 0x7BAFD4, accentHex: 0x13294B, icon: "cloud.fill"),
         ThemePreset(id: "classic", name: "Classic", primaryHex: 0xFF6D00, accentHex: 0xE65100, icon: "flame.fill"),
-        ThemePreset(id: "crimson", name: "Crimson & Navy", primaryHex: 0xEF0107, accentHex: 0x063672, icon: "shield.fill"),
-        ThemePreset(id: "garnet", name: "Garnet & Blue", primaryHex: 0xA50044, accentHex: 0x004D98, icon: "shield.lefthalf.filled"),
-        ThemePreset(id: "ember", name: "Ember & Gold", primaryHex: 0xC8102E, accentHex: 0xF6EB61, icon: "bolt.fill"),
-        ThemePreset(id: "royal", name: "Royal & Amber", primaryHex: 0x034694, accentHex: 0xDBA111, icon: "crown.fill"),
-        ThemePreset(id: "sunburst", name: "Sunburst", primaryHex: 0xFEBE10, accentHex: 0x00529F, icon: "sun.max.fill"),
-        ThemePreset(id: "midnight", name: "Midnight & Red", primaryHex: 0x004170, accentHex: 0xDA291C, icon: "moon.stars.fill"),
-        ThemePreset(id: "monochrome", name: "Monochrome", primaryHex: 0x000000, accentHex: 0xFFFFFF, icon: "circle.lefthalf.filled"),
-        ThemePreset(id: "electric", name: "Electric Yellow", primaryHex: 0xFDE100, accentHex: 0x000000, icon: "bolt.circle.fill"),
+        ThemePreset(id: "sky", name: "Sky & Navy", primaryHex: 0x7BAFD4, accentHex: 0x13294B, icon: "cloud.fill"),
     ]
 }
 
@@ -127,7 +119,7 @@ class ThemeManager {
         if customPrimaryHex == 0 { customPrimaryHex = 0x7BAFD4 }
         if customAccentHex == 0 { customAccentHex = 0x13294B }
 
-        let legacyMap = ["unc": "sky", "arsenal": "crimson", "barcelona": "garnet", "liverpool": "ember", "chelsea": "royal", "madrid": "sunburst", "psg": "midnight", "juventus": "monochrome", "dortmund": "electric"]
+        let legacyMap = ["unc": "sky", "arsenal": "classic", "barcelona": "classic", "liverpool": "classic", "chelsea": "classic", "royal": "classic", "madrid": "classic", "psg": "classic", "midnight": "classic", "juventus": "classic", "dortmund": "classic", "crimson": "classic", "garnet": "classic", "ember": "classic", "sunburst": "classic", "monochrome": "classic", "electric": "classic"]
         if let old = selectedPresetID, let mapped = legacyMap[old] {
             selectedPresetID = mapped
         }

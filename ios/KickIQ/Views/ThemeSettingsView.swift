@@ -14,9 +14,7 @@ struct ThemeSettingsView: View {
                     appearanceModeSection
                     previewCard
                     presetsSection
-                    if themeManager.isUsingCustomColors {
-                        customColorsSection
-                    }
+                    customColorsSection
                 }
                 .padding(.horizontal, KickIQTheme.Spacing.md)
                 .padding(.bottom, KickIQTheme.Spacing.xl)
