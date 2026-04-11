@@ -194,16 +194,12 @@ struct DrillsView: View {
                     .sensoryFeedback(.selection, trigger: isExpanded)
 
                     if isExpanded {
-                        VStack(spacing: 8) {
-                            if isIPad {
-                                iPadDrillGrid(group.drills)
-                            } else {
-                                ForEach(group.drills, id: \.id) { drill in
-                                    Button {
-                                        selectedDrill = drill
-                                    } label: {
-                                        drillCard(drill)
-                                    }
+                        LazyVGrid(columns: isIPad ? AdaptiveLayout.iPadTripleColumns : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                            ForEach(group.drills, id: \.id) { drill in
+                                Button {
+                                    selectedDrill = drill
+                                } label: {
+                                    drillGridCard(drill)
                                 }
                             }
                         }
@@ -219,117 +215,69 @@ struct DrillsView: View {
         }
     }
 
-    private func iPadDrillGrid(_ drills: [Drill]) -> some View {
-        LazyVGrid(columns: AdaptiveLayout.iPadGridColumns, spacing: KickIQTheme.Spacing.sm) {
-            ForEach(drills, id: \.id) { drill in
-                Button {
-                    selectedDrill = drill
-                } label: {
-                    iPadDrillCard(drill)
-                }
-            }
-        }
-    }
-
-    private func iPadDrillCard(_ drill: Drill) -> some View {
-        let isCompleted = storage.completedDrillIDs.contains(drill.id)
-
-        return VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-            HStack(spacing: KickIQTheme.Spacing.sm) {
-                difficultyDot(drill.difficulty)
-
-                Text(drill.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.textPrimary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-
-                Spacer()
-
-                if isCompleted {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.green)
-                }
-            }
-
-            Text(drill.description)
-                .font(.caption)
-                .foregroundStyle(KickIQTheme.textSecondary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-
-            HStack(spacing: 12) {
-                Label(drill.duration, systemImage: "clock")
-                Label(drill.difficulty.rawValue, systemImage: "speedometer")
-            }
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
-        }
-        .padding(KickIQTheme.Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(KickIQTheme.surface, in: .rect(cornerRadius: KickIQTheme.Radius.md))
-    }
-
-    private func drillCard(_ drill: Drill) -> some View {
+    private func drillGridCard(_ drill: Drill) -> some View {
         let isCompleted = storage.completedDrillIDs.contains(drill.id)
 
         return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: 6) {
                 difficultyDot(drill.difficulty)
 
-                Text(drill.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.textPrimary)
-                    .lineLimit(1)
+                Text(drill.difficulty.rawValue)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(difficultyColor(drill.difficulty))
 
                 Spacer()
 
                 if isCompleted {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 15))
+                        .font(.system(size: 14))
                         .foregroundStyle(.green)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.35))
                 }
             }
 
-            Text(drill.description)
-                .font(.caption)
-                .foregroundStyle(KickIQTheme.textSecondary)
+            Text(drill.name)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(KickIQTheme.textPrimary)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 12) {
-                HStack(spacing: 4) {
+            Text(drill.description)
+                .font(.caption2)
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .lineLimit(3)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 4)
+
+            HStack(spacing: 6) {
+                HStack(spacing: 3) {
                     Image(systemName: "clock")
-                        .font(.system(size: 10))
+                        .font(.system(size: 9))
                     Text(drill.duration)
                 }
-                HStack(spacing: 4) {
-                    Image(systemName: "speedometer")
-                        .font(.system(size: 10))
-                    Text(drill.difficulty.rawValue)
-                }
-
-                Spacer()
 
                 if !drill.reps.isEmpty {
-                    HStack(spacing: 4) {
+                    Text("·")
+                    HStack(spacing: 3) {
                         Image(systemName: "repeat")
-                            .font(.system(size: 10))
+                            .font(.system(size: 9))
                         Text(drill.reps)
                             .lineLimit(1)
                     }
                 }
             }
-            .font(.system(size: 11, weight: .medium))
+            .font(.system(size: 10, weight: .medium))
             .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
         }
         .padding(KickIQTheme.Spacing.md)
-        .background(KickIQTheme.surface, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+        .frame(maxWidth: .infinity, minHeight: 160, alignment: .leading)
+        .background(
+            KickIQTheme.surface
+                .shadow(.drop(color: .black.opacity(0.06), radius: 3, y: 1)),
+            in: .rect(cornerRadius: KickIQTheme.Radius.lg)
+        )
     }
 
     private func difficultyDot(_ difficulty: DrillDifficulty) -> some View {
