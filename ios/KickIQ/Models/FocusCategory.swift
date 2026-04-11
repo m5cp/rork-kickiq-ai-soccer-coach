@@ -52,6 +52,10 @@ nonisolated struct FocusCategory: Codable, Sendable, Identifiable {
         case .acceleration: "Burst into top speed and brake sharply"
         case .defensiveFootwork: "Jockey and contain attackers"
         case .weakFoot: "Develop your non-dominant foot"
+        case .turning: "Turn sharply with the ball under control"
+        case .striking: "Strike the ball cleanly with proper technique"
+        case .receiving: "Control and orient the ball for the next action"
+        case .juggling: "Keep the ball airborne using all surfaces"
         }
     }
 

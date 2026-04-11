@@ -101,6 +101,10 @@ nonisolated enum SkillCategory: String, Codable, CaseIterable, Sendable, Identif
     case acceleration = "Acceleration & Deceleration"
     case defensiveFootwork = "Defensive Footwork"
     case weakFoot = "Weak Foot Usage"
+    case turning = "Turning"
+    case striking = "Striking"
+    case receiving = "Receiving"
+    case juggling = "Juggling"
 
     var id: String { rawValue }
 
@@ -124,6 +128,10 @@ nonisolated enum SkillCategory: String, Codable, CaseIterable, Sendable, Identif
         case .acceleration: "gauge.with.dots.needle.67percent"
         case .defensiveFootwork: "shield.lefthalf.filled"
         case .weakFoot: "shoe.fill"
+        case .turning: "arrow.uturn.right"
+        case .striking: "shoe.2.fill"
+        case .receiving: "arrow.down.to.line"
+        case .juggling: "circle.grid.3x3"
         }
     }
 }
