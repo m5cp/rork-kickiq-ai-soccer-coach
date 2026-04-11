@@ -37,6 +37,36 @@ nonisolated struct SkillScore: Codable, Sendable, Identifiable {
     }
 }
 
+nonisolated enum SpaceRequirement: String, Codable, CaseIterable, Sendable, Identifiable {
+    case minimal = "Minimal"
+    case small = "Small"
+    case medium = "Medium"
+    case large = "Large"
+    case fullPitch = "Full Pitch"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .minimal: "square.dashed"
+        case .small: "square.split.1x2"
+        case .medium: "square.split.2x2"
+        case .large: "rectangle.split.3x3"
+        case .fullPitch: "sportscourt"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .minimal: "2x2 yards or less"
+        case .small: "5x5 yards"
+        case .medium: "10x10 yards"
+        case .large: "20x20 yards or half pitch"
+        case .fullPitch: "Full-size pitch required"
+        }
+    }
+}
+
 nonisolated enum DrillDifficulty: String, Codable, CaseIterable, Sendable {
     case beginner = "Beginner"
     case intermediate = "Intermediate"
@@ -125,6 +155,11 @@ nonisolated struct Drill: Codable, Sendable, Identifiable {
     let durationMinutes: Int
     let variations: [DrillVariation]
     let tags: [String]
+    let purpose: String
+    let setup: String
+    let space: SpaceRequirement
+    let instructions: [String]
+    let commonMistakes: [String]
 
     init(
         id: String = UUID().uuidString,
@@ -142,7 +177,12 @@ nonisolated struct Drill: Codable, Sendable, Identifiable {
         equipment: [EquipmentType] = [.ball],
         durationMinutes: Int = 0,
         variations: [DrillVariation] = [],
-        tags: [String] = []
+        tags: [String] = [],
+        purpose: String = "",
+        setup: String = "",
+        space: SpaceRequirement = .small,
+        instructions: [String] = [],
+        commonMistakes: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -160,6 +200,11 @@ nonisolated struct Drill: Codable, Sendable, Identifiable {
         self.durationMinutes = durationMinutes > 0 ? durationMinutes : Drill.parseDuration(duration)
         self.variations = variations
         self.tags = tags
+        self.purpose = purpose
+        self.setup = setup
+        self.space = space
+        self.instructions = instructions
+        self.commonMistakes = commonMistakes
     }
 
     var resolvedCategory: SkillCategory? {

@@ -9,6 +9,8 @@ nonisolated struct DrillFilter: Codable, Sendable, Equatable {
     var maxDurationMinutes: Int?
     var minDurationMinutes: Int?
     var searchText: String
+    var tags: Set<String>
+    var spaceRequirements: Set<SpaceRequirement>
 
     init(
         categories: Set<SkillCategory> = [],
@@ -18,7 +20,9 @@ nonisolated struct DrillFilter: Codable, Sendable, Equatable {
         equipment: Set<EquipmentType> = [],
         maxDurationMinutes: Int? = nil,
         minDurationMinutes: Int? = nil,
-        searchText: String = ""
+        searchText: String = "",
+        tags: Set<String> = [],
+        spaceRequirements: Set<SpaceRequirement> = []
     ) {
         self.categories = categories
         self.difficulties = difficulties
@@ -28,6 +32,8 @@ nonisolated struct DrillFilter: Codable, Sendable, Equatable {
         self.maxDurationMinutes = maxDurationMinutes
         self.minDurationMinutes = minDurationMinutes
         self.searchText = searchText
+        self.tags = tags
+        self.spaceRequirements = spaceRequirements
     }
 
     var isEmpty: Bool {
@@ -39,6 +45,8 @@ nonisolated struct DrillFilter: Codable, Sendable, Equatable {
         && maxDurationMinutes == nil
         && minDurationMinutes == nil
         && searchText.isEmpty
+        && tags.isEmpty
+        && spaceRequirements.isEmpty
     }
 
     var activeFilterCount: Int {
@@ -49,6 +57,8 @@ nonisolated struct DrillFilter: Codable, Sendable, Equatable {
         if !trainingModes.isEmpty { count += 1 }
         if !equipment.isEmpty { count += 1 }
         if maxDurationMinutes != nil || minDurationMinutes != nil { count += 1 }
+        if !tags.isEmpty { count += 1 }
+        if !spaceRequirements.isEmpty { count += 1 }
         return count
     }
 
@@ -58,7 +68,9 @@ nonisolated struct DrillFilter: Codable, Sendable, Equatable {
             let nameMatch = drill.name.localizedStandardContains(query)
             let descMatch = drill.description.localizedStandardContains(query)
             let skillMatch = drill.targetSkill.localizedStandardContains(query)
-            if !nameMatch && !descMatch && !skillMatch { return false }
+            let purposeMatch = drill.purpose.localizedStandardContains(query)
+            let tagMatch = drill.tags.contains { $0.localizedStandardContains(query) }
+            if !nameMatch && !descMatch && !skillMatch && !purposeMatch && !tagMatch { return false }
         }
 
         if !categories.isEmpty {
@@ -80,6 +92,13 @@ nonisolated struct DrillFilter: Codable, Sendable, Equatable {
 
         if let min = minDurationMinutes, drill.durationMinutes < min { return false }
         if let max = maxDurationMinutes, drill.durationMinutes > max { return false }
+
+        if !tags.isEmpty {
+            let drillTags = Set(drill.tags)
+            if drillTags.isDisjoint(with: tags) { return false }
+        }
+
+        if !spaceRequirements.isEmpty, !spaceRequirements.contains(drill.space) { return false }
 
         return true
     }

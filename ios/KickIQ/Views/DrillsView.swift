@@ -377,6 +377,62 @@ struct DrillDetailSheet: View {
                             .lineSpacing(4)
                     }
 
+                    if !drill.purpose.isEmpty {
+                        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                            Text("PURPOSE")
+                                .font(.caption.weight(.bold))
+                                .tracking(1)
+                                .foregroundStyle(KickIQTheme.accent)
+
+                            Text(drill.purpose)
+                                .font(.subheadline)
+                                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
+                                .lineSpacing(3)
+                        }
+                    }
+
+                    if !drill.setup.isEmpty {
+                        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                            Text("SETUP")
+                                .font(.caption.weight(.bold))
+                                .tracking(1)
+                                .foregroundStyle(KickIQTheme.accent)
+
+                            Text(drill.setup)
+                                .font(.subheadline)
+                                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
+                                .lineSpacing(3)
+                        }
+                    }
+
+                    HStack(spacing: KickIQTheme.Spacing.md) {
+                        detailChip(icon: drill.space.icon, label: drill.space.rawValue)
+                        detailChip(icon: drill.intensity.icon, label: drill.intensity.rawValue)
+                        detailChip(icon: drill.trainingMode.icon, label: drill.trainingMode.rawValue)
+                    }
+
+                    if !drill.instructions.isEmpty {
+                        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                            Text("STEP-BY-STEP")
+                                .font(.caption.weight(.bold))
+                                .tracking(1)
+                                .foregroundStyle(KickIQTheme.accent)
+
+                            ForEach(Array(drill.instructions.enumerated()), id: \.offset) { index, step in
+                                HStack(alignment: .top, spacing: KickIQTheme.Spacing.sm) {
+                                    Text("\(index + 1)")
+                                        .font(.caption.weight(.bold).monospacedDigit())
+                                        .foregroundStyle(KickIQTheme.accent)
+                                        .frame(width: 20, height: 20)
+                                        .background(KickIQTheme.accent.opacity(0.15), in: Circle())
+                                    Text(step)
+                                        .font(.subheadline)
+                                        .foregroundStyle(KickIQTheme.textPrimary.opacity(0.8))
+                                }
+                            }
+                        }
+                    }
+
                     if !drill.coachingCues.isEmpty {
                         VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
                             Text("COACHING CUES")
@@ -398,6 +454,27 @@ struct DrillDetailSheet: View {
                         }
                     }
 
+                    if !drill.commonMistakes.isEmpty {
+                        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                            Text("COMMON MISTAKES")
+                                .font(.caption.weight(.bold))
+                                .tracking(1)
+                                .foregroundStyle(.red.opacity(0.9))
+
+                            ForEach(drill.commonMistakes, id: \.self) { mistake in
+                                HStack(alignment: .top, spacing: KickIQTheme.Spacing.sm) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.red.opacity(0.7))
+                                        .padding(.top, 2)
+                                    Text(mistake)
+                                        .font(.subheadline)
+                                        .foregroundStyle(KickIQTheme.textPrimary.opacity(0.8))
+                                }
+                            }
+                        }
+                    }
+
                     if !drill.reps.isEmpty {
                         VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
                             Text("REPS / SETS")
@@ -408,6 +485,26 @@ struct DrillDetailSheet: View {
                             Text(drill.reps)
                                 .font(.headline)
                                 .foregroundStyle(KickIQTheme.textPrimary)
+                        }
+                    }
+
+                    if !drill.tags.isEmpty {
+                        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                            Text("TAGS")
+                                .font(.caption.weight(.bold))
+                                .tracking(1)
+                                .foregroundStyle(KickIQTheme.accent)
+
+                            FlowLayout(spacing: 6) {
+                                ForEach(drill.tags, id: \.self) { tag in
+                                    Text(tag)
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(KickIQTheme.textSecondary)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(KickIQTheme.surface, in: Capsule())
+                                }
+                            }
                         }
                     }
 
@@ -488,5 +585,62 @@ struct DrillDetailSheet: View {
         case .intermediate: .orange
         case .advanced: .red
         }
+    }
+
+    private func detailChip(icon: String, label: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+            Text(label)
+                .font(.caption.weight(.semibold))
+        }
+        .foregroundStyle(KickIQTheme.textSecondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(KickIQTheme.surface, in: Capsule())
+    }
+}
+
+struct FlowLayout: Layout {
+    let spacing: CGFloat
+
+    init(spacing: CGFloat = 8) {
+        self.spacing = spacing
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = layout(proposal: proposal, subviews: subviews)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = layout(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
+        }
+    }
+
+    private func layout(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var maxX: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            positions.append(CGPoint(x: x, y: y))
+            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing
+            maxX = max(maxX, x - spacing)
+        }
+
+        return (CGSize(width: maxX, height: y + rowHeight), positions)
     }
 }
