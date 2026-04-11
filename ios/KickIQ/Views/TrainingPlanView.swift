@@ -3,31 +3,737 @@ import SwiftUI
 struct TrainingPlanView: View {
     let storage: StorageService
     @Environment(\.dismiss) private var dismiss
-    @State private var isGenerating = false
-    @State private var errorMessage: String?
+    @State private var viewModel: TrainingPlanViewModel?
     @State private var appeared = false
-    @State private var expandedDay: String?
+    @State private var selectedDayPlan: DailyPlan?
+    @State private var showPreferences = false
+    @State private var completedTrigger = 0
+    @State private var selectedTab: PlanTab = .today
+
+    private enum PlanTab: String, CaseIterable {
+        case today = "Today"
+        case week = "This Week"
+        case full = "Full Plan"
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let vm = viewModel {
+                    if vm.smartPlan != nil {
+                        planContent(vm)
+                    } else {
+                        emptyState(vm)
+                    }
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(KickIQTheme.background)
+                }
+            }
+            .background(KickIQTheme.background.ignoresSafeArea())
+            .navigationTitle("Training Plan")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+                if viewModel?.smartPlan != nil {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showPreferences = true
+                        } label: {
+                            Image(systemName: "slider.horizontal.3")
+                                .foregroundStyle(KickIQTheme.accent)
+                        }
+                    }
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(KickIQTheme.background)
+        .sheet(item: $selectedDayPlan) { day in
+            DayDetailSheet(day: day, viewModel: viewModel!, storage: storage, completedTrigger: $completedTrigger)
+        }
+        .sheet(isPresented: $showPreferences) {
+            if let vm = viewModel {
+                PlanPreferencesSheet(viewModel: vm)
+            }
+        }
+        .sensoryFeedback(.success, trigger: completedTrigger)
+        .onAppear {
+            if viewModel == nil {
+                viewModel = TrainingPlanViewModel(storage: storage)
+            }
+            withAnimation(.easeOut(duration: 0.4)) { appeared = true }
+        }
+    }
+
+    private func planContent(_ vm: TrainingPlanViewModel) -> some View {
+        ScrollView {
+            VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                tabPicker
+                switch selectedTab {
+                case .today:
+                    todaySection(vm)
+                case .week:
+                    weekSection(vm)
+                case .full:
+                    fullPlanSection(vm)
+                }
+            }
+            .padding(.horizontal, KickIQTheme.Spacing.md)
+            .padding(.bottom, KickIQTheme.Spacing.xl)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private var tabPicker: some View {
+        HStack(spacing: 0) {
+            ForEach(PlanTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.3)) { selectedTab = tab }
+                } label: {
+                    Text(tab.rawValue)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(selectedTab == tab ? .black : KickIQTheme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            selectedTab == tab ? KickIQTheme.accent : Color.clear,
+                            in: Capsule()
+                        )
+                }
+            }
+        }
+        .padding(3)
+        .background(KickIQTheme.card, in: Capsule())
+        .opacity(appeared ? 1 : 0)
+    }
+
+    @ViewBuilder
+    private func todaySection(_ vm: TrainingPlanViewModel) -> some View {
+        if let today = vm.todaysPlan {
+            todayFocusCard(today)
+            weaknessPriorityCard(today)
+            todayDrillsList(today, vm: vm)
+            if !vm.recentScoreTrend.isEmpty {
+                trendCard(vm)
+            }
+        } else {
+            noTodayCard(vm)
+        }
+    }
+
+    private func todayFocusCard(_ day: DailyPlan) -> some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.md) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("TODAY'S FOCUS")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(KickIQTheme.accent)
+                    Text(day.focus)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                }
+                Spacer()
+                dayBadge(day)
+            }
+
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                statPill(icon: day.intensity.icon, label: day.intensity.rawValue, color: intensityColor(day.intensity))
+                statPill(icon: "clock", label: day.duration.label, color: KickIQTheme.accent)
+                statPill(icon: day.mode.icon, label: day.mode.rawValue, color: .blue)
+            }
+
+            progressBar(day)
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.xl))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .animation(.spring(response: 0.4).delay(0.05), value: appeared)
+    }
+
+    private func weaknessPriorityCard(_ day: DailyPlan) -> some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                Text("WEAKNESS PRIORITY")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(.red)
+            }
+
+            ScrollView(.horizontal) {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    ForEach(day.weaknessPriority, id: \.self) { skill in
+                        let cat = SkillCategory.allCases.first(where: { $0.rawValue == skill })
+                        HStack(spacing: 5) {
+                            Image(systemName: cat?.icon ?? "target")
+                                .font(.system(size: 11))
+                            Text(skill)
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(.red.opacity(0.12), in: Capsule())
+                    }
+                }
+            }
+            .contentMargins(.horizontal, 0)
+            .scrollIndicators(.hidden)
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .animation(.spring(response: 0.4).delay(0.1), value: appeared)
+    }
+
+    private func todayDrillsList(_ day: DailyPlan, vm: TrainingPlanViewModel) -> some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack {
+                Text("TODAY'S DRILLS")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(KickIQTheme.accent)
+                Spacer()
+                Text("\(day.completedCount)/\(day.drills.count)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(day.isFullyCompleted ? .green : KickIQTheme.textSecondary)
+            }
+
+            ForEach(Array(day.drills.enumerated()), id: \.element.id) { index, drill in
+                smartDrillCard(drill, dayID: day.id, index: index, vm: vm)
+            }
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .animation(.spring(response: 0.4).delay(0.15), value: appeared)
+    }
+
+    private func smartDrillCard(_ drill: SmartDrill, dayID: String, index: Int, vm: TrainingPlanViewModel) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(drill.isCompleted ? Color.green.opacity(0.15) : KickIQTheme.surface)
+                        .frame(width: 40, height: 40)
+                    Image(systemName: drill.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(drill.isCompleted ? .green : KickIQTheme.textSecondary.opacity(0.3))
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(drill.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(drill.isCompleted ? KickIQTheme.textSecondary : KickIQTheme.textPrimary)
+                        .strikethrough(drill.isCompleted, color: KickIQTheme.textSecondary)
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Label(drill.duration, systemImage: "clock")
+                        Text("·")
+                        Text(drill.targetSkill)
+                    }
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                if !drill.isCompleted {
+                    Menu {
+                        Button {
+                            vm.completeDrill(dayID: dayID, drillID: drill.id)
+                            completedTrigger += 1
+                        } label: {
+                            Label("Complete", systemImage: "checkmark")
+                        }
+                        Button {
+                            vm.swappingDrillIndex = index
+                            vm.selectedDay = vm.smartPlan?.days.first(where: { $0.id == dayID })
+                            vm.showDrillSwap = true
+                        } label: {
+                            Label("Swap Drill", systemImage: "arrow.triangle.swap")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                            .frame(width: 32, height: 32)
+                    }
+                }
+            }
+            .padding(KickIQTheme.Spacing.md)
+
+            HStack(spacing: 4) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(KickIQTheme.accent.opacity(0.7))
+                Text(drill.reason)
+                    .font(.system(size: 11))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.8))
+                    .lineLimit(2)
+            }
+            .padding(.horizontal, KickIQTheme.Spacing.md)
+            .padding(.bottom, KickIQTheme.Spacing.sm + 2)
+        }
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+    }
+
+    private func trendCard(_ vm: TrainingPlanViewModel) -> some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            Text("RECENT PERFORMANCE")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(KickIQTheme.accent)
+
+            HStack(alignment: .bottom, spacing: KickIQTheme.Spacing.sm) {
+                ForEach(vm.recentScoreTrend, id: \.0) { label, score in
+                    VStack(spacing: 4) {
+                        Text("\(score)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(KickIQTheme.textPrimary)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(KickIQTheme.accent.opacity(0.8))
+                            .frame(height: max(CGFloat(score) * 0.8, 4))
+                        Text(label)
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 100)
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .animation(.spring(response: 0.4).delay(0.2), value: appeared)
+    }
+
+    private func weekSection(_ vm: TrainingPlanViewModel) -> some View {
+        let calendar = Calendar.current
+        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: .now))!
+        let weekDays = vm.smartPlan?.days.filter { day in
+            day.date >= startOfWeek && day.date < calendar.date(byAdding: .day, value: 7, to: startOfWeek)!
+        } ?? []
+
+        return VStack(spacing: KickIQTheme.Spacing.md) {
+            weekOverview(weekDays)
+            ForEach(weekDays) { day in
+                weekDayRow(day)
+            }
+        }
+    }
+
+    private func weekOverview(_ days: [DailyPlan]) -> some View {
+        let completed = days.filter(\.isFullyCompleted).count
+        let total = days.count
+
+        return HStack(spacing: KickIQTheme.Spacing.md) {
+            VStack(spacing: 4) {
+                Text("\(completed)")
+                    .font(.system(size: 32, weight: .black))
+                    .foregroundStyle(KickIQTheme.accent)
+                Text("of \(total) days done")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+
+            VStack(spacing: 4) {
+                let totalDrills = days.reduce(0) { $0 + $1.drills.count }
+                let completedDrills = days.reduce(0) { $0 + $1.completedCount }
+                Text("\(completedDrills)")
+                    .font(.system(size: 32, weight: .black))
+                    .foregroundStyle(.green)
+                Text("of \(totalDrills) drills")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(KickIQTheme.Spacing.lg)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.xl))
+    }
+
+    private func weekDayRow(_ day: DailyPlan) -> some View {
+        let isToday = Calendar.current.isDateInToday(day.date)
+
+        return Button {
+            selectedDayPlan = day
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                VStack(spacing: 2) {
+                    Text(day.date.formatted(.dateTime.weekday(.abbreviated)).uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(isToday ? KickIQTheme.accent : KickIQTheme.textSecondary)
+                    Text(day.date.formatted(.dateTime.day()))
+                        .font(.headline)
+                        .foregroundStyle(isToday ? KickIQTheme.accent : KickIQTheme.textPrimary)
+                }
+                .frame(width: 40)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(day.focus)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                        .lineLimit(1)
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Image(systemName: day.intensity.icon)
+                            .font(.system(size: 10))
+                            .foregroundStyle(intensityColor(day.intensity))
+                        Text(day.intensity.rawValue)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                        Text("·")
+                            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
+                        Text(day.duration.label)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+                }
+
+                Spacer()
+
+                if day.isFullyCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                } else if day.completedCount > 0 {
+                    Text("\(day.completedCount)/\(day.drills.count)")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(KickIQTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(isToday ? KickIQTheme.accent.opacity(0.4) : Color.clear, lineWidth: 1)
+                    )
+            )
+        }
+    }
+
+    private func fullPlanSection(_ vm: TrainingPlanViewModel) -> some View {
+        VStack(spacing: KickIQTheme.Spacing.md) {
+            if let plan = vm.smartPlan {
+                planSummaryCard(plan)
+
+                ForEach(plan.days) { day in
+                    Button {
+                        selectedDayPlan = day
+                    } label: {
+                        compactDayRow(day)
+                    }
+                }
+
+                regenerateButton(vm)
+            }
+        }
+    }
+
+    private func planSummaryCard(_ plan: SmartTrainingPlan) -> some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("30-DAY PLAN")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(KickIQTheme.accent)
+                    Text("Created \(plan.createdAt, format: .dateTime.month(.abbreviated).day())")
+                        .font(.caption2)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(plan.completedDaysCount)/\(plan.days.count)")
+                        .font(.headline)
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("days done")
+                        .font(.caption2)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+            }
+
+            Text(plan.summary)
+                .font(.subheadline)
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .lineSpacing(3)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(KickIQTheme.divider)
+                        .frame(height: 6)
+                    Capsule()
+                        .fill(KickIQTheme.accent)
+                        .frame(width: max(0, geo.size.width * Double(plan.completedDaysCount) / Double(max(1, plan.days.count))), height: 6)
+                }
+            }
+            .frame(height: 6)
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+    }
+
+    private func compactDayRow(_ day: DailyPlan) -> some View {
+        let isPast = day.date < Calendar.current.startOfDay(for: .now)
+        let isToday = Calendar.current.isDateInToday(day.date)
+
+        return HStack(spacing: KickIQTheme.Spacing.sm + 2) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isToday ? KickIQTheme.accent.opacity(0.2) : KickIQTheme.surface)
+                    .frame(width: 36, height: 36)
+
+                if day.isFullyCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.green)
+                } else {
+                    Text("\(day.dayNumber)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(isToday ? KickIQTheme.accent : KickIQTheme.textSecondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(day.focus)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isPast && !day.isFullyCompleted ? KickIQTheme.textSecondary : KickIQTheme.textPrimary)
+                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Image(systemName: day.intensity.icon)
+                        .font(.system(size: 8))
+                        .foregroundStyle(intensityColor(day.intensity))
+                    Text(day.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+            }
+
+            Spacer()
+
+            if day.completedCount > 0 && !day.isFullyCompleted {
+                Text("\(day.completedCount)/\(day.drills.count)")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(KickIQTheme.accent)
+            }
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.sm + 2)
+        .padding(.vertical, KickIQTheme.Spacing.sm)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+    }
+
+    private func regenerateButton(_ vm: TrainingPlanViewModel) -> some View {
+        Button {
+            vm.generatePlan()
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                if vm.isGenerating {
+                    ProgressView().tint(KickIQTheme.accent)
+                } else {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                }
+                Text(vm.isGenerating ? "Regenerating..." : "Regenerate Plan")
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(KickIQTheme.accent)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
+        }
+        .disabled(vm.isGenerating)
+    }
+
+    private func emptyState(_ vm: TrainingPlanViewModel) -> some View {
+        ScrollView {
+            VStack(spacing: KickIQTheme.Spacing.lg) {
+                Spacer().frame(height: 40)
+
+                ZStack {
+                    Circle()
+                        .fill(KickIQTheme.accent.opacity(0.1))
+                        .frame(width: 100, height: 100)
+                    Image(systemName: "calendar.badge.plus")
+                        .font(.system(size: 44))
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+
+                VStack(spacing: KickIQTheme.Spacing.sm) {
+                    Text("Smart Training Plan")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+
+                    Text("Generate a 30-day daily training plan that prioritizes your weaknesses, alternates intensity, and adapts to your schedule.")
+                        .font(.subheadline)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+
+                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.md) {
+                    featureRow(icon: "flame.fill", color: .orange, text: "Daily plans — no off days, smart recovery")
+                    featureRow(icon: "target", color: .red, text: "Weakness-first drill selection from AI analysis")
+                    featureRow(icon: "arrow.triangle.swap", color: .blue, text: "Swap drills & customize session goals")
+                    featureRow(icon: "clock", color: .green, text: "Flexible durations: 20–90 min sessions")
+                    featureRow(icon: "person.2.fill", color: .purple, text: "Solo, partner, or team training modes")
+                }
+                .padding(KickIQTheme.Spacing.md)
+                .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+
+                Button {
+                    vm.generatePlan()
+                } label: {
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        if vm.isGenerating {
+                            ProgressView().tint(.black)
+                        } else {
+                            Image(systemName: "sparkles")
+                        }
+                        Text(vm.isGenerating ? "Generating..." : "Generate My Plan")
+                    }
+                    .font(.headline)
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, KickIQTheme.Spacing.md)
+                    .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                }
+                .disabled(vm.isGenerating)
+            }
+            .padding(.horizontal, KickIQTheme.Spacing.md)
+            .padding(.bottom, KickIQTheme.Spacing.xl)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private func noTodayCard(_ vm: TrainingPlanViewModel) -> some View {
+        VStack(spacing: KickIQTheme.Spacing.lg) {
+            Image(systemName: "calendar.badge.exclamationmark")
+                .font(.system(size: 40))
+                .foregroundStyle(KickIQTheme.accent.opacity(0.6))
+
+            Text("Plan expired — regenerate for a fresh 30 days")
+                .font(.subheadline)
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                vm.generatePlan()
+            } label: {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Text("Regenerate Plan")
+                }
+                .font(.headline)
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, KickIQTheme.Spacing.md)
+                .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+            }
+        }
+        .padding(KickIQTheme.Spacing.xl)
+    }
+
+    private func featureRow(icon: String, color: Color, text: String) -> some View {
+        HStack(spacing: KickIQTheme.Spacing.md) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundStyle(color)
+                .frame(width: 24)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
+        }
+    }
+
+    private func statPill(icon: String, label: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+            Text(label)
+                .font(.caption2.weight(.bold))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.12), in: Capsule())
+    }
+
+    private func dayBadge(_ day: DailyPlan) -> some View {
+        VStack(spacing: 2) {
+            Text("DAY")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(KickIQTheme.accent)
+            Text("\(day.dayNumber)")
+                .font(.system(size: 22, weight: .black))
+                .foregroundStyle(KickIQTheme.textPrimary)
+        }
+        .frame(width: 48, height: 48)
+        .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
+    }
+
+    private func progressBar(_ day: DailyPlan) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(KickIQTheme.divider)
+                    .frame(height: 8)
+                Capsule()
+                    .fill(day.isFullyCompleted ? Color.green : KickIQTheme.accent)
+                    .frame(width: max(0, geo.size.width * day.progressPercent), height: 8)
+            }
+        }
+        .frame(height: 8)
+    }
+
+    private func intensityColor(_ intensity: TrainingIntensity) -> Color {
+        switch intensity {
+        case .light: .green
+        case .medium: .orange
+        case .heavy: .red
+        }
+    }
+}
+
+struct DayDetailSheet: View {
+    let day: DailyPlan
+    let viewModel: TrainingPlanViewModel
+    let storage: StorageService
+    @Binding var completedTrigger: Int
+    @Environment(\.dismiss) private var dismiss
+    @State private var showSwap = false
+    @State private var swapIndex: Int?
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                    if let plan = storage.trainingPlan {
-                        planHeader(plan)
-                        ForEach(plan.days) { day in
-                            dayCard(day)
-                        }
-                        regenerateButton
-                    } else {
-                        emptyState
-                    }
+                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.lg) {
+                    dayHeader
+                    drillsSection
                 }
-                .padding(.horizontal, KickIQTheme.Spacing.md)
+                .padding(KickIQTheme.Spacing.md)
                 .padding(.bottom, KickIQTheme.Spacing.xl)
             }
             .scrollIndicators(.hidden)
             .background(KickIQTheme.background.ignoresSafeArea())
-            .navigationTitle("Training Plan")
+            .navigationTitle(day.focus)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
@@ -40,329 +746,368 @@ struct TrainingPlanView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationBackground(KickIQTheme.background)
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.4)) { appeared = true }
+        .sheet(isPresented: $showSwap) {
+            if let idx = swapIndex {
+                DrillSwapSheet(viewModel: viewModel, dayID: day.id, drillIndex: idx)
+            }
         }
     }
 
-    private func planHeader(_ plan: TrainingPlan) -> some View {
-        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+    private var dayHeader: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.md) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("YOUR PLAN")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Day \(day.dayNumber) · \(day.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))")
                         .font(.caption.weight(.bold))
-                        .tracking(1)
                         .foregroundStyle(KickIQTheme.accent)
-                    Text("Personalized Weekly Schedule")
-                        .font(.headline)
+                    Text(day.focus)
+                        .font(.title3.weight(.bold))
                         .foregroundStyle(KickIQTheme.textPrimary)
                 }
                 Spacer()
-                Text("Created \(plan.createdAt, format: .dateTime.month(.abbreviated).day())")
-                    .font(.caption2)
-                    .foregroundStyle(KickIQTheme.textSecondary)
             }
 
-            Text(plan.summary)
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                Label(day.intensity.rawValue, systemImage: day.intensity.icon)
+                Label(day.duration.label, systemImage: "clock")
+                Label(day.mode.rawValue, systemImage: day.mode.icon)
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(KickIQTheme.textSecondary)
+
+            Text(day.intensity.description)
                 .font(.subheadline)
-                .foregroundStyle(KickIQTheme.textSecondary)
-                .lineSpacing(3)
+                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.8))
+
+            if !day.weaknessPriority.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "target")
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                    Text("Targeting: \(day.weaknessPriority.joined(separator: ", "))")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.red.opacity(0.8))
+                }
+            }
         }
         .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-        .opacity(appeared ? 1 : 0)
     }
 
-    private func dayCard(_ day: TrainingPlanDay) -> some View {
-        let isExpanded = expandedDay == day.id
+    private var drillsSection: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            Text("DRILLS (\(day.completedCount)/\(day.drills.count))")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(KickIQTheme.accent)
 
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.spring(response: 0.3)) {
-                    expandedDay = isExpanded ? nil : day.id
-                }
-            } label: {
-                HStack(spacing: KickIQTheme.Spacing.md) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.sm)
-                            .fill(day.restDay ? Color.blue.opacity(0.15) : KickIQTheme.accent.opacity(0.15))
-                            .frame(width: 44, height: 44)
-
-                        Image(systemName: day.restDay ? "bed.double.fill" : "figure.soccer")
-                            .font(.title3)
-                            .foregroundStyle(day.restDay ? .blue : KickIQTheme.accent)
-                    }
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(day.dayLabel)
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(KickIQTheme.textPrimary)
-                        Text(day.focus)
-                            .font(.caption)
-                            .foregroundStyle(KickIQTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    if !day.restDay {
-                        Text("\(day.drills.count) drills")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(KickIQTheme.accent)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
-                    }
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                }
+            ForEach(Array(day.drills.enumerated()), id: \.element.id) { index, drill in
+                detailDrillCard(drill, index: index)
             }
-            .padding(KickIQTheme.Spacing.md)
+        }
+    }
 
-            if isExpanded && !day.restDay {
-                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-                    ForEach(day.drills) { drill in
-                        HStack(alignment: .top, spacing: KickIQTheme.Spacing.sm) {
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 6))
-                                .foregroundStyle(KickIQTheme.accent)
-                                .padding(.top, 6)
+    private func detailDrillCard(_ drill: SmartDrill, index: Int) -> some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(drill.name)
+                        .font(.headline)
+                        .foregroundStyle(drill.isCompleted ? KickIQTheme.textSecondary : KickIQTheme.textPrimary)
+                        .strikethrough(drill.isCompleted, color: KickIQTheme.textSecondary)
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack {
-                                    Text(drill.name)
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(KickIQTheme.textPrimary)
-                                    Spacer()
-                                    Text(drill.duration)
-                                        .font(.caption2)
-                                        .foregroundStyle(KickIQTheme.accent)
-                                }
-                                Text(drill.description)
-                                    .font(.caption2)
-                                    .foregroundStyle(KickIQTheme.textSecondary)
-                                    .lineLimit(2)
-                            }
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Text(drill.difficulty.rawValue)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(difficultyColor(drill.difficulty))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(difficultyColor(drill.difficulty).opacity(0.12), in: Capsule())
+                        Label(drill.duration, systemImage: "clock")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                        if !drill.reps.isEmpty {
+                            Text("· \(drill.reps)")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(KickIQTheme.textSecondary)
                         }
                     }
                 }
-                .padding(.horizontal, KickIQTheme.Spacing.md)
-                .padding(.bottom, KickIQTheme.Spacing.md)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                Spacer()
+                if drill.isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.green)
+                }
+            }
+
+            Text(drill.description)
+                .font(.subheadline)
+                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.8))
+                .lineSpacing(3)
+
+            if !drill.coachingCues.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(drill.coachingCues, id: \.self) { cue in
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(KickIQTheme.accent)
+                                .padding(.top, 2)
+                            Text(cue)
+                                .font(.caption)
+                                .foregroundStyle(KickIQTheme.textSecondary)
+                        }
+                    }
+                }
+            }
+
+            HStack(spacing: 4) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(KickIQTheme.accent.opacity(0.7))
+                Text(drill.reason)
+                    .font(.caption)
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.8))
+                    .italic()
+            }
+            .padding(.top, 2)
+
+            if !drill.isCompleted {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    Button {
+                        viewModel.completeDrill(dayID: day.id, drillID: drill.id)
+                        completedTrigger += 1
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark")
+                            Text("Complete")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+                    }
+
+                    Button {
+                        swapIndex = index
+                        showSwap = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.triangle.swap")
+                            Text("Swap")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
+                    }
+                }
             }
         }
+        .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-        .opacity(appeared ? 1 : 0)
     }
 
-    private var emptyState: some View {
-        VStack(spacing: KickIQTheme.Spacing.lg) {
-            Spacer().frame(height: 40)
-
-            Image(systemName: "calendar.badge.plus")
-                .font(.system(size: 48))
-                .foregroundStyle(KickIQTheme.accent.opacity(0.5))
-
-            VStack(spacing: KickIQTheme.Spacing.sm) {
-                Text("No Training Plan Yet")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(KickIQTheme.textPrimary)
-
-                Text("Generate a personalized weekly training plan based on your analysis results and weak areas.")
-                    .font(.subheadline)
-                    .foregroundStyle(KickIQTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            generateButton
+    private func difficultyColor(_ difficulty: DrillDifficulty) -> Color {
+        switch difficulty {
+        case .beginner: .green
+        case .intermediate: .orange
+        case .advanced: .red
         }
-        .frame(maxWidth: .infinity)
+    }
+}
+
+struct DrillSwapSheet: View {
+    let viewModel: TrainingPlanViewModel
+    let dayID: String
+    let drillIndex: Int
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var categories: [(category: String, drills: [SmartDrill])] {
+        let all = viewModel.drillsByCategory()
+        if searchText.isEmpty { return all }
+        return all.compactMap { cat, drills in
+            let filtered = drills.filter {
+                $0.name.localizedStandardContains(searchText) ||
+                $0.targetSkill.localizedStandardContains(searchText)
+            }
+            return filtered.isEmpty ? nil : (cat, filtered)
+        }
     }
 
-    private var generateButton: some View {
-        Button {
-            Task { await generatePlan() }
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.sm) {
-                if isGenerating {
-                    ProgressView()
-                        .tint(.black)
-                } else {
-                    Image(systemName: "sparkles")
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(categories, id: \.category) { category, drills in
+                    Section {
+                        ForEach(drills) { drill in
+                            Button {
+                                viewModel.swapDrill(dayID: dayID, drillIndex: drillIndex, with: drill)
+                                dismiss()
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(drill.name)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(KickIQTheme.textPrimary)
+                                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                                        Text(drill.difficulty.rawValue)
+                                            .font(.caption2.weight(.bold))
+                                        Text("·")
+                                        Text(drill.duration)
+                                            .font(.caption2)
+                                    }
+                                    .foregroundStyle(KickIQTheme.textSecondary)
+                                }
+                            }
+                            .listRowBackground(KickIQTheme.card)
+                        }
+                    } header: {
+                        Text(category)
+                            .foregroundStyle(KickIQTheme.accent)
+                    }
                 }
-                Text(isGenerating ? "Generating Plan..." : "Generate AI Training Plan")
             }
-            .font(.headline)
-            .foregroundStyle(.black)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, KickIQTheme.Spacing.md)
-            .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-        }
-        .disabled(isGenerating)
-    }
-
-    private var regenerateButton: some View {
-        Button {
-            Task { await generatePlan() }
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.sm) {
-                if isGenerating {
-                    ProgressView()
-                        .tint(KickIQTheme.accent)
-                } else {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+            .listStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .background(KickIQTheme.background.ignoresSafeArea())
+            .searchable(text: $searchText, prompt: "Search drills...")
+            .navigationTitle("Swap Drill")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(KickIQTheme.accent)
                 }
-                Text(isGenerating ? "Regenerating..." : "Regenerate Plan")
             }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(KickIQTheme.accent)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
         }
-        .disabled(isGenerating)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(KickIQTheme.background)
     }
+}
 
-    private func generatePlan() async {
-        isGenerating = true
-        errorMessage = nil
+struct PlanPreferencesSheet: View {
+    let viewModel: TrainingPlanViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var duration: SessionDuration = .thirty
+    @State private var mode: TrainingMode = .solo
 
-        let position = storage.profile?.position ?? .midfielder
-        let weakness = storage.profile?.weakness ?? .firstTouch
-        let skillLevel = storage.profile?.skillLevel ?? .intermediate
-        let weakSkills = storage.weakestSkills
-        let latestScore = storage.sessions.first?.overallScore ?? 0
-        let goalSessions = storage.weeklyGoal?.sessionsPerWeek ?? 3
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: KickIQTheme.Spacing.lg) {
+                    VStack(alignment: .leading, spacing: KickIQTheme.Spacing.md) {
+                        Text("SESSION DURATION")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(KickIQTheme.accent)
 
-        let weakSkillNames = weakSkills.map(\.rawValue).joined(separator: ", ")
+                        HStack(spacing: KickIQTheme.Spacing.sm) {
+                            ForEach(SessionDuration.allCases) { dur in
+                                Button {
+                                    duration = dur
+                                } label: {
+                                    Text(dur.label)
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(duration == dur ? .black : KickIQTheme.textSecondary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(
+                                            duration == dur ? KickIQTheme.accent : KickIQTheme.surface,
+                                            in: .rect(cornerRadius: KickIQTheme.Radius.md)
+                                        )
+                                }
+                            }
+                        }
+                    }
+                    .padding(KickIQTheme.Spacing.md)
+                    .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
 
-        let prompt = """
-        You are an expert soccer coach creating a personalized 7-day training plan.
+                    VStack(alignment: .leading, spacing: KickIQTheme.Spacing.md) {
+                        Text("TRAINING MODE")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(KickIQTheme.accent)
 
-        Player Profile:
-        - Position: \(position.rawValue)
-        - Skill Level: \(skillLevel.rawValue)
-        - Weakness: \(weakness.rawValue)
-        - Weakest Skills: \(weakSkillNames.isEmpty ? "Not assessed yet" : weakSkillNames)
-        - Current Score: \(latestScore)/100
-        - Weekly Goal: \(goalSessions) sessions per week
+                        ForEach(TrainingMode.allCases) { tm in
+                            Button {
+                                mode = tm
+                            } label: {
+                                HStack(spacing: KickIQTheme.Spacing.md) {
+                                    Image(systemName: tm.icon)
+                                        .font(.title3)
+                                        .foregroundStyle(mode == tm ? KickIQTheme.accent : KickIQTheme.textSecondary)
+                                        .frame(width: 28)
+                                    Text(tm.rawValue)
+                                        .font(.headline)
+                                        .foregroundStyle(mode == tm ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
+                                    Spacer()
+                                    if mode == tm {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(KickIQTheme.accent)
+                                    }
+                                }
+                                .padding(KickIQTheme.Spacing.md)
+                                .background(
+                                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
+                                        .fill(mode == tm ? KickIQTheme.accent.opacity(0.12) : KickIQTheme.surface)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
+                                                .stroke(mode == tm ? KickIQTheme.accent : Color.clear, lineWidth: 1.5)
+                                        )
+                                )
+                            }
+                        }
+                    }
+                    .padding(KickIQTheme.Spacing.md)
+                    .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
 
-        Create a 7-day training plan (Monday-Sunday). Include \(goalSessions) training days and \(7 - goalSessions) rest/recovery days.
-
-        Respond ONLY with valid JSON:
-        {
-            "summary": "Brief overview of the plan focus",
-            "days": [
-                {
-                    "dayLabel": "Monday",
-                    "focus": "Ball Control & First Touch",
-                    "restDay": false,
-                    "drills": [
-                        {"name": "Drill Name", "description": "How to do it", "duration": "15 min", "difficulty": "Intermediate", "targetSkill": "Ball Control", "reps": "3x10"}
-                    ]
-                },
-                {
-                    "dayLabel": "Tuesday",
-                    "focus": "Rest & Recovery",
-                    "restDay": true,
-                    "drills": []
+                    Button {
+                        let prefs = PlanPreferences(preferredDuration: duration, preferredMode: mode)
+                        viewModel.updatePreferences(prefs)
+                        viewModel.generatePlan()
+                        dismiss()
+                    } label: {
+                        HStack(spacing: KickIQTheme.Spacing.sm) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                            Text("Apply & Regenerate Plan")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, KickIQTheme.Spacing.md)
+                        .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                    }
                 }
-            ]
-        }
-
-        Each training day should have 3-4 drills. Target the weakest skills more heavily.
-        """
-
-        do {
-            let toolkitURL = Config.EXPO_PUBLIC_TOOLKIT_URL
-            guard !toolkitURL.isEmpty else {
-                generateFallbackPlan(position: position, weakness: weakness, goalSessions: goalSessions)
-                isGenerating = false
-                return
+                .padding(KickIQTheme.Spacing.md)
+                .padding(.bottom, KickIQTheme.Spacing.xl)
             }
-
-            let url = URL(string: "\(toolkitURL)/agent/chat")!
-            let messages: [[String: Any]] = [
-                ["role": "user", "content": prompt]
-            ]
-            let body: [String: Any] = ["messages": messages]
-            let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = jsonData
-            request.timeoutInterval = 60
-
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                generateFallbackPlan(position: position, weakness: weakness, goalSessions: goalSessions)
-                isGenerating = false
-                return
+            .scrollIndicators(.hidden)
+            .background(KickIQTheme.background.ignoresSafeArea())
+            .navigationTitle("Preferences")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(KickIQTheme.accent)
+                }
             }
-
-            let responseText = String(data: data, encoding: .utf8) ?? ""
-            let jsonString = extractJSON(from: responseText)
-
-            guard let jsonResponseData = jsonString.data(using: .utf8) else {
-                generateFallbackPlan(position: position, weakness: weakness, goalSessions: goalSessions)
-                isGenerating = false
-                return
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(KickIQTheme.background)
+        .onAppear {
+            if let prefs = viewModel.smartPlan?.preferences {
+                duration = prefs.preferredDuration
+                mode = prefs.preferredMode
             }
-
-            let aiPlan = try JSONDecoder().decode(AIPlanResponse.self, from: jsonResponseData)
-
-            let days = aiPlan.days.map { day in
-                TrainingPlanDay(
-                    dayLabel: day.dayLabel,
-                    focus: day.focus,
-                    drills: (day.drills ?? []).map { d in
-                        Drill(name: d.name, description: d.description, duration: d.duration, targetSkill: d.targetSkill, reps: d.reps ?? "")
-                    },
-                    restDay: day.restDay
-                )
-            }
-
-            let plan = TrainingPlan(days: days, summary: aiPlan.summary)
-            storage.saveTrainingPlan(plan)
-        } catch {
-            generateFallbackPlan(position: position, weakness: weakness, goalSessions: goalSessions)
         }
-
-        isGenerating = false
-    }
-
-    private func extractJSON(from text: String) -> String {
-        if let start = text.firstIndex(of: "{"),
-           let end = text.lastIndex(of: "}") {
-            return String(text[start...end])
-        }
-        return text
-    }
-
-    private func generateFallbackPlan(position: PlayerPosition, weakness: WeaknessArea, goalSessions: Int) {
-        let dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        let trainingDays = Set((0..<goalSessions).map { $0 * (7 / max(goalSessions, 1)) }.map { min($0, 6) })
-
-        let days = dayNames.enumerated().map { index, name in
-            let isTraining = trainingDays.contains(index)
-            return TrainingPlanDay(
-                dayLabel: name,
-                focus: isTraining ? "\(weakness.rawValue) Focus" : "Rest & Recovery",
-                drills: isTraining ? [
-                    Drill(name: "\(weakness.rawValue) Builder", description: "Focused practice on your weakest area with progressive difficulty.", duration: "15 min", targetSkill: weakness.rawValue, reps: "3x10"),
-                    Drill(name: "Position-Specific Work", description: "Drills tailored to your \(position.rawValue) role.", duration: "20 min", targetSkill: position.skills.first?.rawValue ?? "Movement", reps: "4x8"),
-                    Drill(name: "Conditioning Circuit", description: "High intensity interval training with ball work.", duration: "10 min", targetSkill: "Movement", reps: "4 intervals")
-                ] : [],
-                restDay: !isTraining
-            )
-        }
-
-        let plan = TrainingPlan(days: days, summary: "A balanced \(goalSessions)-day training week focused on improving your \(weakness.rawValue.lowercased()) as a \(position.rawValue.lowercased()).")
-        storage.saveTrainingPlan(plan)
     }
 }
 

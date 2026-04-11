@@ -23,6 +23,7 @@ class StorageService {
     var weeklyGoal: WeeklyGoal?
     var sessionNotes: [SessionNote] = []
     var trainingPlan: TrainingPlan?
+    var smartTrainingPlan: SmartTrainingPlan?
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -42,6 +43,7 @@ class StorageService {
     private let weeklyGoalKey = "kickiq_weekly_goal"
     private let sessionNotesKey = "kickiq_session_notes"
     private let trainingPlanKey = "kickiq_training_plan"
+    private let smartPlanKey = "kickiq_smart_plan"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -99,6 +101,10 @@ class StorageService {
         if let data = UserDefaults.standard.data(forKey: trainingPlanKey),
            let decoded = try? JSONDecoder().decode(TrainingPlan.self, from: data) {
             trainingPlan = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: smartPlanKey),
+           let decoded = try? JSONDecoder().decode(SmartTrainingPlan.self, from: data) {
+            smartTrainingPlan = decoded
         }
 
         updateDailyDrillSeed()
@@ -165,6 +171,13 @@ class StorageService {
         }
     }
 
+    func saveSmartTrainingPlan(_ plan: SmartTrainingPlan) {
+        smartTrainingPlan = plan
+        if let data = try? JSONEncoder().encode(plan) {
+            UserDefaults.standard.set(data, forKey: smartPlanKey)
+        }
+    }
+
     var weeklySessionsCompleted: Int {
         let calendar = Calendar.current
         let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: .now))!
@@ -191,7 +204,7 @@ class StorageService {
         let allKeys = [profileKey, sessionsKey, onboardingKey, streakKey, lastSessionKey,
                        drillsKey, xpKey, analysisCountKey, maxStreakKey, reviewDateKey,
                        reviewCountKey, sessionDatesKey, lastStreakBrokenKey, lastReassessmentKey,
-                       dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey,
+                       dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey, smartPlanKey,
                        "kickiq_drill_day",
                        "kickiq_pref_streak", "kickiq_pref_weekly", "kickiq_pref_monthly"]
         allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
@@ -214,6 +227,7 @@ class StorageService {
         weeklyGoal = nil
         sessionNotes = []
         trainingPlan = nil
+        smartTrainingPlan = nil
 
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
