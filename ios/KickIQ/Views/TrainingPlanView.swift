@@ -434,12 +434,9 @@ struct TrainingPlanView: View {
             if let plan = vm.smartPlan {
                 planSummaryCard(plan)
 
-                ForEach(plan.days) { day in
-                    Button {
-                        selectedDayPlan = day
-                    } label: {
-                        compactDayRow(day)
-                    }
+                let weeks = groupDaysByWeek(plan.days)
+                ForEach(Array(weeks.enumerated()), id: \.offset) { weekIndex, weekDays in
+                    weekBlock(weekIndex: weekIndex, days: weekDays)
                 }
 
                 regenerateButton(vm)
@@ -447,33 +444,90 @@ struct TrainingPlanView: View {
         }
     }
 
+    private func groupDaysByWeek(_ days: [DailyPlan]) -> [[DailyPlan]] {
+        var weeks: [[DailyPlan]] = []
+        var current: [DailyPlan] = []
+        for day in days {
+            current.append(day)
+            if current.count == 7 {
+                weeks.append(current)
+                current = []
+            }
+        }
+        if !current.isEmpty { weeks.append(current) }
+        return weeks
+    }
+
+    private func weekBlock(weekIndex: Int, days: [DailyPlan]) -> some View {
+        let completed = days.filter(\.isFullyCompleted).count
+        let total = days.count
+
+        return VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("WEEK \(weekIndex + 1)")
+                    .font(.caption.weight(.heavy))
+                    .tracking(1.2)
+                    .foregroundStyle(KickIQTheme.accent)
+                Spacer()
+                Text("\(completed)/\(total) done")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(completed == total ? .green : KickIQTheme.textSecondary)
+            }
+            .padding(.horizontal, 4)
+            .padding(.top, weekIndex > 0 ? KickIQTheme.Spacing.sm : 0)
+
+            VStack(spacing: 0) {
+                ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
+                    Button {
+                        selectedDayPlan = day
+                    } label: {
+                        compactDayRow(day)
+                    }
+                    if index < days.count - 1 {
+                        Divider()
+                            .background(KickIQTheme.divider)
+                            .padding(.leading, 56)
+                    }
+                }
+            }
+            .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        }
+    }
+
     private func planSummaryCard(_ plan: SmartTrainingPlan) -> some View {
-        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
+        VStack(spacing: KickIQTheme.Spacing.md) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("30-DAY PLAN")
-                        .font(.caption.weight(.bold))
-                        .tracking(1)
+                        .font(.caption.weight(.heavy))
+                        .tracking(1.2)
                         .foregroundStyle(KickIQTheme.accent)
-                    Text("Created \(plan.createdAt, format: .dateTime.month(.abbreviated).day())")
-                        .font(.caption2)
+                    Text("Started \(plan.createdAt, format: .dateTime.month(.wide).day())")
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(plan.completedDaysCount)/\(plan.days.count)")
-                        .font(.headline)
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("days done")
-                        .font(.caption2)
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                }
             }
 
-            Text(plan.summary)
-                .font(.subheadline)
-                .foregroundStyle(KickIQTheme.textSecondary)
-                .lineSpacing(3)
+            HStack(spacing: 0) {
+                summaryStatCell(
+                    value: "\(plan.completedDaysCount)",
+                    label: "Days Done",
+                    color: plan.completedDaysCount > 0 ? .green : KickIQTheme.textSecondary
+                )
+                summaryDivider
+                summaryStatCell(
+                    value: "\(plan.totalDrillsCompleted)",
+                    label: "Drills Done",
+                    color: KickIQTheme.accent
+                )
+                summaryDivider
+                summaryStatCell(
+                    value: "\(plan.days.count - plan.completedDaysCount)",
+                    label: "Remaining",
+                    color: KickIQTheme.textSecondary
+                )
+            }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
@@ -481,63 +535,110 @@ struct TrainingPlanView: View {
                         .fill(KickIQTheme.divider)
                         .frame(height: 6)
                     Capsule()
-                        .fill(KickIQTheme.accent)
+                        .fill(
+                            LinearGradient(
+                                colors: [KickIQTheme.accent, KickIQTheme.accent.opacity(0.6)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                         .frame(width: max(0, geo.size.width * Double(plan.completedDaysCount) / Double(max(1, plan.days.count))), height: 6)
                 }
             }
             .frame(height: 6)
         }
-        .padding(KickIQTheme.Spacing.md)
-        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .padding(KickIQTheme.Spacing.md + 2)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.xl))
+    }
+
+    private func summaryStatCell(value: String, label: String, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 24, weight: .black))
+                .foregroundStyle(color)
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .textCase(.uppercase)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var summaryDivider: some View {
+        Rectangle()
+            .fill(KickIQTheme.divider)
+            .frame(width: 1, height: 32)
     }
 
     private func compactDayRow(_ day: DailyPlan) -> some View {
         let isPast = day.date < Calendar.current.startOfDay(for: .now)
         let isToday = Calendar.current.isDateInToday(day.date)
 
-        return HStack(spacing: KickIQTheme.Spacing.sm + 2) {
+        return HStack(spacing: KickIQTheme.Spacing.md) {
             ZStack {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isToday ? KickIQTheme.accent.opacity(0.2) : KickIQTheme.surface)
-                    .frame(width: 36, height: 36)
-
                 if day.isFullyCompleted {
-                    Image(systemName: "checkmark")
-                        .font(.caption.weight(.bold))
+                    Circle()
+                        .fill(.green.opacity(0.15))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18))
                         .foregroundStyle(.green)
-                } else {
+                } else if isToday {
+                    Circle()
+                        .fill(KickIQTheme.accent.opacity(0.15))
+                        .frame(width: 38, height: 38)
                     Text("\(day.dayNumber)")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(isToday ? KickIQTheme.accent : KickIQTheme.textSecondary)
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundStyle(KickIQTheme.accent)
+                } else {
+                    Circle()
+                        .fill(KickIQTheme.surface)
+                        .frame(width: 38, height: 38)
+                    Text("\(day.dayNumber)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(isPast ? KickIQTheme.textSecondary.opacity(0.5) : KickIQTheme.textSecondary)
                 }
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(day.focus)
-                    .font(.caption.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isPast && !day.isFullyCompleted ? KickIQTheme.textSecondary : KickIQTheme.textPrimary)
                     .lineLimit(1)
-                HStack(spacing: 4) {
-                    Image(systemName: day.intensity.icon)
-                        .font(.system(size: 8))
-                        .foregroundStyle(intensityColor(day.intensity))
-                    Text(day.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
-                        .font(.system(size: 10, weight: .medium))
+                HStack(spacing: 6) {
+                    HStack(spacing: 3) {
+                        Image(systemName: day.intensity.icon)
+                            .font(.system(size: 9))
+                        Text(day.intensity.rawValue)
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundStyle(intensityColor(day.intensity))
+                    Text(day.date.formatted(.dateTime.weekday(.abbreviated)))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
             }
 
             Spacer()
 
-            if day.completedCount > 0 && !day.isFullyCompleted {
+            if day.isFullyCompleted {
+                EmptyView()
+            } else if day.completedCount > 0 {
                 Text("\(day.completedCount)/\(day.drills.count)")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.caption2.weight(.bold))
                     .foregroundStyle(KickIQTheme.accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(KickIQTheme.accent.opacity(0.12), in: Capsule())
             }
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
         }
-        .padding(.horizontal, KickIQTheme.Spacing.sm + 2)
-        .padding(.vertical, KickIQTheme.Spacing.sm)
-        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+        .padding(.horizontal, KickIQTheme.Spacing.md)
+        .padding(.vertical, KickIQTheme.Spacing.sm + 4)
+        .contentShape(.rect)
     }
 
     private func regenerateButton(_ vm: TrainingPlanViewModel) -> some View {
