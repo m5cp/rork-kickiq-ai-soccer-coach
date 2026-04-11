@@ -814,6 +814,131 @@ class DrillsService {
                         "On the final set, alternate sides every 2 reps."
                     ],
                     commonMistakes: ["Letting the ball bounce too high—meet it early on the rise", "Swinging wildly instead of a controlled laces strike", "Standing still instead of adjusting your feet to the ball"]
+                ),
+                Drill(
+                    name: "Alternating Surface Wall Strikes",
+                    description: "Pass to the wall using a different striking surface each rep: inside, laces, outside, instep. The wall return forces you to adjust body shape for each surface quickly.",
+                    duration: "12 min",
+                    difficulty: .intermediate,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["Commit to the correct surface before the ball arrives", "Adjust your plant foot angle for each surface", "Keep a consistent wall target despite changing technique"],
+                    reps: "4 sets of 12 (3 per surface)",
+                    category: .striking,
+                    intensity: .moderate,
+                    equipment: [.ball, .wall],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "2-touch"],
+                    purpose: "Build versatility by cycling through all striking surfaces in a single wall session.",
+                    setup: "Stand 6 yards from a flat wall. Mark a target zone at knee height.",
+                    space: .small,
+                    instructions: [
+                        "Pass the ball into the wall with the inside of your right foot.",
+                        "Receive the return, then strike back with your right laces.",
+                        "Next rep: strike with the outside of your right foot.",
+                        "Next rep: strike with your right instep.",
+                        "Cycle through all four surfaces, then repeat with your left foot.",
+                        "Aim for the same target zone every rep regardless of surface."
+                    ],
+                    commonMistakes: ["Defaulting to inside foot every time—force variety", "Changing your wall distance between surfaces—stay planted", "Rushing through without resetting body shape for each surface"]
+                ),
+                Drill(
+                    name: "Wall Power Ladder",
+                    description: "Start 4 yards from the wall and hit 5 passes at controlled pace. Step back to 7 yards and hit 5 at medium power. Step back to 10 yards and hit 5 at full power. Builds progressive striking force.",
+                    duration: "12 min",
+                    difficulty: .intermediate,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["Technique stays the same at every distance—only power changes", "Lean over the ball more as distance increases", "Follow through fully at the longer distances"],
+                    reps: "3 rounds of 15 strikes (5 per distance)",
+                    category: .striking,
+                    intensity: .high,
+                    equipment: [.ball, .wall, .cones],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "1-touch"],
+                    purpose: "Develop the ability to adjust striking power while maintaining clean technique at different ranges.",
+                    setup: "Place cones at 4, 7, and 10 yards from a flat wall.",
+                    space: .medium,
+                    instructions: [
+                        "Start at the 4-yard cone. Strike 5 passes into the wall at 50% power with your laces.",
+                        "Move to the 7-yard cone. Strike 5 at 75% power.",
+                        "Move to the 10-yard cone. Strike 5 at full power.",
+                        "Walk back to the 4-yard cone and repeat.",
+                        "Use your dominant foot for round 1, weak foot for round 2, alternating for round 3.",
+                        "Every strike must hit your wall target—power without accuracy does not count."
+                    ],
+                    commonMistakes: ["Sacrificing accuracy for power at the longer distances", "Changing technique as you move back—keep the same mechanics", "Not resetting between strikes—take a breath at each distance"]
+                ),
+                Drill(
+                    name: "Quick-Switch Foot Wall Strikes",
+                    description: "Pass to the wall with your right foot, receive, then immediately strike back with your left foot. Every return switches the striking foot. Builds ambidextrous striking rhythm.",
+                    duration: "10 min",
+                    difficulty: .intermediate,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["Set the ball to the opposite side on your first touch", "No hesitation—the switch must be instant", "Both feet should produce the same quality of strike"],
+                    reps: "3 sets of 20 (10 per foot)",
+                    category: .striking,
+                    intensity: .moderate,
+                    equipment: [.ball, .wall],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "weak-foot", "2-touch"],
+                    purpose: "Force equal striking reps on both feet within a continuous wall rhythm.",
+                    setup: "Stand 5 yards from a flat wall. No cones needed.",
+                    space: .small,
+                    instructions: [
+                        "Strike the ball into the wall with your right inside foot.",
+                        "Receive the return and set the ball to your left side with your first touch.",
+                        "Strike back to the wall with your left foot.",
+                        "Receive and set to your right side, then strike with your right foot.",
+                        "Continue alternating without pausing. Count total clean switches.",
+                        "If you use the same foot twice in a row, restart the count."
+                    ],
+                    commonMistakes: ["Cheating by using the strong foot twice—stay disciplined", "Setting the ball directly under you instead of to the striking side", "Losing rhythm because the weak foot strike is slower"]
+                ),
+                Drill(
+                    name: "Wall Target Sniper",
+                    description: "Mark 4 target zones on the wall (low-left, low-right, mid-left, mid-right). A mental sequence calls each target in random order. Strike accurately from 8 yards.",
+                    duration: "12 min",
+                    difficulty: .advanced,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["Pick your target before you strike—never aim after contact", "Adjust body angle and plant foot to direct the ball", "Accuracy is everything—a miss counts as zero"],
+                    reps: "4 sets of 8 strikes",
+                    category: .striking,
+                    intensity: .moderate,
+                    equipment: [.ball, .wall, .cones],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "1-touch"],
+                    purpose: "Train precision placement by striking to specific wall targets under self-directed randomization.",
+                    setup: "Stand 8 yards from a flat wall. Mark 4 target zones with chalk or tape: low-left, low-right, mid-left, mid-right.",
+                    space: .small,
+                    instructions: [
+                        "Before each strike, call out your target zone out loud.",
+                        "Strike the ball with purpose toward that zone.",
+                        "Receive the return and immediately call the next target—choose a different one each time.",
+                        "Score yourself: 1 point for hitting the zone, 0 for a miss.",
+                        "Aim for 6 out of 8 per set.",
+                        "Use your weak foot for the final set."
+                    ],
+                    commonMistakes: ["Always aiming for the easiest target—force yourself to vary", "Striking before picking a target—decide first, then hit", "Ignoring your weak foot on the final set"]
+                ),
+                Drill(
+                    name: "Drop-Volley Wall Strikes",
+                    description: "Hold the ball at chest height, drop it, and strike a clean volley into the wall from 6 yards. Focus on timing the drop and making clean laces contact before the second bounce.",
+                    duration: "10 min",
+                    difficulty: .advanced,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["Drop the ball—do not toss it", "Strike as it falls, not after it bounces", "Lock your ankle and keep your toe pointed down"],
+                    reps: "3 sets of 10 per foot",
+                    category: .striking,
+                    intensity: .moderate,
+                    equipment: [.ball, .wall],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "1-touch", "weak-foot"],
+                    purpose: "Develop clean volley technique with a controlled self-serve against the wall.",
+                    setup: "Stand 6 yards from a flat wall. No cones required.",
+                    space: .small,
+                    instructions: [
+                        "Hold the ball at chest height with both hands.",
+                        "Drop it straight down—no spin or toss.",
+                        "As the ball falls, strike it on the full with your laces into the wall.",
+                        "Let the return bounce and collect it.",
+                        "Complete 10 volleys with your right foot, then 10 with your left.",
+                        "Final set: let the wall return bounce once and half-volley it back."
+                    ],
+                    commonMistakes: ["Tossing the ball upward instead of a clean drop", "Striking after the bounce instead of on the full", "Leaning back and skying the volley—stay over the ball"]
                 )
             ]
         case .receiving:
@@ -946,6 +1071,131 @@ class DrillsService {
                         "Switch to your weaker foot for the second set."
                     ],
                     commonMistakes: ["The ball bouncing off your foot on reception—withdraw and cushion", "Standing still after receiving instead of relocating", "Striking weakly because you are afraid of the fast return"]
+                ),
+                Drill(
+                    name: "Outside Foot Wall Catch",
+                    description: "Pass firmly into the wall and receive the return exclusively with the outside of your foot, killing the ball dead. The outside surface is the hardest to cushion with—this drill isolates it.",
+                    duration: "10 min",
+                    difficulty: .intermediate,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["Rotate your ankle inward so the outside faces the ball", "Withdraw on contact—don't stab at it", "Keep your standing foot planted and balanced"],
+                    reps: "3 sets of 15 per foot",
+                    category: .receiving,
+                    intensity: .moderate,
+                    equipment: [.ball, .wall],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "2-touch"],
+                    purpose: "Isolate and improve the outside-of-foot receiving surface, often neglected in training.",
+                    setup: "Stand 5 yards from a flat wall. No cones required.",
+                    space: .small,
+                    instructions: [
+                        "Pass the ball into the wall at moderate pace with your inside foot.",
+                        "As the ball returns, receive it with the outside of your right foot only.",
+                        "Cushion the ball so it stops within 1 foot of you.",
+                        "Reset and pass again. Complete 15 reps on your right foot.",
+                        "Switch to receiving with the outside of your left foot.",
+                        "Final set: alternate feet every rep."
+                    ],
+                    commonMistakes: ["Cheating by using the inside foot—commit to the outside surface", "Jabbing at the ball instead of withdrawing to cushion", "Ball bouncing away because ankle is too stiff"]
+                ),
+                Drill(
+                    name: "Wall Chest-to-Foot Settle",
+                    description: "Strike the ball hard and low into the wall so it pops up on the return. Chest the rising ball down and settle it with your foot in one fluid sequence. Trains aerial-to-ground reception.",
+                    duration: "12 min",
+                    difficulty: .advanced,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["Strike low on the wall so the return bounces up", "Chest out and withdraw to absorb—don't let it bounce off you", "Settle with a soft foot touch immediately after the chest"],
+                    reps: "3 sets of 10",
+                    category: .receiving,
+                    intensity: .moderate,
+                    equipment: [.ball, .wall],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "2-touch"],
+                    purpose: "Develop the chest-to-foot settling combination used to control bouncing passes and clearances.",
+                    setup: "Stand 6 yards from a flat wall. Strike low so the ball returns with a bounce.",
+                    space: .small,
+                    instructions: [
+                        "Strike the ball firmly into the base of the wall so it bounces up on the return.",
+                        "As the ball rises toward chest height, chest it downward.",
+                        "Immediately settle the ball with the inside of your foot as it drops.",
+                        "The ball should be under control within 2 touches after the chest.",
+                        "Reset and repeat. Vary the power of your wall strike to change the return height.",
+                        "On the final set, settle with your weaker foot only."
+                    ],
+                    commonMistakes: ["Chest too rigid—puff out then withdraw to cushion", "Letting the ball hit the ground before your foot touch", "Striking the wall too high so the return stays flat"]
+                ),
+                Drill(
+                    name: "Blind-Side Receive Drill",
+                    description: "Stand sideways to the wall so the ball returns from your blind side. Pass, then quickly open your hips to receive the return you cannot fully see until the last moment. Trains peripheral awareness.",
+                    duration: "10 min",
+                    difficulty: .advanced,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["Start with your shoulder facing the wall, not your chest", "Open your hips at the last second to receive", "Use your ears and peripheral vision to time the turn"],
+                    reps: "4 sets of 8 per side",
+                    category: .receiving,
+                    intensity: .moderate,
+                    equipment: [.ball, .wall, .cones],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "turning-after-receive"],
+                    purpose: "Simulate receiving a pass from behind or from the blind side, building awareness and body adjustment speed.",
+                    setup: "Stand 5 yards from a flat wall. Place a cone 3 yards behind you as a turn target.",
+                    space: .small,
+                    instructions: [
+                        "Stand sideways to the wall with your left shoulder closest to it.",
+                        "Pass the ball into the wall with a quick body rotation.",
+                        "Immediately return to your sideways stance so the return arrives from your blind side.",
+                        "At the last moment, open your hips and receive the ball with your right foot.",
+                        "Turn toward the cone behind you and dribble to it.",
+                        "Complete 8 reps, then switch so your right shoulder faces the wall."
+                    ],
+                    commonMistakes: ["Peeking at the wall the whole time—trust your timing", "Opening hips too early and losing the blind-side simulation", "Heavy first touch because you panicked at the late adjustment"]
+                ),
+                Drill(
+                    name: "Sole Kill & Go",
+                    description: "Pass firmly into the wall and kill the return dead with the sole of your foot. The instant the ball stops, explode forward 3 yards with a push, then jog back and repeat. Combines dead reception with instant acceleration.",
+                    duration: "10 min",
+                    difficulty: .intermediate,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["The sole kill must be instant—one touch, dead stop", "Transition from stop to sprint with zero delay", "Push the ball ahead with your laces on the explosion, not with the sole"],
+                    reps: "4 sets of 8",
+                    category: .receiving,
+                    intensity: .high,
+                    equipment: [.ball, .wall, .cones],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "2-touch", "movement-after-pass"],
+                    purpose: "Train the receive-and-explode pattern: dead-stop a pass then burst into space instantly.",
+                    setup: "Stand 5 yards from a flat wall. Place a cone 3 yards behind you as your sprint target.",
+                    space: .small,
+                    instructions: [
+                        "Pass the ball into the wall at firm pace.",
+                        "As the ball returns, kill it dead under your sole—no bounce, no roll.",
+                        "The instant the ball stops, push it forward with your laces and sprint to the cone behind you.",
+                        "Stop at the cone, turn, jog back to the wall, and repeat.",
+                        "Complete 8 reps per set. Use your weak foot sole on set 3.",
+                        "Increase wall-pass power each set to make the sole kill harder."
+                    ],
+                    commonMistakes: ["The ball rolling after the sole touch—it must be dead still", "Pausing between the kill and the explosion—the transition is the drill", "Sprinting without the ball—push it ahead with you"]
+                ),
+                Drill(
+                    name: "Bounce Receive & Redirect",
+                    description: "Strike the ball into the lower wall so it bounces back along the ground with pace. Let it bounce once, then redirect it left or right with a single cushioned touch. Simulates receiving a skipping pass on an uneven pitch.",
+                    duration: "10 min",
+                    difficulty: .intermediate,
+                    targetSkill: skill.rawValue,
+                    coachingCues: ["Read the bounce height early and adjust your foot height", "Redirect to the side, not straight back—simulate playing around a defender", "Stay on the balls of your feet to react to unpredictable bounces"],
+                    reps: "3 sets of 12 (6 each direction)",
+                    category: .receiving,
+                    intensity: .moderate,
+                    equipment: [.ball, .wall],
+                    tags: ["solo-friendly", "minimal-equipment", "wall-training", "2-touch"],
+                    purpose: "Build the ability to control bouncing passes and redirect them with purpose.",
+                    setup: "Stand 6 yards from a flat wall. No cones needed.",
+                    space: .small,
+                    instructions: [
+                        "Strike the ball low and firm into the base of the wall.",
+                        "The return will bounce and skip back toward you.",
+                        "Let it bounce once, then cushion-redirect it to your left with the inside of your right foot.",
+                        "Collect the ball and repeat, this time redirecting right.",
+                        "Alternate directions for 12 total reps.",
+                        "On the final set, use only your weaker foot to redirect."
+                    ],
+                    commonMistakes: ["Trying to receive before the bounce—let it skip once", "Redirecting straight back instead of to the side", "Flat-footed stance making it hard to adjust to the bounce"]
                 )
             ]
         case .juggling:
