@@ -5,6 +5,7 @@ import Foundation
 class DrillsService {
     var allDrills: [Drill] = []
     var activeFilter: DrillFilter = .default
+    let philosophy: TrainingPhilosophy = .shared
 
     func loadDrills(for position: PlayerPosition, weakness: WeaknessArea, skillLevel: SkillLevel) {
         allDrills = generateDrills(for: position, weakness: weakness, level: skillLevel)
@@ -22,6 +23,25 @@ class DrillsService {
         }
 
         return result
+    }
+
+    func restGuidance(for drill: Drill) -> RestGuidance {
+        drill.restGuidance ?? philosophy.restGuidance(for: drill.intensity)
+    }
+
+    func surfaceNote(for surface: TrainingSurface) -> String {
+        philosophy.surfaceNote(for: surface)
+    }
+
+    func drillsSortedByWeakness(weakestSkills: [SkillCategory]) -> [Drill] {
+        guard !weakestSkills.isEmpty else { return allDrills }
+        let weakSet = Set(weakestSkills.map(\.rawValue))
+        return allDrills.sorted { a, b in
+            let aWeak = weakSet.contains(a.targetSkill)
+            let bWeak = weakSet.contains(b.targetSkill)
+            if aWeak != bWeak { return aWeak }
+            return false
+        }
     }
 
     func filteredDrills(with filter: DrillFilter) -> [Drill] {

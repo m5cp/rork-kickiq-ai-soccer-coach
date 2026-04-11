@@ -160,6 +160,8 @@ nonisolated struct Drill: Codable, Sendable, Identifiable {
     let space: SpaceRequirement
     let instructions: [String]
     let commonMistakes: [String]
+    let restGuidance: RestGuidance?
+    let recommendedSurfaces: [TrainingSurface]
 
     init(
         id: String = UUID().uuidString,
@@ -182,7 +184,9 @@ nonisolated struct Drill: Codable, Sendable, Identifiable {
         setup: String = "",
         space: SpaceRequirement = .small,
         instructions: [String] = [],
-        commonMistakes: [String] = []
+        commonMistakes: [String] = [],
+        restGuidance: RestGuidance? = nil,
+        recommendedSurfaces: [TrainingSurface] = []
     ) {
         self.id = id
         self.name = name
@@ -205,6 +209,8 @@ nonisolated struct Drill: Codable, Sendable, Identifiable {
         self.space = space
         self.instructions = instructions
         self.commonMistakes = commonMistakes
+        self.restGuidance = restGuidance
+        self.recommendedSurfaces = recommendedSurfaces
     }
 
     var resolvedCategory: SkillCategory? {
