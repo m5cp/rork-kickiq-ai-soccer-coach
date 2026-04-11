@@ -86,9 +86,7 @@ class AIChatService {
 
         let systemContext = buildSystemContext(storage: storage)
 
-        var apiMessages: [[String: Any]] = [
-            ["role": "system", "content": systemContext]
-        ]
+        var apiMessages: [[String: Any]] = []
 
         for msg in messages where !msg.isError {
             apiMessages.append([
@@ -97,7 +95,10 @@ class AIChatService {
             ])
         }
 
-        let body: [String: Any] = ["messages": apiMessages]
+        let body: [String: Any] = [
+            "messages": apiMessages,
+            "system": systemContext
+        ]
         let jsonData = try JSONSerialization.data(withJSONObject: body)
 
         var request = URLRequest(url: url)

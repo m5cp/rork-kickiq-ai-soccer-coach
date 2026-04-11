@@ -324,9 +324,9 @@ struct PostGameDebriefView: View {
 
         let body: [String: Any] = [
             "messages": [
-                ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": userMessage]
-            ]
+            ],
+            "system": systemPrompt
         ]
 
         let jsonData = try JSONSerialization.data(withJSONObject: body)
