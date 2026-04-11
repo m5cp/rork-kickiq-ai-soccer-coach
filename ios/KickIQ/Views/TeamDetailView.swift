@@ -8,7 +8,7 @@ struct TeamDetailView: View {
     @State private var challengeService = ChallengeService.shared
     @State private var feedService = ActivityFeedService.shared
     @State private var assignmentService = CoachAssignmentService.shared
-    @State private var selectedSection: TeamSection = .roster
+    @State private var selectedSection: TeamSection = .dashboard
     @State private var showAssignDrill = false
     @State private var showCreateChallenge = false
     @State private var showLeaveAlert = false
@@ -158,7 +158,7 @@ struct TeamDetailView: View {
     private var sectionPicker: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
-                ForEach(TeamSection.allCases) { section in
+                ForEach(TeamSection.allCases.filter { !$0.coachOnly || myRole?.isCoachOrOwner == true }) { section in
                     let isActive = selectedSection == section
                     Button {
                         withAnimation(.spring(response: 0.3)) { selectedSection = section }
@@ -185,6 +185,8 @@ struct TeamDetailView: View {
     @ViewBuilder
     private var sectionContent: some View {
         switch selectedSection {
+        case .dashboard:
+            coachDashboardSection
         case .roster:
             rosterSection
         case .leaderboard:
@@ -198,6 +200,130 @@ struct TeamDetailView: View {
         case .plans:
             CoachTrainingPlansView(teamId: team.id, isCoach: myRole?.isCoachOrOwner == true)
         }
+    }
+
+    // MARK: - Coach Dashboard
+
+    private var coachDashboardSection: some View {
+        let totalMembers = teamService.teamMembers.count
+        let playerCount = teamService.teamMembers.filter { TeamRole(rawValue: $0.role) == .player }.count
+        let totalAssigned = assignmentService.assignments.count
+        let completedAssigned = assignmentService.assignments.filter(\.completed).count
+        let completionRate = totalAssigned > 0 ? Int(Double(completedAssigned) / Double(totalAssigned) * 100) : 0
+        let activeChallenges = challengeService.challenges.count
+        let recentEvents = feedService.events.prefix(5)
+
+        return LazyVStack(spacing: KickIQTheme.Spacing.md) {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                dashboardStatCard(value: "\(totalMembers)", label: "Members", icon: "person.3.fill", color: .blue)
+                dashboardStatCard(value: "\(playerCount)", label: "Players", icon: "figure.soccer", color: KickIQTheme.accent)
+            }
+
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                dashboardStatCard(value: "\(completionRate)%", label: "Completion", icon: "checkmark.circle.fill", color: .green)
+                dashboardStatCard(value: "\(activeChallenges)", label: "Challenges", icon: "trophy.fill", color: .orange)
+            }
+
+            if totalAssigned > 0 {
+                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                    HStack {
+                        Text("DRILL ASSIGNMENTS")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(KickIQTheme.accent)
+                        Spacer()
+                        Text("\(completedAssigned)/\(totalAssigned)")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(completionRate >= 80 ? .green : completionRate >= 50 ? .orange : KickIQTheme.textSecondary)
+                    }
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(KickIQTheme.divider)
+                                .frame(height: 8)
+                            Capsule()
+                                .fill(completionRate >= 80 ? Color.green : completionRate >= 50 ? Color.orange : KickIQTheme.accent)
+                                .frame(width: max(0, geo.size.width * Double(completionRate) / 100.0), height: 8)
+                        }
+                    }
+                    .frame(height: 8)
+                }
+                .padding(KickIQTheme.Spacing.md)
+                .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+            }
+
+            if myRole?.isCoachOrOwner == true {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    Button {
+                        showAssignDrill = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "clipboard.fill")
+                                .font(.caption.weight(.semibold))
+                            Text("Assign Drill")
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+                    }
+
+                    Button {
+                        showCreateChallenge = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "trophy.fill")
+                                .font(.caption.weight(.semibold))
+                            Text("New Challenge")
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(KickIQTheme.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
+                    }
+                }
+            }
+
+            if !recentEvents.isEmpty {
+                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                    Text("RECENT ACTIVITY")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(KickIQTheme.accent)
+
+                    ForEach(Array(recentEvents)) { event in
+                        activityRow(event)
+                    }
+                }
+            }
+        }
+    }
+
+    private func dashboardStatCard(value: String, label: String, icon: String, color: Color) -> some View {
+        VStack(spacing: KickIQTheme.Spacing.sm) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(color)
+                Spacer()
+            }
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(value)
+                        .font(.title2.weight(.black))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text(label)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+                Spacer()
+            }
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
     }
 
     private var rosterSection: some View {
@@ -486,6 +612,7 @@ struct TeamDetailView: View {
 }
 
 enum TeamSection: String, CaseIterable, Identifiable {
+    case dashboard = "Dashboard"
     case roster = "Roster"
     case leaderboard = "Leaders"
     case challenges = "Challenges"
@@ -499,6 +626,7 @@ enum TeamSection: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
+        case .dashboard: "square.grid.2x2.fill"
         case .roster: "person.3.fill"
         case .leaderboard: "chart.bar.fill"
         case .challenges: "trophy.fill"
@@ -506,5 +634,9 @@ enum TeamSection: String, CaseIterable, Identifiable {
         case .assignments: "clipboard.fill"
         case .plans: "doc.text.fill"
         }
+    }
+
+    var coachOnly: Bool {
+        self == .dashboard
     }
 }

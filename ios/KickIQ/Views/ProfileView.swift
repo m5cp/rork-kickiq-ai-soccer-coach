@@ -14,6 +14,7 @@ struct ProfileView: View {
     @State private var showDeleteAlert = false
     @State private var showSignOutAlert = false
     @State private var showNotificationPrefs = false
+    @State private var showPostGameDebrief = false
     @State private var auth = AuthService.shared
 
     var body: some View {
@@ -23,6 +24,7 @@ struct ProfileView: View {
                     avatarSection
                     statsRow
                     aiCoachCard
+                    postGameDebriefCard
                     teamCard
                     coachReportCard
                     notificationCard
@@ -70,6 +72,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showNotificationPrefs) {
                 NotificationPreferencesSheet()
+            }
+            .sheet(isPresented: $showPostGameDebrief) {
+                PostGameDebriefView(storage: storage)
             }
             .alert("Delete All Data?", isPresented: $showDeleteAlert) {
                 Button("Delete", role: .destructive) {
@@ -273,6 +278,50 @@ struct ProfileView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.07), value: appeared)
+    }
+
+    private var postGameDebriefCard: some View {
+        Button {
+            showPostGameDebrief = true
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "sportscourt.fill")
+                        .font(.title3)
+                        .foregroundStyle(.green)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Post-Game Debrief")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Tell the AI about your game, get a drill plan")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(KickIQTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(Color.green.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.08), value: appeared)
     }
 
     private var teamCard: some View {

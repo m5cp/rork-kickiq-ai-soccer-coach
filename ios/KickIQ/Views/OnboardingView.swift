@@ -10,7 +10,7 @@ struct OnboardingView: View {
     @State private var weakness: WeaknessArea = .firstTouch
     @State private var appeared = false
 
-    private let totalSteps = 8
+    private let totalSteps = 9
 
     var body: some View {
         ZStack {
@@ -32,19 +32,20 @@ struct OnboardingView: View {
                 .padding(.horizontal, KickIQTheme.Spacing.md)
 
                 TabView(selection: $currentStep) {
-                    positionStep.tag(0)
-                    ageStep.tag(1)
-                    skillLevelStep.tag(2)
-                    weaknessStep.tag(3)
-                    painStep.tag(4)
-                    howItWorksStep.tag(5)
-                    socialProofStep.tag(6)
-                    paywallStep.tag(7)
+                    nameStep.tag(0)
+                    positionStep.tag(1)
+                    ageStep.tag(2)
+                    skillLevelStep.tag(3)
+                    weaknessStep.tag(4)
+                    painStep.tag(5)
+                    howItWorksStep.tag(6)
+                    socialProofStep.tag(7)
+                    paywallStep.tag(8)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 7 {
+                if currentStep < 8 {
                     continueButton
                 }
             }
@@ -68,6 +69,56 @@ struct OnboardingView: View {
             }
         }
         .frame(height: 4)
+    }
+
+    // MARK: - Step 0: Name
+    private var nameStep: some View {
+        VStack(spacing: KickIQTheme.Spacing.xl) {
+            Spacer()
+
+            VStack(spacing: KickIQTheme.Spacing.md) {
+                Image(systemName: "person.text.rectangle.fill")
+                    .font(.system(size: 56))
+                    .foregroundStyle(KickIQTheme.accent)
+                    .symbolEffect(.bounce, value: currentStep == 0)
+
+                Text("WHAT'S YOUR NAME?")
+                    .font(.system(.title2, design: .default, weight: .black).width(.compressed))
+                    .tracking(2)
+                    .foregroundStyle(KickIQTheme.textPrimary)
+
+                Text("So we can personalize your coaching")
+                    .font(.subheadline)
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+
+            TextField("", text: $name, prompt: Text("Enter your name").foregroundStyle(KickIQTheme.textSecondary.opacity(0.5)))
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(KickIQTheme.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.vertical, KickIQTheme.Spacing.md)
+                .padding(.horizontal, KickIQTheme.Spacing.lg)
+                .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                        .stroke(name.isEmpty ? KickIQTheme.divider : KickIQTheme.accent, lineWidth: 1.5)
+                )
+                .padding(.horizontal, KickIQTheme.Spacing.lg)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.words)
+
+            if !name.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text("Welcome, \(name.trimmingCharacters(in: .whitespaces))!")
+                    .font(.headline)
+                    .foregroundStyle(KickIQTheme.accent)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.xl)
+        .animation(.spring(response: 0.3), value: name)
     }
 
     // MARK: - Step 1: Position
@@ -240,7 +291,7 @@ struct OnboardingView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 56))
                 .foregroundStyle(KickIQTheme.accent)
-                .symbolEffect(.bounce, value: currentStep == 4)
+                .symbolEffect(.bounce, value: currentStep == 5)
 
             VStack(spacing: KickIQTheme.Spacing.md) {
                 Text("Most players never improve\nbecause no one tells them\nwhat to fix.")

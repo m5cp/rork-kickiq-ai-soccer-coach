@@ -135,9 +135,9 @@ struct KickIQWidgetView: View {
                     }
                 }
 
-                Text("Hi, \(entry.playerName)")
+                Text(motivationalText)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(.white.opacity(0.5))
                     .lineLimit(1)
             }
 
@@ -145,10 +145,22 @@ struct KickIQWidgetView: View {
 
             VStack(spacing: 12) {
                 statBox(value: "\(entry.skillScore)", label: "SCORE", icon: "chart.line.uptrend.xyaxis")
-                statBox(value: "\(entry.xpPoints)", label: "XP", icon: "star.fill")
+                statBox(value: "\(entry.drillsCompleted)", label: "DRILLS", icon: "figure.soccer")
             }
         }
         .containerBackground(bgColor, for: .widget)
+    }
+
+    private var motivationalText: String {
+        if entry.streakCount == 0 {
+            return "Start your streak today, \(entry.playerName)!"
+        } else if entry.streakCount >= 30 {
+            return "\(entry.playerName) — unstoppable!"
+        } else if entry.streakCount >= 7 {
+            return "On fire, \(entry.playerName)! Keep pushing."
+        } else {
+            return "Nice work, \(entry.playerName)! Don't stop."
+        }
     }
 
     private var largeWidget: some View {
@@ -196,10 +208,15 @@ struct KickIQWidgetView: View {
 
             Spacer()
 
-            Text("Hi, \(entry.playerName) — keep training!")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.white.opacity(0.4))
-                .lineLimit(1)
+            HStack(spacing: 6) {
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(accentColor)
+                Text(motivationalText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .lineLimit(1)
+            }
         }
         .containerBackground(bgColor, for: .widget)
     }
