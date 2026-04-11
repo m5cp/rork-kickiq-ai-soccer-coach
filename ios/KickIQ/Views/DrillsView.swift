@@ -32,6 +32,9 @@ struct DrillsView: View {
     @State private var showTrainingPlan = false
     @State private var showConditioningPlan = false
     @State private var showPDFUpload = false
+    @State private var showGenerateSkillPlan = false
+    @State private var showGenerateConditioningPlan = false
+    @State private var showSavedPlans = false
 
     private var isIPad: Bool { sizeClass == .regular }
 
@@ -46,12 +49,12 @@ struct DrillsView: View {
                         if activeSection == .skills {
                             headerSection
                             statsBar
-                            generatePlanButton(isConditioning: false)
+                            generatePlanButtons(isConditioning: false)
                             categorySections
                         } else {
                             conditioningHeaderSection
                             conditioningStatsBar
-                            conditioningActions
+                            conditioningActionsEnhanced
                             conditioningSections
                         }
                     }
@@ -87,6 +90,15 @@ struct DrillsView: View {
             }
             .sheet(isPresented: $showPDFUpload) {
                 PDFUploadView(storage: storage)
+            }
+            .sheet(isPresented: $showGenerateSkillPlan) {
+                GeneratePlanSheet(storage: storage, planType: .skillDrills)
+            }
+            .sheet(isPresented: $showGenerateConditioningPlan) {
+                GeneratePlanSheet(storage: storage, planType: .conditioning)
+            }
+            .sheet(isPresented: $showSavedPlans) {
+                SavedPlansView(storage: storage)
             }
         }
         .onAppear {
@@ -269,6 +281,57 @@ struct DrillsView: View {
         .opacity(appeared ? 1 : 0)
     }
 
+    private func generatePlanButtons(isConditioning: Bool) -> some View {
+        VStack(spacing: KickIQTheme.Spacing.sm) {
+            Button {
+                if isConditioning {
+                    showGenerateConditioningPlan = true
+                } else {
+                    showGenerateSkillPlan = true
+                }
+            } label: {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    Image(systemName: "sparkles")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Generate Training Plan")
+                        .font(.subheadline.weight(.bold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                }
+                .foregroundStyle(.black)
+                .padding(.horizontal, KickIQTheme.Spacing.md)
+                .padding(.vertical, 14)
+                .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+            }
+
+            if !storage.savedPlans.isEmpty {
+                Button {
+                    showSavedPlans = true
+                } label: {
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Image(systemName: "list.clipboard.fill")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Saved Plans (\(storage.savedPlans.filter { isConditioning ? $0.planType == .conditioning : $0.planType == .skillDrills }.count))")
+                            .font(.subheadline.weight(.bold))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(KickIQTheme.accent)
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
+                    .padding(.vertical, 14)
+                    .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
+                    )
+                }
+            }
+        }
+        .opacity(appeared ? 1 : 0)
+    }
+
     private func statItem(value: String, label: String, icon: String) -> some View {
         VStack(spacing: 4) {
             HStack(spacing: 4) {
@@ -398,6 +461,34 @@ struct DrillsView: View {
     private var conditioningActions: some View {
         VStack(spacing: KickIQTheme.Spacing.sm) {
             generatePlanButton(isConditioning: true)
+
+            Button {
+                showPDFUpload = true
+            } label: {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    Image(systemName: "doc.badge.plus")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Upload Plan (PDF)")
+                        .font(.subheadline.weight(.bold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                }
+                .foregroundStyle(KickIQTheme.accent)
+                .padding(.horizontal, KickIQTheme.Spacing.md)
+                .padding(.vertical, 14)
+                .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                        .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
+                )
+            }
+        }
+    }
+
+    private var conditioningActionsEnhanced: some View {
+        VStack(spacing: KickIQTheme.Spacing.sm) {
+            generatePlanButtons(isConditioning: true)
 
             Button {
                 showPDFUpload = true

@@ -30,6 +30,7 @@ class StorageService {
     var personalRecords: [String: PersonalRecord] = [:]
     var lastStreakFreezeDate: Date?
     var streakFreezeUsedThisWeek: Bool = false
+    var savedPlans: [SavedPlan] = []
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -54,6 +55,7 @@ class StorageService {
     private let personalRecordsKey = "kickiq_personal_records"
     private let streakFreezeKey = "kickiq_streak_freeze_date"
     private let conditioningPlanKey = "kickiq_conditioning_plan"
+    private let savedPlansKey = "kickiq_saved_plans"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -123,6 +125,11 @@ class StorageService {
         }
         updateStreakFreezeWeekly()
 
+        if let data = UserDefaults.standard.data(forKey: savedPlansKey),
+           let decoded = try? JSONDecoder().decode([SavedPlan].self, from: data) {
+            savedPlans = decoded
+        }
+
         if let arr = UserDefaults.standard.array(forKey: favoritesKey) as? [String] {
             favoriteDrillIDs = Set(arr)
         }
@@ -149,6 +156,28 @@ class StorageService {
 
     func clearConditioningPlan() {
         UserDefaults.standard.removeObject(forKey: conditioningPlanKey)
+    }
+
+    func addSavedPlan(_ plan: SavedPlan) {
+        savedPlans.insert(plan, at: 0)
+        persistSavedPlans()
+    }
+
+    func updateSavedPlan(_ plan: SavedPlan) {
+        guard let idx = savedPlans.firstIndex(where: { $0.id == plan.id }) else { return }
+        savedPlans[idx] = plan
+        persistSavedPlans()
+    }
+
+    func deleteSavedPlan(_ planID: String) {
+        savedPlans.removeAll { $0.id == planID }
+        persistSavedPlans()
+    }
+
+    private func persistSavedPlans() {
+        if let data = try? JSONEncoder().encode(savedPlans) {
+            UserDefaults.standard.set(data, forKey: savedPlansKey)
+        }
     }
 
     func saveProfile(_ newProfile: PlayerProfile) {
