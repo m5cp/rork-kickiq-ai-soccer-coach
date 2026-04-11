@@ -17,9 +17,19 @@ struct OnboardingView: View {
             KickIQTheme.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                progressBar
-                    .padding(.top, 12)
-                    .padding(.horizontal, KickIQTheme.Spacing.md)
+                HStack {
+                    progressBar
+                    
+                    Button {
+                        completeOnboarding()
+                    } label: {
+                        Text("Skip")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+                }
+                .padding(.top, 12)
+                .padding(.horizontal, KickIQTheme.Spacing.md)
 
                 TabView(selection: $currentStep) {
                     positionStep.tag(0)
