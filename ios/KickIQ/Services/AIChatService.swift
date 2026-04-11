@@ -95,7 +95,7 @@ class AIChatService {
         if !secretKey.isEmpty {
             request.setValue("Bearer \(secretKey)", forHTTPHeaderField: "Authorization")
         }
-        let appKey = Config.allValues["EXPO_PUBLIC_RORK_APP_KEY"] ?? ""
+        let appKey = ConfigHelper.value(forKey: "EXPO_PUBLIC_RORK_APP_KEY")
         if !appKey.isEmpty {
             request.setValue(appKey, forHTTPHeaderField: "x-app-key")
         }
@@ -114,7 +114,7 @@ class AIChatService {
 
         guard httpResponse.statusCode == 200 else {
             let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
-            print("AI Chat API error (\(httpResponse.statusCode)): \(errorBody)")
+            print("[KickIQ] AI Chat API error (\(httpResponse.statusCode)): \(errorBody)")
             throw ChatError.serverError
         }
 
@@ -133,6 +133,10 @@ class AIChatService {
     }
 
     private func extractTextContent(from response: String) -> String {
+        if response.contains("data: ") {
+            return parseSSEResponse(response)
+        }
+
         if let jsonData = response.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
             if let text = json["text"] as? String {
@@ -153,12 +157,79 @@ class AIChatService {
             if let result = json["result"] as? String {
                 return result
             }
+            if let messages = json["messages"] as? [[String: Any]],
+               let last = messages.last(where: { ($0["role"] as? String) == "assistant" }) {
+                if let content = last["content"] as? String {
+                    return content
+                }
+                if let parts = last["content"] as? [[String: Any]] {
+                    let textParts = parts.compactMap { part -> String? in
+                        guard (part["type"] as? String) == "text" else { return nil }
+                        return part["text"] as? String
+                    }
+                    if !textParts.isEmpty {
+                        return textParts.joined()
+                    }
+                }
+                if let parts = last["parts"] as? [[String: Any]] {
+                    let textParts = parts.compactMap { part -> String? in
+                        guard (part["type"] as? String) == "text" else { return nil }
+                        return part["text"] as? String
+                    }
+                    if !textParts.isEmpty {
+                        return textParts.joined()
+                    }
+                }
+            }
         }
         let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.hasPrefix("{") || trimmed.hasPrefix("[") {
             return ""
         }
         return trimmed
+    }
+
+    private func parseSSEResponse(_ response: String) -> String {
+        var collectedText = ""
+        let lines = response.components(separatedBy: "\n")
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("data: ") else { continue }
+
+            let payload = String(trimmed.dropFirst(6))
+            if payload == "[DONE]" { break }
+
+            guard let data = payload.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                continue
+            }
+
+            if let text = json["text"] as? String {
+                collectedText += text
+            } else if let delta = json["delta"] as? [String: Any],
+                      let content = delta["content"] as? String {
+                collectedText += content
+            } else if let choices = json["choices"] as? [[String: Any]],
+                      let first = choices.first,
+                      let delta = first["delta"] as? [String: Any],
+                      let content = delta["content"] as? String {
+                collectedText += content
+            } else if let content = json["content"] as? String {
+                collectedText += content
+            } else if let type = json["type"] as? String, type == "text" {
+                if let textVal = json["text"] as? String {
+                    collectedText += textVal
+                }
+            } else if let type = json["type"] as? String, type == "content_block_delta" {
+                if let delta = json["delta"] as? [String: Any],
+                   let text = delta["text"] as? String {
+                    collectedText += text
+                }
+            }
+        }
+
+        return collectedText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func buildSystemContext(storage: StorageService) -> String {

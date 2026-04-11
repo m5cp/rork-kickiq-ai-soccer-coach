@@ -203,7 +203,7 @@ class AIAnalysisService {
             if !secretKey.isEmpty {
                 request.setValue("Bearer \(secretKey)", forHTTPHeaderField: "Authorization")
             }
-            let appKey = Config.allValues["EXPO_PUBLIC_RORK_APP_KEY"] ?? ""
+            let appKey = ConfigHelper.value(forKey: "EXPO_PUBLIC_RORK_APP_KEY")
             if !appKey.isEmpty {
                 request.setValue(appKey, forHTTPHeaderField: "x-app-key")
             }
@@ -348,11 +348,50 @@ class AIAnalysisService {
     }
 
     private func extractJSON(from text: String) -> String {
-        if let start = text.firstIndex(of: "{"),
-           let end = text.lastIndex(of: "}") {
-            return String(text[start...end])
+        var source = text
+
+        if source.contains("data: ") {
+            source = parseSSEText(source)
         }
-        return text
+
+        if let start = source.firstIndex(of: "{"),
+           let end = source.lastIndex(of: "}") {
+            return String(source[start...end])
+        }
+        return source
+    }
+
+    private func parseSSEText(_ response: String) -> String {
+        var collected = ""
+        let lines = response.components(separatedBy: "\n")
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("data: ") else { continue }
+            let payload = String(trimmed.dropFirst(6))
+            if payload == "[DONE]" { break }
+            guard let data = payload.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                continue
+            }
+            if let text = json["text"] as? String {
+                collected += text
+            } else if let delta = json["delta"] as? [String: Any],
+                      let content = delta["content"] as? String {
+                collected += content
+            } else if let choices = json["choices"] as? [[String: Any]],
+                      let first = choices.first,
+                      let d = first["delta"] as? [String: Any],
+                      let content = d["content"] as? String {
+                collected += content
+            } else if let content = json["content"] as? String {
+                collected += content
+            } else if let type = json["type"] as? String, type == "content_block_delta",
+                      let delta = json["delta"] as? [String: Any],
+                      let text = delta["text"] as? String {
+                collected += text
+            }
+        }
+        return collected.isEmpty ? response : collected
     }
 
     private func generateFallbackScores(for position: PlayerPosition) -> [SkillScore] {

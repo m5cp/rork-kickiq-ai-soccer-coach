@@ -11,8 +11,8 @@ class SupabaseService {
     private let supabaseKey: String
 
     private init() {
-        let url = Config.allValues["EXPO_PUBLIC_SUPABASE_URL"] ?? ""
-        let key = Config.allValues["EXPO_PUBLIC_SUPABASE_ANON_KEY"] ?? ""
+        let url = ConfigHelper.value(forKey: "EXPO_PUBLIC_SUPABASE_URL")
+        let key = ConfigHelper.value(forKey: "EXPO_PUBLIC_SUPABASE_ANON_KEY")
         self.supabaseURL = url
         self.supabaseKey = key
 
@@ -24,7 +24,6 @@ class SupabaseService {
 
         if url.isEmpty || key.isEmpty {
             print("[KickIQ] Supabase not configured. URL empty: \(url.isEmpty), Key empty: \(key.isEmpty)")
-            print("[KickIQ] Available Config keys: \(Config.allValues.keys.sorted())")
         }
     }
 
