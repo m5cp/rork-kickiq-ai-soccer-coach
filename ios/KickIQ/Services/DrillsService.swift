@@ -4,16 +4,43 @@ import Foundation
 @MainActor
 class DrillsService {
     var allDrills: [Drill] = []
+    var activeFilter: DrillFilter = .default
 
     func loadDrills(for position: PlayerPosition, weakness: WeaknessArea, skillLevel: SkillLevel) {
         allDrills = generateDrills(for: position, weakness: weakness, level: skillLevel)
     }
 
     func filteredDrills(weakestSkills: [SkillCategory]) -> [Drill] {
-        guard !weakestSkills.isEmpty else { return allDrills }
-        let weakNames = Set(weakestSkills.map(\.rawValue))
-        let filtered = allDrills.filter { weakNames.contains($0.targetSkill) }
-        return filtered.isEmpty ? allDrills : filtered
+        var result = allDrills
+
+        if !activeFilter.isEmpty {
+            result = result.filter { activeFilter.matches($0) }
+        } else if !weakestSkills.isEmpty {
+            let weakNames = Set(weakestSkills.map(\.rawValue))
+            let filtered = result.filter { weakNames.contains($0.targetSkill) }
+            if !filtered.isEmpty { result = filtered }
+        }
+
+        return result
+    }
+
+    func filteredDrills(with filter: DrillFilter) -> [Drill] {
+        guard !filter.isEmpty else { return allDrills }
+        return allDrills.filter { filter.matches($0) }
+    }
+
+    func drills(for category: SkillCategory) -> [Drill] {
+        allDrills.filter { $0.resolvedCategory == category }
+    }
+
+    func focusCategories(for position: PlayerPosition, weaknesses: [SkillCategory] = []) -> [FocusCategory] {
+        var counts: [SkillCategory: Int] = [:]
+        for drill in allDrills {
+            if let cat = drill.resolvedCategory {
+                counts[cat, default: 0] += 1
+            }
+        }
+        return FocusCategory.fromSkillCategories(for: position, weaknesses: weaknesses, drillCounts: counts)
     }
 
     private func generateDrills(for position: PlayerPosition, weakness: WeaknessArea, level: SkillLevel) -> [Drill] {

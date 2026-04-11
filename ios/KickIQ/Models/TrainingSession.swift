@@ -51,6 +51,63 @@ nonisolated enum DrillDifficulty: String, Codable, CaseIterable, Sendable {
     }
 }
 
+nonisolated enum EquipmentType: String, Codable, CaseIterable, Sendable, Identifiable {
+    case none = "No Equipment"
+    case ball = "Ball"
+    case cones = "Cones"
+    case agilityLadder = "Agility Ladder"
+    case wall = "Wall"
+    case goal = "Goal"
+    case resistanceBand = "Resistance Band"
+    case reactionBall = "Reaction Ball"
+    case tennisBalls = "Tennis Balls"
+    case mannequin = "Mannequin"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .none: "hand.raised.slash"
+        case .ball: "soccerball"
+        case .cones: "triangle.fill"
+        case .agilityLadder: "rectangle.split.3x1"
+        case .wall: "square.fill"
+        case .goal: "rectangle.open.lefthalf.inset.filled"
+        case .resistanceBand: "circle.dotted"
+        case .reactionBall: "circle.hexagongrid.fill"
+        case .tennisBalls: "circle.fill"
+        case .mannequin: "figure.stand"
+        }
+    }
+}
+
+nonisolated enum DrillIntensity: String, Codable, CaseIterable, Sendable, Identifiable {
+    case low = "Low"
+    case moderate = "Moderate"
+    case high = "High"
+    case maximum = "Maximum"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .low: "leaf.fill"
+        case .moderate: "flame"
+        case .high: "flame.fill"
+        case .maximum: "bolt.fill"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .low: "green"
+        case .moderate: "yellow"
+        case .high: "orange"
+        case .maximum: "red"
+        }
+    }
+}
+
 nonisolated struct Drill: Codable, Sendable, Identifiable {
     let id: String
     let name: String
@@ -61,6 +118,13 @@ nonisolated struct Drill: Codable, Sendable, Identifiable {
     let coachingCues: [String]
     let reps: String
     var isCompleted: Bool
+    let category: SkillCategory?
+    let intensity: DrillIntensity
+    let trainingMode: TrainingMode
+    let equipment: [EquipmentType]
+    let durationMinutes: Int
+    let variations: [DrillVariation]
+    let tags: [String]
 
     init(
         id: String = UUID().uuidString,
@@ -71,7 +135,14 @@ nonisolated struct Drill: Codable, Sendable, Identifiable {
         targetSkill: String,
         coachingCues: [String] = [],
         reps: String = "",
-        isCompleted: Bool = false
+        isCompleted: Bool = false,
+        category: SkillCategory? = nil,
+        intensity: DrillIntensity = .moderate,
+        trainingMode: TrainingMode = .solo,
+        equipment: [EquipmentType] = [.ball],
+        durationMinutes: Int = 0,
+        variations: [DrillVariation] = [],
+        tags: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -82,6 +153,23 @@ nonisolated struct Drill: Codable, Sendable, Identifiable {
         self.coachingCues = coachingCues
         self.reps = reps
         self.isCompleted = isCompleted
+        self.category = category
+        self.intensity = intensity
+        self.trainingMode = trainingMode
+        self.equipment = equipment
+        self.durationMinutes = durationMinutes > 0 ? durationMinutes : Drill.parseDuration(duration)
+        self.variations = variations
+        self.tags = tags
+    }
+
+    var resolvedCategory: SkillCategory? {
+        if let category { return category }
+        return SkillCategory.allCases.first { $0.rawValue == targetSkill }
+    }
+
+    private static func parseDuration(_ str: String) -> Int {
+        let digits = str.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+        return Int(digits) ?? 10
     }
 }
 

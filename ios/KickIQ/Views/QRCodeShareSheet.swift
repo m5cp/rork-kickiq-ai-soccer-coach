@@ -127,6 +127,8 @@ struct QRCodeShareSheet: View {
                 if let plan = payload.dailyPlan {
                     planInfo(plan)
                 }
+            case .trainingPlan, .themeProfile:
+                EmptyView()
             }
         }
         .padding(KickIQTheme.Spacing.md)
@@ -218,6 +220,8 @@ struct QRCodeShareSheet: View {
         case .drill: "figure.run"
         case .analysis, .session: "chart.bar.fill"
         case .dailyPlan: "calendar"
+        case .trainingPlan: "list.bullet.clipboard"
+        case .themeProfile: "paintpalette.fill"
         }
     }
 
@@ -226,6 +230,8 @@ struct QRCodeShareSheet: View {
         case .drill: "Drill"
         case .analysis, .session: "Analysis Results"
         case .dailyPlan: "Training Session"
+        case .trainingPlan: "Training Plan"
+        case .themeProfile: "Theme Profile"
         }
     }
 }

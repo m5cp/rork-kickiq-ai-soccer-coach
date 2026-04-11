@@ -319,6 +319,8 @@ struct QRImportConfirmSheet: View {
             if let plan = payload.dailyPlan {
                 planPreview(plan)
             }
+        case .trainingPlan, .themeProfile:
+            EmptyView()
         }
     }
 
@@ -480,7 +482,7 @@ struct QRImportConfirmSheet: View {
                 let imported = QRCodeService.importSession(from: session)
                 storage.addSession(imported)
             }
-        case .dailyPlan:
+        case .dailyPlan, .trainingPlan, .themeProfile:
             break
         }
         onImported()
@@ -491,6 +493,8 @@ struct QRImportConfirmSheet: View {
         case .drill: "figure.run"
         case .analysis, .session: "chart.bar.fill"
         case .dailyPlan: "calendar"
+        case .trainingPlan: "list.bullet.clipboard"
+        case .themeProfile: "paintpalette.fill"
         }
     }
 
@@ -499,6 +503,8 @@ struct QRImportConfirmSheet: View {
         case .drill: "Import Drill"
         case .analysis, .session: "Import Analysis"
         case .dailyPlan: "Import Training Session"
+        case .trainingPlan: "Import Training Plan"
+        case .themeProfile: "Import Theme"
         }
     }
 
@@ -507,6 +513,8 @@ struct QRImportConfirmSheet: View {
         case .drill: "Add this drill to your library"
         case .analysis, .session: "Save this analysis to your history"
         case .dailyPlan: "View this training session's drills"
+        case .trainingPlan: "Import a full training plan"
+        case .themeProfile: "Apply this theme to your app"
         }
     }
 }
