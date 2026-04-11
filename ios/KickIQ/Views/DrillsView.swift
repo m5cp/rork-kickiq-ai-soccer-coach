@@ -14,11 +14,12 @@ struct DrillsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: KickIQTheme.Spacing.md) {
+                VStack(spacing: KickIQTheme.Spacing.lg) {
                     if drillsService.allDrills.isEmpty {
                         emptyState
                     } else {
-                        headerInfo
+                        headerSection
+                        statsBar
                         categorySections
                     }
                 }
@@ -40,12 +41,13 @@ struct DrillsView: View {
         .sensoryFeedback(.success, trigger: completedTrigger)
     }
 
-    private var headerInfo: some View {
-        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm + 2) {
             let weakSkills = storage.weakestSkills
             if !weakSkills.isEmpty {
-                HStack(spacing: KickIQTheme.Spacing.sm) {
+                HStack(spacing: 6) {
                     Image(systemName: "target")
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(KickIQTheme.accent)
                     Text("Focused on your weakest areas")
                         .font(.subheadline.weight(.medium))
@@ -53,18 +55,19 @@ struct DrillsView: View {
                 }
 
                 ScrollView(.horizontal) {
-                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                    HStack(spacing: 8) {
                         ForEach(weakSkills) { skill in
-                            HStack(spacing: 4) {
+                            HStack(spacing: 5) {
                                 Image(systemName: skill.icon)
-                                    .font(.system(size: 10))
+                                    .font(.system(size: 10, weight: .semibold))
                                 Text(skill.rawValue)
-                                    .font(.caption.weight(.semibold))
+                                    .font(.caption.weight(.bold))
                             }
                             .foregroundStyle(KickIQTheme.accent)
-                            .padding(.horizontal, KickIQTheme.Spacing.sm + 4)
-                            .padding(.vertical, 6)
-                            .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(KickIQTheme.accent.opacity(0.12), in: Capsule())
+                            .overlay(Capsule().stroke(KickIQTheme.accent.opacity(0.2), lineWidth: 0.5))
                         }
                     }
                 }
@@ -74,6 +77,42 @@ struct DrillsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(appeared ? 1 : 0)
+    }
+
+    private var statsBar: some View {
+        let totalDrills = groupedDrills.reduce(0) { $0 + $1.drills.count }
+        let completedCount = groupedDrills.reduce(0) { sum, group in
+            sum + group.drills.filter { storage.completedDrillIDs.contains($0.id) }.count
+        }
+        let categoryCount = groupedDrills.count
+
+        return HStack(spacing: 0) {
+            statItem(value: "\(totalDrills)", label: "Total", icon: "figure.soccer")
+            Divider().frame(height: 28).overlay(KickIQTheme.divider)
+            statItem(value: "\(categoryCount)", label: "Categories", icon: "square.grid.2x2")
+            Divider().frame(height: 28).overlay(KickIQTheme.divider)
+            statItem(value: "\(completedCount)", label: "Done", icon: "checkmark.circle")
+        }
+        .padding(.vertical, KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+    }
+
+    private func statItem(value: String, label: String, icon: String) -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(KickIQTheme.accent)
+                Text(value)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
+            }
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(KickIQTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var groupedDrills: [(category: String, icon: String, drills: [Drill])] {
@@ -92,57 +131,102 @@ struct DrillsView: View {
     }
 
     private var categorySections: some View {
-        LazyVStack(spacing: KickIQTheme.Spacing.md + 4) {
+        LazyVStack(spacing: KickIQTheme.Spacing.sm + 4) {
             ForEach(Array(groupedDrills.enumerated()), id: \.element.category) { sectionIndex, group in
+                let isExpanded = expandedCategories.contains(group.category)
+                let completedInCategory = group.drills.filter { storage.completedDrillIDs.contains($0.id) }.count
+
                 VStack(spacing: 0) {
-                    categoryHeader(group.category, icon: group.icon, count: group.drills.count, isExpanded: expandedCategories.contains(group.category))
-                        .onAppear {
-                            if sectionIndex < 3 || isIPad {
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            if isExpanded {
+                                expandedCategories.remove(group.category)
+                            } else {
                                 expandedCategories.insert(group.category)
                             }
                         }
+                    } label: {
+                        HStack(spacing: KickIQTheme.Spacing.sm + 2) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(KickIQTheme.accent.opacity(0.12))
+                                    .frame(width: 40, height: 40)
+                                Image(systemName: group.icon)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(KickIQTheme.accent)
+                            }
 
-                    if expandedCategories.contains(group.category) {
-                        if isIPad {
-                            iPadDrillGrid(group.drills)
-                                .padding(.top, KickIQTheme.Spacing.sm)
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                        } else {
-                            VStack(spacing: KickIQTheme.Spacing.sm) {
-                                ForEach(Array(group.drills.enumerated()), id: \.element.id) { drillIndex, drill in
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(group.category)
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(KickIQTheme.textPrimary)
+                                HStack(spacing: 6) {
+                                    Text("\(group.drills.count) drill\(group.drills.count == 1 ? "" : "s")")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundStyle(KickIQTheme.textSecondary)
+
+                                    if completedInCategory > 0 {
+                                        HStack(spacing: 3) {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 8, weight: .bold))
+                                            Text("\(completedInCategory)")
+                                                .font(.system(size: 11, weight: .bold))
+                                        }
+                                        .foregroundStyle(.green)
+                                    }
+                                }
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
+                                .rotationEffect(.degrees(isExpanded ? 0 : -90))
+                        }
+                        .padding(KickIQTheme.Spacing.md)
+                        .background(
+                            KickIQTheme.card
+                                .shadow(.drop(color: .black.opacity(0.08), radius: 4, y: 2)),
+                            in: .rect(cornerRadius: KickIQTheme.Radius.lg)
+                        )
+                    }
+                    .sensoryFeedback(.selection, trigger: isExpanded)
+
+                    if isExpanded {
+                        VStack(spacing: 8) {
+                            if isIPad {
+                                iPadDrillGrid(group.drills)
+                            } else {
+                                ForEach(group.drills, id: \.id) { drill in
                                     Button {
                                         selectedDrill = drill
                                     } label: {
                                         drillCard(drill)
                                     }
-                                    .opacity(appeared ? 1 : 0)
-                                    .offset(y: appeared ? 0 : 10)
-                                    .animation(.spring(response: 0.35).delay(Double(drillIndex) * 0.04), value: appeared)
                                 }
                             }
-                            .padding(.top, KickIQTheme.Spacing.sm)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
+                        .padding(.top, 10)
+                        .padding(.horizontal, 4)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 .opacity(appeared ? 1 : 0)
-                .offset(y: appeared ? 0 : 15)
-                .animation(.spring(response: 0.4).delay(Double(sectionIndex) * 0.06), value: appeared)
+                .offset(y: appeared ? 0 : 12)
+                .animation(.spring(response: 0.4).delay(Double(sectionIndex) * 0.04), value: appeared)
             }
         }
     }
 
     private func iPadDrillGrid(_ drills: [Drill]) -> some View {
         LazyVGrid(columns: AdaptiveLayout.iPadGridColumns, spacing: KickIQTheme.Spacing.sm) {
-            ForEach(Array(drills.enumerated()), id: \.element.id) { drillIndex, drill in
+            ForEach(drills, id: \.id) { drill in
                 Button {
                     selectedDrill = drill
                 } label: {
                     iPadDrillCard(drill)
                 }
-                .opacity(appeared ? 1 : 0)
-                .offset(y: appeared ? 0 : 10)
-                .animation(.spring(response: 0.35).delay(Double(drillIndex) * 0.03), value: appeared)
             }
         }
     }
@@ -152,138 +236,114 @@ struct DrillsView: View {
 
         return VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
             HStack(spacing: KickIQTheme.Spacing.sm) {
-                ZStack {
-                    Circle()
-                        .fill(isCompleted ? Color.green.opacity(0.15) : KickIQTheme.surface)
-                        .frame(width: 38, height: 38)
-                    Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 16))
-                        .foregroundStyle(isCompleted ? .green : KickIQTheme.textSecondary.opacity(0.3))
-                }
+                difficultyDot(drill.difficulty)
 
-                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.xs) {
-                    Text(drill.name)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                }
-
-                Spacer()
-            }
-
-            HStack(spacing: KickIQTheme.Spacing.sm) {
-                Label(drill.duration, systemImage: "clock")
-                Text("·")
-                Text(drill.difficulty.rawValue)
-            }
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(KickIQTheme.textSecondary)
-
-            if !drill.description.isEmpty {
-                Text(drill.description)
-                    .font(.caption)
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
+                Text(drill.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+
+                Spacer()
+
+                if isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.green)
+                }
             }
+
+            Text(drill.description)
+                .font(.caption)
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            HStack(spacing: 12) {
+                Label(drill.duration, systemImage: "clock")
+                Label(drill.difficulty.rawValue, systemImage: "speedometer")
+            }
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
         }
         .padding(KickIQTheme.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(KickIQTheme.surface, in: .rect(cornerRadius: KickIQTheme.Radius.md))
     }
 
-    private func categoryHeader(_ name: String, icon: String, count: Int, isExpanded: Bool) -> some View {
-        Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                if expandedCategories.contains(name) {
-                    expandedCategories.remove(name)
-                } else {
-                    expandedCategories.insert(name)
-                }
-            }
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.sm + 2) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.sm)
-                        .fill(KickIQTheme.accent.opacity(0.15))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: icon)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(KickIQTheme.accent)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(name)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("\(count) drill\(count == 1 ? "" : "s")")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                }
-
-                Spacer()
-
-                let completedCount = storage.completedDrillIDs.count
-                let categoryCompleted = count > 0 ? min(completedCount, count) : 0
-                if categoryCompleted > 0 {
-                    Text("\(categoryCompleted)/\(count)")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(.green)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.green.opacity(0.12), in: Capsule())
-                }
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-        }
-        .sensoryFeedback(.selection, trigger: isExpanded)
-    }
-
     private func drillCard(_ drill: Drill) -> some View {
         let isCompleted = storage.completedDrillIDs.contains(drill.id)
 
-        return HStack(spacing: KickIQTheme.Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(isCompleted ? Color.green.opacity(0.15) : KickIQTheme.surface)
-                    .frame(width: 38, height: 38)
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                difficultyDot(drill.difficulty)
 
-                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 16))
-                    .foregroundStyle(isCompleted ? .green : KickIQTheme.textSecondary.opacity(0.3))
-            }
-
-            VStack(alignment: .leading, spacing: KickIQTheme.Spacing.xs) {
                 Text(drill.name)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(KickIQTheme.textPrimary)
                     .lineLimit(1)
 
-                HStack(spacing: KickIQTheme.Spacing.sm) {
-                    Label(drill.duration, systemImage: "clock")
-                    Text("·")
-                    Text(drill.difficulty.rawValue)
+                Spacer()
+
+                if isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.green)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.35))
                 }
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(KickIQTheme.textSecondary)
             }
 
-            Spacer()
+            Text(drill.description)
+                .font(.caption)
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
 
-            Image(systemName: "chevron.right")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+            HStack(spacing: 12) {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 10))
+                    Text(drill.duration)
+                }
+                HStack(spacing: 4) {
+                    Image(systemName: "speedometer")
+                        .font(.system(size: 10))
+                    Text(drill.difficulty.rawValue)
+                }
+
+                Spacer()
+
+                if !drill.reps.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "repeat")
+                            .font(.system(size: 10))
+                        Text(drill.reps)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
         }
-        .padding(.horizontal, KickIQTheme.Spacing.md)
-        .padding(.vertical, KickIQTheme.Spacing.sm + 4)
+        .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.surface, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+    }
+
+    private func difficultyDot(_ difficulty: DrillDifficulty) -> some View {
+        Circle()
+            .fill(difficultyColor(difficulty))
+            .frame(width: 8, height: 8)
+    }
+
+    private func difficultyColor(_ difficulty: DrillDifficulty) -> Color {
+        switch difficulty {
+        case .beginner: .green
+        case .intermediate: .orange
+        case .advanced: .red
+        }
     }
 
     private var emptyState: some View {
