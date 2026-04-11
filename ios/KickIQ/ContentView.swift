@@ -36,6 +36,7 @@ struct ContentView: View {
     @State private var celebratingBadge: MilestoneBadge?
     @State private var previousBadgeCount: Int = 0
     @State private var showProfile = false
+    @State private var showWhatsNew = false
 
     var body: some View {
         ZStack {
@@ -83,6 +84,12 @@ struct ContentView: View {
         .task {
             previousBadgeCount = storage.earnedBadges.count
             storage.markMilestonesShown(storage.earnedBadges)
+            if storage.hasCompletedOnboarding && WhatsNewView.shouldShow {
+                showWhatsNew = true
+            }
+        }
+        .sheet(isPresented: $showWhatsNew) {
+            WhatsNewView()
         }
     }
 

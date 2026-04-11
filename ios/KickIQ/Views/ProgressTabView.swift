@@ -37,6 +37,7 @@ struct ProgressTabView: View {
                     } label: {
                         progressProfileIcon
                     }
+                    .accessibilityLabel("Profile")
                 }
             }
             .sheet(isPresented: $showProfile) {

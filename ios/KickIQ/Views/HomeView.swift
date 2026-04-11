@@ -17,6 +17,7 @@ struct HomeView: View {
     @State private var showSkillAssessment = false
     @State private var showProfile = false
     @State private var showAICoach = false
+    @State private var showFeedbackPrompt = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
@@ -50,12 +51,14 @@ struct HomeView: View {
                             Image(systemName: "qrcode.viewfinder")
                                 .foregroundStyle(KickIQTheme.accent)
                         }
+                        .accessibilityLabel("Scan QR code")
                         Button {
                             showAICoach = true
                         } label: {
                             Image(systemName: "brain.head.profile.fill")
                                 .foregroundStyle(KickIQTheme.accent)
                         }
+                        .accessibilityLabel("AI Coach chat")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -64,6 +67,7 @@ struct HomeView: View {
                     } label: {
                         profileToolbarIcon
                     }
+                    .accessibilityLabel("Profile")
                 }
             }
             .sheet(isPresented: $showProfile) {
@@ -86,6 +90,12 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showSkillAssessment) {
                 SkillAssessmentView(storage: storage)
+            }
+            .sheet(isPresented: $showFeedbackPrompt) {
+                FeedbackPromptView(storage: storage)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+                    .presentationBackground(KickIQTheme.background)
             }
         }
         .onAppear {
@@ -364,6 +374,8 @@ struct HomeView: View {
             .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: selectedTab)
+        .accessibilityLabel(storage.smartTrainingPlan?.todaysPlan != nil ? "Start today's training session" : "Analyze a new clip")
+        .accessibilityHint("Double tap to begin")
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.1), value: appeared)
@@ -771,10 +783,7 @@ struct HomeView: View {
     private func checkReviewPrompt() {
         guard storage.shouldPromptReview else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
-                AppStore.requestReview(in: scene)
-                storage.recordReviewPrompt()
-            }
+            showFeedbackPrompt = true
         }
     }
 

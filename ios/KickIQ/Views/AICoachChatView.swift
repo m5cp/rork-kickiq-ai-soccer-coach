@@ -217,6 +217,7 @@ struct AICoachChatView: View {
                         .font(.system(size: 13))
                         .foregroundStyle(message.isError ? .red : KickIQTheme.accent)
                 }
+                .accessibilityHidden(true)
             }
 
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
@@ -233,9 +234,26 @@ struct AICoachChatView: View {
                     )
                     .textSelection(.enabled)
 
-                Text(message.timestamp, format: .dateTime.hour().minute())
-                    .font(.system(size: 10))
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
+                if message.isError {
+                    Button {
+                        retryMessage(message)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 10, weight: .semibold))
+                            Text("Retry")
+                                .font(.caption2.weight(.bold))
+                        }
+                        .foregroundStyle(KickIQTheme.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
+                    }
+                } else {
+                    Text(message.timestamp, format: .dateTime.hour().minute())
+                        .font(.system(size: 10))
+                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
+                }
             }
 
             if message.role == .user {
@@ -247,10 +265,13 @@ struct AICoachChatView: View {
                         .font(.system(size: 13))
                         .foregroundStyle(KickIQTheme.accent)
                 }
+                .accessibilityHidden(true)
             } else {
                 Spacer(minLength: 48)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(message.role == .user ? "You" : "AI Coach"): \(message.content)")
     }
 
     private var typingIndicator: some View {
@@ -361,6 +382,15 @@ struct AICoachChatView: View {
         isInputFocused = false
         Task {
             await chatService.sendMessage(text, storage: storage)
+        }
+    }
+
+    private func retryMessage(_ errorMessage: ChatMessage) {
+        guard let lastUserIndex = chatService.messages.lastIndex(where: { $0.role == .user && $0.timestamp <= errorMessage.timestamp }) else { return }
+        let originalText = chatService.messages[lastUserIndex].content
+        chatService.messages.removeAll { $0.id == errorMessage.id }
+        Task {
+            await chatService.sendMessage(originalText, storage: storage)
         }
     }
 }

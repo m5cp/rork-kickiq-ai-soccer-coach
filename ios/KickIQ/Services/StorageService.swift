@@ -353,6 +353,10 @@ class StorageService {
         UserDefaults.standard.set(Date.now.timeIntervalSince1970, forKey: reviewDateKey)
     }
 
+    func recordFeedbackPrompt() {
+        recordReviewPrompt()
+    }
+
     var skillScore: Int {
         guard let latest = sessions.first else { return 0 }
         return latest.overallScore

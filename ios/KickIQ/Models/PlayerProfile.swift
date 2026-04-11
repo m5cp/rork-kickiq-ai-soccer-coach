@@ -151,6 +151,30 @@ nonisolated enum ProfileAvatar: Codable, Sendable, Equatable {
     }
 }
 
+nonisolated enum UserRole: String, Codable, CaseIterable, Sendable, Identifiable {
+    case player = "Player"
+    case coach = "Coach"
+    case parent = "Parent"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .player: "figure.soccer"
+        case .coach: "whistle.fill"
+        case .parent: "person.2.fill"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .player: "I train and want to improve my skills"
+        case .coach: "I manage a team and assign drills"
+        case .parent: "I support my child's training"
+        }
+    }
+}
+
 nonisolated struct PlayerProfile: Codable, Sendable {
     var name: String
     var position: PlayerPosition
@@ -159,6 +183,7 @@ nonisolated struct PlayerProfile: Codable, Sendable {
     var weakness: WeaknessArea
     var createdAt: Date
     var avatar: ProfileAvatar?
+    var userRole: UserRole
 
     init(
         name: String = "",
@@ -167,7 +192,8 @@ nonisolated struct PlayerProfile: Codable, Sendable {
         skillLevel: SkillLevel = .beginner,
         weakness: WeaknessArea = .firstTouch,
         createdAt: Date = .now,
-        avatar: ProfileAvatar? = nil
+        avatar: ProfileAvatar? = nil,
+        userRole: UserRole = .player
     ) {
         self.name = name
         self.position = position
@@ -176,5 +202,6 @@ nonisolated struct PlayerProfile: Codable, Sendable {
         self.weakness = weakness
         self.createdAt = createdAt
         self.avatar = avatar
+        self.userRole = userRole
     }
 }

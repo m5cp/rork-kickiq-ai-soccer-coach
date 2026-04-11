@@ -74,6 +74,7 @@ struct DrillsView: View {
                     } label: {
                         drillsProfileIcon
                     }
+                    .accessibilityLabel("Profile")
                 }
             }
             .sheet(isPresented: $showProfile) {

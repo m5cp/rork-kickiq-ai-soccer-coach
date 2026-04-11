@@ -8,9 +8,10 @@ struct OnboardingView: View {
     @State private var ageRange: AgeRange = .sixteen18
     @State private var skillLevel: SkillLevel = .beginner
     @State private var weakness: WeaknessArea = .firstTouch
+    @State private var userRole: UserRole = .player
     @State private var appeared = false
 
-    private let totalSteps = 9
+    private let totalSteps = 10
 
     var body: some View {
         ZStack {
@@ -33,19 +34,20 @@ struct OnboardingView: View {
 
                 TabView(selection: $currentStep) {
                     nameStep.tag(0)
-                    positionStep.tag(1)
-                    ageStep.tag(2)
-                    skillLevelStep.tag(3)
-                    weaknessStep.tag(4)
-                    painStep.tag(5)
-                    howItWorksStep.tag(6)
-                    socialProofStep.tag(7)
-                    paywallStep.tag(8)
+                    roleStep.tag(1)
+                    positionStep.tag(2)
+                    ageStep.tag(3)
+                    skillLevelStep.tag(4)
+                    weaknessStep.tag(5)
+                    painStep.tag(6)
+                    howItWorksStep.tag(7)
+                    socialProofStep.tag(8)
+                    paywallStep.tag(9)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 8 {
+                if currentStep < 9 {
                     continueButton
                 }
             }
@@ -121,7 +123,79 @@ struct OnboardingView: View {
         .animation(.spring(response: 0.3), value: name)
     }
 
-    // MARK: - Step 1: Position
+    // MARK: - Step 1: Role
+    private var roleStep: some View {
+        ScrollView {
+            VStack(spacing: KickIQTheme.Spacing.lg) {
+                stepHeader(title: "I AM A...", subtitle: "This helps us tailor your experience")
+
+                VStack(spacing: 12) {
+                    ForEach(UserRole.allCases) { role in
+                        Button {
+                            userRole = role
+                        } label: {
+                            HStack(spacing: KickIQTheme.Spacing.md) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(userRole == role ? KickIQTheme.accent.opacity(0.2) : KickIQTheme.card)
+                                        .frame(width: 52, height: 52)
+                                    Image(systemName: role.icon)
+                                        .font(.title2)
+                                        .foregroundStyle(userRole == role ? KickIQTheme.accent : KickIQTheme.textSecondary)
+                                }
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(role.rawValue)
+                                        .font(.headline)
+                                        .foregroundStyle(userRole == role ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
+                                    Text(role.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(KickIQTheme.textSecondary)
+                                }
+
+                                Spacer()
+
+                                if userRole == role {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(KickIQTheme.accent)
+                                }
+                            }
+                            .padding(KickIQTheme.Spacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                                    .fill(userRole == role ? KickIQTheme.accent.opacity(0.08) : KickIQTheme.card)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                                            .stroke(userRole == role ? KickIQTheme.accent : Color.clear, lineWidth: 1.5)
+                                    )
+                            )
+                        }
+                        .sensoryFeedback(.selection, trigger: userRole)
+                    }
+                }
+
+                if userRole == .coach {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(KickIQTheme.accent)
+                        Text("You'll get a team dashboard after creating a team")
+                            .font(.caption)
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+                    .padding(KickIQTheme.Spacing.sm + 2)
+                    .background(KickIQTheme.accent.opacity(0.08), in: .rect(cornerRadius: KickIQTheme.Radius.sm))
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+            }
+            .padding(.horizontal, KickIQTheme.Spacing.md + 4)
+            .padding(.bottom, KickIQTheme.Spacing.xl)
+        }
+        .scrollIndicators(.hidden)
+        .animation(.spring(response: 0.3), value: userRole)
+    }
+
+    // MARK: - Step 2: Position
     private var positionStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -401,9 +475,13 @@ struct OnboardingView: View {
                         .font(.caption)
                         .foregroundStyle(KickIQTheme.textSecondary.opacity(0.6))
                     HStack(spacing: KickIQTheme.Spacing.md) {
-                        Link("Privacy Policy", destination: URL(string: "https://termly.io")!)
+                        NavigationLink("Privacy Policy") {
+                            LegalPageView(page: .privacyPolicy)
+                        }
                         Text("·").foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
-                        Link("Terms of Service", destination: URL(string: "https://termly.io")!)
+                        NavigationLink("Terms of Service") {
+                            LegalPageView(page: .termsOfUse)
+                        }
                     }
                     .font(.caption2)
                     .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
@@ -591,7 +669,8 @@ struct OnboardingView: View {
             position: position,
             ageRange: ageRange,
             skillLevel: skillLevel,
-            weakness: weakness
+            weakness: weakness,
+            userRole: userRole
         )
         storage.saveProfile(profile)
         storage.completeOnboarding()
