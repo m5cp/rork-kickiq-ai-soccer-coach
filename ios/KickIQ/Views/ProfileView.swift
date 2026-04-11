@@ -4,10 +4,14 @@ import PhotosUI
 struct ProfileView: View {
     let storage: StorageService
     let calendarService: CalendarService
+    @Environment(\.dismiss) private var dismiss
     @State private var appeared = false
     @State private var showEditProfile = false
     @State private var showSettings = false
     @State private var showCoachReport = false
+    @State private var showTeam = false
+    @State private var showAICoach = false
+    @State private var showDeleteAlert = false
 
     var body: some View {
         NavigationStack {
@@ -15,6 +19,8 @@ struct ProfileView: View {
                 VStack(spacing: KickIQTheme.Spacing.md + 4) {
                     avatarSection
                     statsRow
+                    aiCoachCard
+                    teamCard
                     coachReportCard
                     legalSection
                     supportSection
@@ -29,6 +35,11 @@ struct ProfileView: View {
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                        .foregroundStyle(KickIQTheme.accent)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showSettings = true
@@ -47,7 +58,25 @@ struct ProfileView: View {
             .sheet(isPresented: $showCoachReport) {
                 CoachReportView(storage: storage)
             }
+            .sheet(isPresented: $showAICoach) {
+                AICoachChatView(storage: storage)
+            }
+            .sheet(isPresented: $showTeam) {
+                TeamView(storage: storage)
+            }
+            .alert("Delete Account?", isPresented: $showDeleteAlert) {
+                Button("Delete", role: .destructive) {
+                    storage.deleteAccount()
+                    dismiss()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will permanently delete your profile and all data. This action cannot be undone.")
+            }
         }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(KickIQTheme.background)
         .onAppear {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
         }
@@ -187,6 +216,94 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var aiCoachCard: some View {
+        Button {
+            showAICoach = true
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(Color.purple.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "brain.head.profile.fill")
+                        .font(.title3)
+                        .foregroundStyle(.purple)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AI Coach")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Chat with your personal AI soccer coach")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(KickIQTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.07), value: appeared)
+    }
+
+    private var teamCard: some View {
+        Button {
+            showTeam = true
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "person.3.fill")
+                        .font(.title3)
+                        .foregroundStyle(.blue)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Team")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Manage teams, leaderboards, and challenges")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(KickIQTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.09), value: appeared)
+    }
+
     private var coachReportCard: some View {
         Button {
             showCoachReport = true
@@ -228,7 +345,7 @@ struct ProfileView: View {
         }
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.1), value: appeared)
+        .animation(.spring(response: 0.5).delay(0.11), value: appeared)
     }
 
     private var legalSection: some View {
@@ -285,6 +402,7 @@ struct ProfileView: View {
             sectionHeader("ACCOUNT")
 
             settingsActionRow(icon: "trash.fill", title: "Delete Account", isDestructive: true) {
+                showDeleteAlert = true
             }
         }
         .opacity(appeared ? 1 : 0)

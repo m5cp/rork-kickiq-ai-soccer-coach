@@ -9,6 +9,7 @@ struct ProgressTabView: View {
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var showComparison = false
+    @State private var showProfile = false
 
     private var isIPad: Bool { sizeClass == .regular }
 
@@ -29,6 +30,18 @@ struct ProgressTabView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Progress")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showProfile = true
+                    } label: {
+                        progressProfileIcon
+                    }
+                }
+            }
+            .sheet(isPresented: $showProfile) {
+                ProfileView(storage: storage, calendarService: CalendarService())
+            }
             .sheet(item: $selectedSession) { session in
                 NavigationStack {
                     AnalysisResultView(session: session, storage: storage) {
@@ -594,6 +607,30 @@ struct ProgressTabView: View {
                 RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
                     .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
             )
+        }
+    }
+
+    @ViewBuilder
+    private var progressProfileIcon: some View {
+        if let avatar = storage.profile?.avatar,
+           let data = avatar.imageDataValue,
+           let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 30, height: 30)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.4), lineWidth: 1.5))
+        } else {
+            ZStack {
+                Circle()
+                    .fill(KickIQTheme.accent.opacity(0.15))
+                    .frame(width: 30, height: 30)
+                Image(systemName: "person.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(KickIQTheme.accent)
+            }
+            .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1))
         }
     }
 

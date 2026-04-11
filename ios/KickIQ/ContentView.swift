@@ -4,9 +4,7 @@ enum AppTab: Int, CaseIterable, Identifiable {
     case home = 0
     case analyze = 1
     case drills = 2
-    case team = 3
-    case progress = 4
-    case profile = 5
+    case progress = 3
 
     var id: Int { rawValue }
 
@@ -15,9 +13,7 @@ enum AppTab: Int, CaseIterable, Identifiable {
         case .home: "Home"
         case .analyze: "Analyze"
         case .drills: "Drills"
-        case .team: "Team"
         case .progress: "Progress"
-        case .profile: "Profile"
         }
     }
 
@@ -26,9 +22,7 @@ enum AppTab: Int, CaseIterable, Identifiable {
         case .home: "house.fill"
         case .analyze: "video.fill"
         case .drills: "figure.soccer"
-        case .team: "person.3.fill"
         case .progress: "chart.line.uptrend.xyaxis"
-        case .profile: "person.fill"
         }
     }
 }
@@ -41,6 +35,7 @@ struct ContentView: View {
     @State private var selectedTab: Int = 0
     @State private var celebratingBadge: MilestoneBadge?
     @State private var previousBadgeCount: Int = 0
+    @State private var showProfile = false
 
     var body: some View {
         ZStack {
@@ -114,16 +109,8 @@ struct ContentView: View {
                 DrillsView(storage: storage)
             }
 
-            Tab("Team", systemImage: "person.3.fill", value: 3) {
-                TeamView(storage: storage)
-            }
-
-            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 4) {
+            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 3) {
                 ProgressTabView(storage: storage)
-            }
-
-            Tab("Profile", systemImage: "person.fill", value: 5) {
-                ProfileView(storage: storage, calendarService: calendarService)
             }
         }
         .tint(KickIQTheme.accent)
@@ -168,6 +155,30 @@ struct ContentView: View {
                     }
                 }
 
+                Section {
+                    Button {
+                        showProfile = true
+                    } label: {
+                        HStack(spacing: KickIQTheme.Spacing.sm) {
+                            Image(systemName: storage.playerLevel.icon)
+                                .foregroundStyle(KickIQTheme.accent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(storage.profile?.name ?? "Player")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(KickIQTheme.textPrimary)
+                                Text("\(storage.playerLevel.rawValue) · \(storage.xpPoints) XP")
+                                    .font(.caption2)
+                                    .foregroundStyle(KickIQTheme.textSecondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+                        }
+                    }
+                    .listRowBackground(KickIQTheme.card)
+                }
+
                 Section("Quick Stats") {
                     HStack(spacing: KickIQTheme.Spacing.md) {
                         VStack(alignment: .leading, spacing: 2) {
@@ -195,25 +206,12 @@ struct ContentView: View {
                     }
                     .listRowBackground(KickIQTheme.card)
                 }
-
-                Section("Player") {
-                    HStack(spacing: KickIQTheme.Spacing.sm) {
-                        Image(systemName: storage.playerLevel.icon)
-                            .foregroundStyle(KickIQTheme.accent)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(storage.profile?.name ?? "Player")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(KickIQTheme.textPrimary)
-                            Text("\(storage.playerLevel.rawValue) · \(storage.xpPoints) XP")
-                                .font(.caption2)
-                                .foregroundStyle(KickIQTheme.textSecondary)
-                        }
-                    }
-                    .listRowBackground(KickIQTheme.card)
-                }
             }
             .scrollContentBackground(.hidden)
             .background(KickIQTheme.background)
+        }
+        .sheet(isPresented: $showProfile) {
+            ProfileView(storage: storage, calendarService: calendarService)
         }
     }
 
@@ -227,11 +225,7 @@ struct ContentView: View {
         case 2:
             DrillsView(storage: storage)
         case 3:
-            TeamView(storage: storage)
-        case 4:
             ProgressTabView(storage: storage)
-        case 5:
-            ProfileView(storage: storage, calendarService: calendarService)
         default:
             HomeView(storage: storage, calendarService: calendarService, selectedTab: $selectedTab)
         }

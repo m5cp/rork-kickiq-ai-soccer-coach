@@ -15,6 +15,8 @@ struct HomeView: View {
     @State private var showTrainingPlan = false
     @State private var showQRScanner = false
     @State private var showSkillAssessment = false
+    @State private var showProfile = false
+    @State private var showAICoach = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
@@ -41,21 +43,34 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showQRScanner = true
-                    } label: {
-                        Image(systemName: "qrcode.viewfinder")
-                            .foregroundStyle(KickIQTheme.accent)
+                    HStack(spacing: 12) {
+                        Button {
+                            showQRScanner = true
+                        } label: {
+                            Image(systemName: "qrcode.viewfinder")
+                                .foregroundStyle(KickIQTheme.accent)
+                        }
+                        Button {
+                            showAICoach = true
+                        } label: {
+                            Image(systemName: "brain.head.profile.fill")
+                                .foregroundStyle(KickIQTheme.accent)
+                        }
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showSettings = true
+                        showProfile = true
                     } label: {
-                        Image(systemName: "gearshape.fill")
-                            .foregroundStyle(KickIQTheme.textSecondary)
+                        profileToolbarIcon
                     }
                 }
+            }
+            .sheet(isPresented: $showProfile) {
+                ProfileView(storage: storage, calendarService: calendarService)
+            }
+            .sheet(isPresented: $showAICoach) {
+                AICoachChatView(storage: storage)
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView(storage: storage, calendarService: calendarService)
@@ -797,6 +812,30 @@ struct HomeView: View {
                 AppStore.requestReview(in: scene)
                 storage.recordReviewPrompt()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var profileToolbarIcon: some View {
+        if let avatar = storage.profile?.avatar,
+           let data = avatar.imageDataValue,
+           let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 30, height: 30)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.4), lineWidth: 1.5))
+        } else {
+            ZStack {
+                Circle()
+                    .fill(KickIQTheme.accent.opacity(0.15))
+                    .frame(width: 30, height: 30)
+                Image(systemName: "person.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(KickIQTheme.accent)
+            }
+            .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1))
         }
     }
 }

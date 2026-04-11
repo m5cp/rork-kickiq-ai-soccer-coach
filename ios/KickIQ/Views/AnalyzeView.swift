@@ -16,6 +16,7 @@ struct AnalyzeView: View {
     @State private var pulseAnimation = false
     @State private var showCameraUnavailable = false
     @State private var showFilmingGuide = false
+    @State private var showProfile = false
 
     private var isIPad: Bool { sizeClass == .regular }
 
@@ -35,6 +36,18 @@ struct AnalyzeView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showProfile = true
+                    } label: {
+                        profileToolbarIcon
+                    }
+                }
+            }
+            .sheet(isPresented: $showProfile) {
+                ProfileView(storage: storage, calendarService: CalendarService())
+            }
         }
         .onChange(of: selectedItem) { _, newItem in
             guard let newItem else { return }
@@ -297,6 +310,30 @@ struct AnalyzeView: View {
             extractedFrames = []
             videoURL = nil
             selectedItem = nil
+        }
+    }
+
+    @ViewBuilder
+    private var profileToolbarIcon: some View {
+        if let avatar = storage.profile?.avatar,
+           let data = avatar.imageDataValue,
+           let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 30, height: 30)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.4), lineWidth: 1.5))
+        } else {
+            ZStack {
+                Circle()
+                    .fill(KickIQTheme.accent.opacity(0.15))
+                    .frame(width: 30, height: 30)
+                Image(systemName: "person.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(KickIQTheme.accent)
+            }
+            .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1))
         }
     }
 }

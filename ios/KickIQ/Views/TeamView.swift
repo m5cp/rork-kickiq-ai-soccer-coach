@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TeamView: View {
     let storage: StorageService
+    @Environment(\.dismiss) private var dismiss
     @State private var auth = AuthService.shared
     @State private var teamService = TeamService.shared
     @State private var showCreateTeam = false
@@ -26,6 +27,11 @@ struct TeamView: View {
             .navigationTitle("Teams")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                        .foregroundStyle(KickIQTheme.accent)
+                }
                 if auth.isSignedIn {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {

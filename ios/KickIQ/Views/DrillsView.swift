@@ -20,6 +20,7 @@ struct DrillsView: View {
     @State private var searchText: String = ""
     @State private var activeListFilter: DrillListFilter = .all
     @State private var favoriteTrigger: Int = 0
+    @State private var showProfile = false
 
     private var isIPad: Bool { sizeClass == .regular }
 
@@ -43,6 +44,18 @@ struct DrillsView: View {
             .navigationTitle("Drills")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: "Search drills...")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showProfile = true
+                    } label: {
+                        drillsProfileIcon
+                    }
+                }
+            }
+            .sheet(isPresented: $showProfile) {
+                ProfileView(storage: storage, calendarService: CalendarService())
+            }
             .sheet(item: $selectedDrill) { drill in
                 DrillDetailSheet(drill: drill, storage: storage, drillsService: drillsService, completedTrigger: $completedTrigger)
             }
@@ -410,6 +423,30 @@ struct DrillsView: View {
     private func loadDrills() {
         guard let profile = storage.profile else { return }
         drillsService.loadDrills(for: profile.position, weakness: profile.weakness, skillLevel: profile.skillLevel)
+    }
+
+    @ViewBuilder
+    private var drillsProfileIcon: some View {
+        if let avatar = storage.profile?.avatar,
+           let data = avatar.imageDataValue,
+           let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 30, height: 30)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.4), lineWidth: 1.5))
+        } else {
+            ZStack {
+                Circle()
+                    .fill(KickIQTheme.accent.opacity(0.15))
+                    .frame(width: 30, height: 30)
+                Image(systemName: "person.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(KickIQTheme.accent)
+            }
+            .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1))
+        }
     }
 }
 
