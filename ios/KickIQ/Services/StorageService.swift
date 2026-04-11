@@ -24,6 +24,10 @@ class StorageService {
     var sessionNotes: [SessionNote] = []
     var trainingPlan: TrainingPlan?
     var smartTrainingPlan: SmartTrainingPlan?
+    var favoriteDrillIDs: Set<String> = []
+    var personalRecords: [String: PersonalRecord] = [:]
+    var lastStreakFreezeDate: Date?
+    var streakFreezeUsedThisWeek: Bool = false
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -44,6 +48,9 @@ class StorageService {
     private let sessionNotesKey = "kickiq_session_notes"
     private let trainingPlanKey = "kickiq_training_plan"
     private let smartPlanKey = "kickiq_smart_plan"
+    private let favoritesKey = "kickiq_favorite_drills"
+    private let personalRecordsKey = "kickiq_personal_records"
+    private let streakFreezeKey = "kickiq_streak_freeze_date"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -107,6 +114,19 @@ class StorageService {
             smartTrainingPlan = decoded
         }
 
+        if let freezeInterval = UserDefaults.standard.object(forKey: streakFreezeKey) as? TimeInterval {
+            lastStreakFreezeDate = Date(timeIntervalSince1970: freezeInterval)
+        }
+        updateStreakFreezeWeekly()
+
+        if let arr = UserDefaults.standard.array(forKey: favoritesKey) as? [String] {
+            favoriteDrillIDs = Set(arr)
+        }
+        if let data = UserDefaults.standard.data(forKey: personalRecordsKey),
+           let decoded = try? JSONDecoder().decode([String: PersonalRecord].self, from: data) {
+            personalRecords = decoded
+        }
+
         updateDailyDrillSeed()
         updateStreak()
     }
@@ -136,6 +156,33 @@ class StorageService {
         UserDefaults.standard.set(Array(sessionDates), forKey: sessionDatesKey)
 
         recordSessionDate()
+    }
+
+    func toggleFavorite(_ drillID: String) {
+        if favoriteDrillIDs.contains(drillID) {
+            favoriteDrillIDs.remove(drillID)
+        } else {
+            favoriteDrillIDs.insert(drillID)
+        }
+        UserDefaults.standard.set(Array(favoriteDrillIDs), forKey: favoritesKey)
+    }
+
+    func isFavorite(_ drillID: String) -> Bool {
+        favoriteDrillIDs.contains(drillID)
+    }
+
+    func savePersonalRecord(_ record: PersonalRecord, for drillID: String) {
+        let existing = personalRecords[drillID]
+        if existing == nil || record.value > (existing?.value ?? 0) {
+            personalRecords[drillID] = record
+            if let data = try? JSONEncoder().encode(personalRecords) {
+                UserDefaults.standard.set(data, forKey: personalRecordsKey)
+            }
+        }
+    }
+
+    func personalRecord(for drillID: String) -> PersonalRecord? {
+        personalRecords[drillID]
     }
 
     func completeDrill(_ drill: Drill) {
@@ -205,6 +252,7 @@ class StorageService {
                        drillsKey, xpKey, analysisCountKey, maxStreakKey, reviewDateKey,
                        reviewCountKey, sessionDatesKey, lastStreakBrokenKey, lastReassessmentKey,
                        dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey, smartPlanKey,
+                       favoritesKey, personalRecordsKey, streakFreezeKey,
                        "kickiq_drill_day",
                        "kickiq_pref_streak", "kickiq_pref_weekly", "kickiq_pref_monthly"]
         allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
@@ -228,6 +276,10 @@ class StorageService {
         sessionNotes = []
         trainingPlan = nil
         smartTrainingPlan = nil
+        favoriteDrillIDs = []
+        personalRecords = [:]
+        lastStreakFreezeDate = nil
+        streakFreezeUsedThisWeek = false
 
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
@@ -278,12 +330,47 @@ class StorageService {
 
     var streakMessage: String {
         if streakCount > 0 {
+            if streakFrozenToday {
+                return "Streak frozen today — rest up!"
+            }
             return "Keep the fire going!"
         }
         if lastStreakBrokenDate != nil {
             return "Welcome back! Start a new streak today."
         }
         return "Start your streak today"
+    }
+
+    var canUseStreakFreeze: Bool {
+        guard streakCount > 0 else { return false }
+        guard !streakFreezeUsedThisWeek else { return false }
+        guard let last = lastSessionDate else { return false }
+        let calendar = Calendar.current
+        return calendar.isDateInYesterday(last) || calendar.isDateInToday(last)
+    }
+
+    var streakFrozenToday: Bool {
+        guard let freezeDate = lastStreakFreezeDate else { return false }
+        return Calendar.current.isDateInToday(freezeDate)
+    }
+
+    func useStreakFreeze() {
+        guard canUseStreakFreeze else { return }
+        lastStreakFreezeDate = .now
+        streakFreezeUsedThisWeek = true
+        UserDefaults.standard.set(Date.now.timeIntervalSince1970, forKey: streakFreezeKey)
+        lastSessionDate = .now
+        UserDefaults.standard.set(Date.now.timeIntervalSince1970, forKey: lastSessionKey)
+    }
+
+    private func updateStreakFreezeWeekly() {
+        guard let freezeDate = lastStreakFreezeDate else {
+            streakFreezeUsedThisWeek = false
+            return
+        }
+        let calendar = Calendar.current
+        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: .now))!
+        streakFreezeUsedThisWeek = freezeDate >= startOfWeek
     }
 
     var isStreakBroken: Bool {

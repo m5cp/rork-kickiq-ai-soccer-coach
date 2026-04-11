@@ -14,6 +14,7 @@ struct HomeView: View {
     @State private var showWeeklyGoal = false
     @State private var showTrainingPlan = false
     @State private var showQRScanner = false
+    @State private var showSkillAssessment = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
@@ -68,6 +69,9 @@ struct HomeView: View {
             .sheet(isPresented: $showQRScanner) {
                 QRScannerView(storage: storage)
             }
+            .sheet(isPresented: $showSkillAssessment) {
+                SkillAssessmentView(storage: storage)
+            }
         }
         .onAppear {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
@@ -93,6 +97,7 @@ struct HomeView: View {
             weeklyGoalCard
             streakCard
             analyzeCTA
+            skillAssessmentCTA
             trainingPlanCTA
             todaysDrillCard
             if storage.shouldShowMonthlyReassessment {
@@ -123,6 +128,7 @@ struct HomeView: View {
                 VStack(spacing: KickIQTheme.Spacing.md + 4) {
                     weeklyGoalCard
                     analyzeCTA
+                    skillAssessmentCTA
                     trainingPlanCTA
                 }
                 .frame(maxWidth: .infinity)
@@ -279,34 +285,69 @@ struct HomeView: View {
     }
 
     private var streakCard: some View {
-        HStack(spacing: KickIQTheme.Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(storage.isStreakBroken ? Color.red.opacity(0.12) : KickIQTheme.accent.opacity(0.15))
-                    .frame(width: 52, height: 52)
+        VStack(spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(storage.isStreakBroken ? Color.red.opacity(0.12) : storage.streakFrozenToday ? Color.blue.opacity(0.15) : KickIQTheme.accent.opacity(0.15))
+                        .frame(width: 52, height: 52)
 
-                Image(systemName: storage.isStreakBroken ? "flame" : "flame.fill")
-                    .font(.system(size: 26))
-                    .foregroundStyle(storage.isStreakBroken ? KickIQTheme.textSecondary : KickIQTheme.accent)
-                    .symbolEffect(.bounce, value: streakBounce)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("\(storage.streakCount)")
-                        .font(.system(.title2, design: .default, weight: .black))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("day streak")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(KickIQTheme.textSecondary)
+                    Image(systemName: storage.streakFrozenToday ? "snowflake" : storage.isStreakBroken ? "flame" : "flame.fill")
+                        .font(.system(size: 26))
+                        .foregroundStyle(storage.streakFrozenToday ? .blue : storage.isStreakBroken ? KickIQTheme.textSecondary : KickIQTheme.accent)
+                        .symbolEffect(.bounce, value: streakBounce)
                 }
 
-                Text(storage.streakMessage)
-                    .font(.caption)
-                    .foregroundStyle(storage.isStreakBroken ? KickIQTheme.accent : KickIQTheme.textSecondary.opacity(0.7))
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("\(storage.streakCount)")
+                            .font(.system(.title2, design: .default, weight: .black))
+                            .foregroundStyle(KickIQTheme.textPrimary)
+                        Text("day streak")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+
+                    Text(storage.streakMessage)
+                        .font(.caption)
+                        .foregroundStyle(storage.isStreakBroken ? KickIQTheme.accent : KickIQTheme.textSecondary.opacity(0.7))
+                }
+
+                Spacer()
             }
 
-            Spacer()
+            if storage.canUseStreakFreeze && !storage.streakFrozenToday {
+                Button {
+                    storage.useStreakFreeze()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "snowflake")
+                            .font(.caption.weight(.bold))
+                        Text("Use Streak Freeze")
+                            .font(.caption.weight(.bold))
+                        Text("(1/week)")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.blue.opacity(0.7))
+                    }
+                    .foregroundStyle(.blue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.1), in: .rect(cornerRadius: KickIQTheme.Radius.sm))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.sm)
+                            .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+                    )
+                }
+            } else if storage.streakFreezeUsedThisWeek && !storage.streakFrozenToday {
+                HStack(spacing: 5) {
+                    Image(systemName: "snowflake")
+                        .font(.system(size: 9))
+                    Text("Streak freeze used this week")
+                        .font(.caption2.weight(.medium))
+                }
+                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -515,6 +556,50 @@ struct HomeView: View {
         case .medium: .orange
         case .heavy: .red
         }
+    }
+
+    private var skillAssessmentCTA: some View {
+        Button {
+            showSkillAssessment = true
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(Color.purple.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "clipboard.fill")
+                        .font(.title3)
+                        .foregroundStyle(.purple)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Skill Assessment")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Test your skills with timed challenges")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(KickIQTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.16), value: appeared)
     }
 
     private var analyzeCTA: some View {

@@ -1,5 +1,14 @@
 import SwiftUI
 
+nonisolated enum DrillListFilter: String, CaseIterable, Identifiable {
+    case all = "All"
+    case favorites = "Favorites"
+    case completed = "Completed"
+    case notDone = "Not Done"
+
+    var id: String { rawValue }
+}
+
 struct DrillsView: View {
     let storage: StorageService
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -8,6 +17,9 @@ struct DrillsView: View {
     @State private var selectedDrill: Drill?
     @State private var completedTrigger = 0
     @State private var expandedCategories: Set<String> = []
+    @State private var searchText: String = ""
+    @State private var activeListFilter: DrillListFilter = .all
+    @State private var favoriteTrigger: Int = 0
 
     private var isIPad: Bool { sizeClass == .regular }
 
@@ -30,6 +42,7 @@ struct DrillsView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Drills")
             .navigationBarTitleDisplayMode(.large)
+            .searchable(text: $searchText, prompt: "Search drills...")
             .sheet(item: $selectedDrill) { drill in
                 DrillDetailSheet(drill: drill, storage: storage, drillsService: drillsService, completedTrigger: $completedTrigger)
             }
@@ -39,12 +52,64 @@ struct DrillsView: View {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
         }
         .sensoryFeedback(.success, trigger: completedTrigger)
+        .sensoryFeedback(.impact(weight: .light), trigger: favoriteTrigger)
+    }
+
+    private var filterBar: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(DrillListFilter.allCases) { filter in
+                    let isActive = activeListFilter == filter
+                    let count = countForFilter(filter)
+                    Button {
+                        withAnimation(.spring(response: 0.3)) {
+                            activeListFilter = filter
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            if filter == .favorites {
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 10))
+                            }
+                            Text(filter.rawValue)
+                                .font(.caption.weight(.bold))
+                            if count > 0 && filter != .all {
+                                Text("\(count)")
+                                    .font(.system(size: 10, weight: .black))
+                                    .foregroundStyle(isActive ? .black : KickIQTheme.accent)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(isActive ? .black.opacity(0.2) : KickIQTheme.accent.opacity(0.2), in: Capsule())
+                            }
+                        }
+                        .foregroundStyle(isActive ? .black : KickIQTheme.textSecondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(isActive ? KickIQTheme.accent : KickIQTheme.card, in: Capsule())
+                    }
+                }
+            }
+        }
+        .contentMargins(.horizontal, 0)
+        .scrollIndicators(.hidden)
+    }
+
+    private func countForFilter(_ filter: DrillListFilter) -> Int {
+        let allDrills = drillsService.allDrills
+        switch filter {
+        case .all: return allDrills.count
+        case .favorites: return allDrills.filter { storage.isFavorite($0.id) }.count
+        case .completed: return allDrills.filter { storage.completedDrillIDs.contains($0.id) }.count
+        case .notDone: return allDrills.filter { !storage.completedDrillIDs.contains($0.id) }.count
+        }
     }
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm + 2) {
+            filterBar
+
             let weakSkills = storage.weakestSkills
-            if !weakSkills.isEmpty {
+            if !weakSkills.isEmpty && activeListFilter == .all && searchText.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "target")
                         .font(.system(size: 13, weight: .semibold))
@@ -116,9 +181,30 @@ struct DrillsView: View {
     }
 
     private var groupedDrills: [(category: String, icon: String, drills: [Drill])] {
-        let filteredDrills = drillsService.filteredDrills(weakestSkills: storage.weakestSkills)
+        var baseDrills = drillsService.filteredDrills(weakestSkills: storage.weakestSkills)
+
+        if !searchText.isEmpty {
+            let query = searchText.lowercased()
+            baseDrills = drillsService.allDrills.filter {
+                $0.name.localizedStandardContains(query) ||
+                $0.description.localizedStandardContains(query) ||
+                $0.targetSkill.localizedStandardContains(query) ||
+                $0.tags.contains(where: { $0.localizedStandardContains(query) })
+            }
+        }
+
+        switch activeListFilter {
+        case .all: break
+        case .favorites:
+            baseDrills = baseDrills.filter { storage.isFavorite($0.id) }
+        case .completed:
+            baseDrills = baseDrills.filter { storage.completedDrillIDs.contains($0.id) }
+        case .notDone:
+            baseDrills = baseDrills.filter { !storage.completedDrillIDs.contains($0.id) }
+        }
+
         var groups: [String: [Drill]] = [:]
-        for drill in filteredDrills {
+        for drill in baseDrills {
             groups[drill.targetSkill, default: []].append(drill)
         }
 
@@ -217,6 +303,7 @@ struct DrillsView: View {
 
     private func drillGridCard(_ drill: Drill) -> some View {
         let isCompleted = storage.completedDrillIDs.contains(drill.id)
+        let isFav = storage.isFavorite(drill.id)
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
@@ -227,6 +314,12 @@ struct DrillsView: View {
                     .foregroundStyle(difficultyColor(drill.difficulty))
 
                 Spacer()
+
+                if isFav {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.pink)
+                }
 
                 if isCompleted {
                     Image(systemName: "checkmark.circle.fill")
@@ -328,6 +421,9 @@ struct DrillDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showTimer = false
     @State private var showQRShare = false
+    @State private var showRecordEntry = false
+    @State private var recordValue: String = ""
+    @State private var showConfetti = false
 
     private var isCompleted: Bool {
         storage.completedDrillIDs.contains(drill.id)
@@ -508,6 +604,8 @@ struct DrillDetailSheet: View {
                         }
                     }
 
+                    personalRecordSection
+
                     Button {
                         showTimer = true
                     } label: {
@@ -530,8 +628,10 @@ struct DrillDetailSheet: View {
                         if !isCompleted {
                             storage.completeDrill(drill)
                             completedTrigger += 1
+                            showConfetti = true
+                        } else {
+                            dismiss()
                         }
-                        dismiss()
                     } label: {
                         HStack(spacing: KickIQTheme.Spacing.sm) {
                             Image(systemName: isCompleted ? "checkmark.circle.fill" : "checkmark")
@@ -555,15 +655,26 @@ struct DrillDetailSheet: View {
                         .foregroundStyle(KickIQTheme.accent)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showQRShare = true
-                    } label: {
-                        Image(systemName: "qrcode")
-                            .foregroundStyle(KickIQTheme.accent)
+                    HStack(spacing: 16) {
+                        Button {
+                            storage.toggleFavorite(drill.id)
+                        } label: {
+                            Image(systemName: storage.isFavorite(drill.id) ? "heart.fill" : "heart")
+                                .foregroundStyle(storage.isFavorite(drill.id) ? .pink : KickIQTheme.textSecondary)
+                        }
+                        .sensoryFeedback(.impact(weight: .light), trigger: storage.isFavorite(drill.id))
+
+                        Button {
+                            showQRShare = true
+                        } label: {
+                            Image(systemName: "qrcode")
+                                .foregroundStyle(KickIQTheme.accent)
+                        }
                     }
                 }
             }
         }
+        .confetti(isActive: $showConfetti)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationBackground(KickIQTheme.background)
@@ -577,6 +688,106 @@ struct DrillDetailSheet: View {
                 subtitle: "Let your teammate scan to import this drill"
             )
         }
+    }
+
+    private var personalRecordSection: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "trophy.fill")
+                        .font(.caption)
+                    Text("PERSONAL RECORD")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                }
+                .foregroundStyle(.orange)
+
+                Spacer()
+
+                Button {
+                    showRecordEntry = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("Log")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(KickIQTheme.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
+                }
+            }
+
+            if let record = storage.personalRecord(for: drill.id) {
+                HStack(spacing: KickIQTheme.Spacing.md) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(record.formattedValue)
+                            .font(.title.weight(.black))
+                            .foregroundStyle(KickIQTheme.textPrimary)
+                        Text(record.unit)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Set on")
+                            .font(.caption2)
+                            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.6))
+                        Text(record.date, format: .dateTime.month(.abbreviated).day())
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+                }
+                .padding(KickIQTheme.Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
+                        .fill(Color.orange.opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
+                                .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                        )
+                )
+            } else {
+                Text("No record yet — complete this drill and log your best!")
+                    .font(.caption)
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.6))
+            }
+        }
+        .alert("Log Personal Record", isPresented: $showRecordEntry) {
+            TextField("Value (e.g. 47)", text: $recordValue)
+                .keyboardType(.decimalPad)
+            Button("Save") {
+                if let val = Double(recordValue), val > 0 {
+                    let record = PersonalRecord(
+                        drillID: drill.id,
+                        value: val,
+                        unit: guessUnit()
+                    )
+                    storage.savePersonalRecord(record, for: drill.id)
+                }
+                recordValue = ""
+            }
+            Button("Cancel", role: .cancel) {
+                recordValue = ""
+            }
+        } message: {
+            Text("Enter your best score for \(drill.name)")
+        }
+    }
+
+    private func guessUnit() -> String {
+        let reps = drill.reps.lowercased()
+        let name = drill.name.lowercased()
+        if reps.contains("sec") || name.contains("time") { return "seconds" }
+        if reps.contains("yard") || reps.contains("distance") { return "yards" }
+        if reps.contains("touch") || name.contains("touch") { return "touches" }
+        if reps.contains("pass") || name.contains("pass") { return "passes" }
+        if reps.contains("shot") || name.contains("finish") || name.contains("shoot") { return "goals" }
+        return "reps"
     }
 
     private var difficultyColor: Color {
