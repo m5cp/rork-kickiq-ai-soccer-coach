@@ -9,6 +9,9 @@ struct ConditioningPlanView: View {
     @State private var duration: SessionDuration = .thirty
     @State private var appeared = false
     @State private var completedTrigger = 0
+    @State private var calendarService = CalendarService()
+    @State private var calendarSynced = false
+    @State private var showCalendarAlert = false
 
     var body: some View {
         NavigationStack {
@@ -160,9 +163,12 @@ struct ConditioningPlanView: View {
                     conditioningDrillCard(drill, index: index, plan: plan)
                 }
 
+                syncToCalendarButton
+
                 Button {
                     self.plan = nil
                     storage.clearConditioningPlan()
+                    calendarSynced = false
                 } label: {
                     HStack(spacing: KickIQTheme.Spacing.sm) {
                         Image(systemName: "arrow.triangle.2.circlepath")
@@ -352,6 +358,53 @@ struct ConditioningPlanView: View {
         plan = newPlan
         storage.saveConditioningPlan(newPlan)
         isGenerating = false
+    }
+
+    private var syncToCalendarButton: some View {
+        Button {
+            Task {
+                if !calendarService.isAuthorized {
+                    let granted = await calendarService.requestAccess()
+                    if !granted {
+                        showCalendarAlert = true
+                        return
+                    }
+                }
+                if !calendarService.calendarSyncEnabled {
+                    calendarService.enableSync(true)
+                }
+                if let plan {
+                    let success = calendarService.addConditioningEvent(plan: plan)
+                    if success {
+                        calendarSynced = true
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                Image(systemName: calendarSynced ? "checkmark.circle.fill" : "calendar.badge.plus")
+                Text(calendarSynced ? "Synced to Calendar" : "Sync to Calendar")
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(calendarSynced ? .green : .black)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(
+                calendarSynced ? Color.green.opacity(0.15) : KickIQTheme.accent,
+                in: .rect(cornerRadius: KickIQTheme.Radius.md)
+            )
+        }
+        .disabled(calendarSynced)
+        .alert("Calendar Access", isPresented: $showCalendarAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Please enable calendar access in Settings to sync your conditioning plan.")
+        }
     }
 
     private func completeDrill(drillID: String) {

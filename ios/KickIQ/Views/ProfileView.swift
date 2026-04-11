@@ -13,6 +13,7 @@ struct ProfileView: View {
     @State private var showAICoach = false
     @State private var showDeleteAlert = false
     @State private var showSignOutAlert = false
+    @State private var showNotificationPrefs = false
     @State private var auth = AuthService.shared
 
     var body: some View {
@@ -24,6 +25,7 @@ struct ProfileView: View {
                     aiCoachCard
                     teamCard
                     coachReportCard
+                    notificationCard
                     legalSection
                     supportSection
                     dangerSection
@@ -65,6 +67,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showTeam) {
                 TeamView(storage: storage)
+            }
+            .sheet(isPresented: $showNotificationPrefs) {
+                NotificationPreferencesSheet()
             }
             .alert("Delete All Data?", isPresented: $showDeleteAlert) {
                 Button("Delete", role: .destructive) {
@@ -356,6 +361,50 @@ struct ProfileView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.11), value: appeared)
+    }
+
+    private var notificationCard: some View {
+        Button {
+            showNotificationPrefs = true
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "bell.badge.fill")
+                        .font(.title3)
+                        .foregroundStyle(.orange)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Notifications")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Manage streak reminders & weekly summaries")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(KickIQTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.13), value: appeared)
     }
 
     private var legalSection: some View {

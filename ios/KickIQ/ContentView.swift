@@ -83,15 +83,6 @@ struct ContentView: View {
         .task {
             previousBadgeCount = storage.earnedBadges.count
             storage.markMilestonesShown(storage.earnedBadges)
-            await notificationService.requestPermission()
-            notificationService.scheduleStreakReminder()
-            notificationService.scheduleMonthlyReassessment()
-
-            let weeklyDrills = storage.completedDrillIDs.count
-            let scoreChange = storage.sessions.count >= 2
-                ? storage.sessions[0].overallScore - storage.sessions[1].overallScore
-                : 0
-            notificationService.scheduleCustomSummary(drillsCompleted: weeklyDrills, scoreChange: scoreChange)
         }
     }
 

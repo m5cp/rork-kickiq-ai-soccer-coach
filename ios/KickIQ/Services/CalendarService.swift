@@ -165,6 +165,47 @@ class CalendarService {
         return eventStore.event(withIdentifier: eventID) != nil
     }
 
+    func addConditioningEvent(plan: ConditioningPlan) -> Bool {
+        guard isAuthorized, calendarSyncEnabled else { return false }
+        guard let calendar = selectedCalendar else { return false }
+
+        let key = "conditioning_\(plan.id)"
+        if let existingID = eventMap[key],
+           eventStore.event(withIdentifier: existingID) != nil {
+            return true
+        }
+
+        let event = EKEvent(eventStore: eventStore)
+        event.title = "KickIQ Conditioning: \(plan.focusType.rawValue)"
+        event.calendar = calendar
+        event.startDate = plan.createdAt
+        event.endDate = Foundation.Calendar.current.date(byAdding: .minute, value: plan.duration.rawValue, to: plan.createdAt) ?? plan.createdAt
+
+        var noteLines: [String] = []
+        noteLines.append("Focus: \(plan.focusType.rawValue)")
+        noteLines.append("Duration: \(plan.duration.label)")
+        noteLines.append("")
+        noteLines.append("Drills:")
+        for drill in plan.drills {
+            noteLines.append("• \(drill.name) (\(drill.duration))")
+        }
+        event.notes = noteLines.joined(separator: "\n")
+
+        if reminderMinutesBefore > 0 {
+            event.addAlarm(EKAlarm(relativeOffset: TimeInterval(-reminderMinutesBefore * 60)))
+        }
+
+        do {
+            try eventStore.save(event, span: .thisEvent)
+            var map = eventMap
+            map[key] = event.eventIdentifier
+            eventMap = map
+            return true
+        } catch {
+            return false
+        }
+    }
+
     func cleanup() {
         UserDefaults.standard.removeObject(forKey: syncEnabledKey)
         UserDefaults.standard.removeObject(forKey: reminderKey)

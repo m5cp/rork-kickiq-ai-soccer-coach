@@ -439,7 +439,7 @@ struct HomeView: View {
 
     private var trainingPlanCTA: some View {
         Button {
-            showTrainingPlan = true
+            selectedTab = 2
         } label: {
             Group {
                 if let plan = storage.smartTrainingPlan, let today = plan.todaysPlan {

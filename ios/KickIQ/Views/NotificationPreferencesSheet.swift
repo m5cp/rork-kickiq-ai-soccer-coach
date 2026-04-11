@@ -79,21 +79,33 @@ struct NotificationPreferencesSheet: View {
                 .font(.title2)
                 .foregroundStyle(KickIQTheme.accent)
 
-            Text("Notifications are disabled")
+            Text("Notifications are off")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(KickIQTheme.textPrimary)
 
-            Text("Enable notifications in Settings to receive streak reminders and weekly summaries.")
+            Text("Turn on notifications to get streak reminders, weekly recaps, and monthly check-ins.")
                 .font(.caption)
                 .foregroundStyle(KickIQTheme.textSecondary)
                 .multilineTextAlignment(.center)
 
             Button {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
+                Task {
+                    let center = UNUserNotificationCenter.current()
+                    let settings = await center.notificationSettings()
+                    if settings.authorizationStatus == .notDetermined {
+                        let granted = try? await center.requestAuthorization(options: [.alert, .badge, .sound])
+                        notificationsEnabled = granted ?? false
+                        if notificationsEnabled {
+                            scheduleAllEnabled()
+                        }
+                    } else {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            await UIApplication.shared.open(url)
+                        }
+                    }
                 }
             } label: {
-                Text("Open Settings")
+                Text("Enable Notifications")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, KickIQTheme.Spacing.lg)
@@ -157,15 +169,29 @@ struct NotificationPreferencesSheet: View {
         UserDefaults.standard.set(monthlyReassessment, forKey: "kickiq_pref_monthly")
 
         let center = UNUserNotificationCenter.current()
+        let service = NotificationService()
 
-        if !streakReminders {
+        if streakReminders {
+            service.scheduleStreakReminder()
+        } else {
             center.removePendingNotificationRequests(withIdentifiers: ["streak_reminder"])
         }
-        if !weeklySummary {
+        if weeklySummary {
+            service.scheduleWeeklySummary()
+        } else {
             center.removePendingNotificationRequests(withIdentifiers: ["weekly_summary", "weekly_summary_custom"])
         }
-        if !monthlyReassessment {
+        if monthlyReassessment {
+            service.scheduleMonthlyReassessment()
+        } else {
             center.removePendingNotificationRequests(withIdentifiers: ["monthly_reassessment"])
         }
+    }
+
+    private func scheduleAllEnabled() {
+        let service = NotificationService()
+        if streakReminders { service.scheduleStreakReminder() }
+        if weeklySummary { service.scheduleWeeklySummary() }
+        if monthlyReassessment { service.scheduleMonthlyReassessment() }
     }
 }
