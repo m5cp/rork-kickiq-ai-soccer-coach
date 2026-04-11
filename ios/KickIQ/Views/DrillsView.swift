@@ -9,6 +9,13 @@ nonisolated enum DrillListFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+nonisolated enum DrillSection: String, CaseIterable, Identifiable {
+    case skills = "Skill Drills"
+    case conditioning = "Conditioning"
+
+    var id: String { rawValue }
+}
+
 struct DrillsView: View {
     let storage: StorageService
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -21,6 +28,10 @@ struct DrillsView: View {
     @State private var activeListFilter: DrillListFilter = .all
     @State private var favoriteTrigger: Int = 0
     @State private var showProfile = false
+    @State private var activeSection: DrillSection = .skills
+    @State private var showTrainingPlan = false
+    @State private var showConditioningPlan = false
+    @State private var showPDFUpload = false
 
     private var isIPad: Bool { sizeClass == .regular }
 
@@ -31,9 +42,18 @@ struct DrillsView: View {
                     if drillsService.allDrills.isEmpty {
                         emptyState
                     } else {
-                        headerSection
-                        statsBar
-                        categorySections
+                        sectionPicker
+                        if activeSection == .skills {
+                            headerSection
+                            statsBar
+                            generatePlanButton(isConditioning: false)
+                            categorySections
+                        } else {
+                            conditioningHeaderSection
+                            conditioningStatsBar
+                            conditioningActions
+                            conditioningSections
+                        }
                     }
                 }
                 .padding(.horizontal, KickIQTheme.Spacing.md)
@@ -43,7 +63,7 @@ struct DrillsView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Drills")
             .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "Search drills...")
+            .searchable(text: $searchText, prompt: activeSection == .skills ? "Search skill drills..." : "Search conditioning...")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -59,6 +79,15 @@ struct DrillsView: View {
             .sheet(item: $selectedDrill) { drill in
                 DrillDetailSheet(drill: drill, storage: storage, drillsService: drillsService, completedTrigger: $completedTrigger)
             }
+            .sheet(isPresented: $showTrainingPlan) {
+                TrainingPlanView(storage: storage)
+            }
+            .sheet(isPresented: $showConditioningPlan) {
+                ConditioningPlanView(storage: storage)
+            }
+            .sheet(isPresented: $showPDFUpload) {
+                PDFUploadView(storage: storage)
+            }
         }
         .onAppear {
             loadDrills()
@@ -66,6 +95,37 @@ struct DrillsView: View {
         }
         .sensoryFeedback(.success, trigger: completedTrigger)
         .sensoryFeedback(.impact(weight: .light), trigger: favoriteTrigger)
+    }
+
+    private var sectionPicker: some View {
+        HStack(spacing: 0) {
+            ForEach(DrillSection.allCases) { section in
+                Button {
+                    withAnimation(.spring(response: 0.3)) {
+                        activeSection = section
+                        expandedCategories = []
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: section == .skills ? "figure.soccer" : "flame.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(section.rawValue)
+                            .font(.subheadline.weight(.bold))
+                    }
+                    .foregroundStyle(activeSection == section ? .black : KickIQTheme.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background(
+                        activeSection == section ? KickIQTheme.accent : Color.clear,
+                        in: Capsule()
+                    )
+                }
+            }
+        }
+        .padding(3)
+        .background(KickIQTheme.card, in: Capsule())
+        .opacity(appeared ? 1 : 0)
+        .sensoryFeedback(.selection, trigger: activeSection)
     }
 
     private var filterBar: some View {
@@ -108,13 +168,21 @@ struct DrillsView: View {
     }
 
     private func countForFilter(_ filter: DrillListFilter) -> Int {
-        let allDrills = drillsService.allDrills
+        let drills = activeSection == .skills ? skillDrills : conditioningDrills
         switch filter {
-        case .all: return allDrills.count
-        case .favorites: return allDrills.filter { storage.isFavorite($0.id) }.count
-        case .completed: return allDrills.filter { storage.completedDrillIDs.contains($0.id) }.count
-        case .notDone: return allDrills.filter { !storage.completedDrillIDs.contains($0.id) }.count
+        case .all: return drills.count
+        case .favorites: return drills.filter { storage.isFavorite($0.id) }.count
+        case .completed: return drills.filter { storage.completedDrillIDs.contains($0.id) }.count
+        case .notDone: return drills.filter { !storage.completedDrillIDs.contains($0.id) }.count
         }
+    }
+
+    private var skillDrills: [Drill] {
+        drillsService.allDrills.filter { !ConditioningType.isConditioningDrill($0) }
+    }
+
+    private var conditioningDrills: [Drill] {
+        drillsService.allDrills.filter { ConditioningType.isConditioningDrill($0) }
     }
 
     private var headerSection: some View {
@@ -158,11 +226,11 @@ struct DrillsView: View {
     }
 
     private var statsBar: some View {
-        let totalDrills = groupedDrills.reduce(0) { $0 + $1.drills.count }
-        let completedCount = groupedDrills.reduce(0) { sum, group in
-            sum + group.drills.filter { storage.completedDrillIDs.contains($0.id) }.count
-        }
-        let categoryCount = groupedDrills.count
+        let drills = filteredSkillDrills
+        let totalDrills = drills.count
+        let completedCount = drills.filter { storage.completedDrillIDs.contains($0.id) }.count
+        let groups = groupedSkillDrills
+        let categoryCount = groups.count
 
         return HStack(spacing: 0) {
             statItem(value: "\(totalDrills)", label: "Total", icon: "figure.soccer")
@@ -173,6 +241,31 @@ struct DrillsView: View {
         }
         .padding(.vertical, KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+    }
+
+    private func generatePlanButton(isConditioning: Bool) -> some View {
+        Button {
+            if isConditioning {
+                showConditioningPlan = true
+            } else {
+                showTrainingPlan = true
+            }
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                Image(systemName: "sparkles")
+                    .font(.subheadline.weight(.semibold))
+                Text("Generate Training Plan")
+                    .font(.subheadline.weight(.bold))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+            }
+            .foregroundStyle(.black)
+            .padding(.horizontal, KickIQTheme.Spacing.md)
+            .padding(.vertical, 14)
+            .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        }
         .opacity(appeared ? 1 : 0)
     }
 
@@ -193,12 +286,14 @@ struct DrillsView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var groupedDrills: [(category: String, icon: String, drills: [Drill])] {
-        var baseDrills = drillsService.filteredDrills(weakestSkills: storage.weakestSkills)
+    // MARK: - Skill Drills
+
+    private var filteredSkillDrills: [Drill] {
+        var base = skillDrills
 
         if !searchText.isEmpty {
             let query = searchText.lowercased()
-            baseDrills = drillsService.allDrills.filter {
+            base = base.filter {
                 $0.name.localizedStandardContains(query) ||
                 $0.description.localizedStandardContains(query) ||
                 $0.targetSkill.localizedStandardContains(query) ||
@@ -208,16 +303,17 @@ struct DrillsView: View {
 
         switch activeListFilter {
         case .all: break
-        case .favorites:
-            baseDrills = baseDrills.filter { storage.isFavorite($0.id) }
-        case .completed:
-            baseDrills = baseDrills.filter { storage.completedDrillIDs.contains($0.id) }
-        case .notDone:
-            baseDrills = baseDrills.filter { !storage.completedDrillIDs.contains($0.id) }
+        case .favorites: base = base.filter { storage.isFavorite($0.id) }
+        case .completed: base = base.filter { storage.completedDrillIDs.contains($0.id) }
+        case .notDone: base = base.filter { !storage.completedDrillIDs.contains($0.id) }
         }
 
+        return base
+    }
+
+    private var groupedSkillDrills: [(category: String, icon: String, drills: [Drill])] {
         var groups: [String: [Drill]] = [:]
-        for drill in baseDrills {
+        for drill in filteredSkillDrills {
             groups[drill.targetSkill, default: []].append(drill)
         }
 
@@ -231,7 +327,142 @@ struct DrillsView: View {
 
     private var categorySections: some View {
         LazyVStack(spacing: KickIQTheme.Spacing.sm + 4) {
-            ForEach(Array(groupedDrills.enumerated()), id: \.element.category) { sectionIndex, group in
+            ForEach(Array(groupedSkillDrills.enumerated()), id: \.element.category) { sectionIndex, group in
+                categoryRow(group: group, sectionIndex: sectionIndex)
+            }
+        }
+    }
+
+    // MARK: - Conditioning
+
+    private var conditioningHeaderSection: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm + 2) {
+            filterBar
+
+            if searchText.isEmpty && activeListFilter == .all {
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.orange)
+                    Text("Build your athletic foundation")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) {
+                        ForEach(ConditioningType.allCases) { type in
+                            let count = conditioningDrillsForType(type).count
+                            if count > 0 {
+                                HStack(spacing: 5) {
+                                    Image(systemName: type.icon)
+                                        .font(.system(size: 10, weight: .semibold))
+                                    Text("\(type.rawValue)")
+                                        .font(.caption.weight(.bold))
+                                }
+                                .foregroundStyle(conditioningColor(type))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(conditioningColor(type).opacity(0.12), in: Capsule())
+                                .overlay(Capsule().stroke(conditioningColor(type).opacity(0.2), lineWidth: 0.5))
+                            }
+                        }
+                    }
+                }
+                .contentMargins(.horizontal, 0)
+                .scrollIndicators(.hidden)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(appeared ? 1 : 0)
+    }
+
+    private var conditioningStatsBar: some View {
+        let drills = filteredConditioningDrills
+        let totalDrills = drills.count
+        let completedCount = drills.filter { storage.completedDrillIDs.contains($0.id) }.count
+        let categoryCount = groupedConditioningDrills.count
+
+        return HStack(spacing: 0) {
+            statItem(value: "\(totalDrills)", label: "Total", icon: "flame.fill")
+            Divider().frame(height: 28).overlay(KickIQTheme.divider)
+            statItem(value: "\(categoryCount)", label: "Types", icon: "square.grid.2x2")
+            Divider().frame(height: 28).overlay(KickIQTheme.divider)
+            statItem(value: "\(completedCount)", label: "Done", icon: "checkmark.circle")
+        }
+        .padding(.vertical, KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+    }
+
+    private var conditioningActions: some View {
+        VStack(spacing: KickIQTheme.Spacing.sm) {
+            generatePlanButton(isConditioning: true)
+
+            Button {
+                showPDFUpload = true
+            } label: {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    Image(systemName: "doc.badge.plus")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Upload Plan (PDF)")
+                        .font(.subheadline.weight(.bold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                }
+                .foregroundStyle(KickIQTheme.accent)
+                .padding(.horizontal, KickIQTheme.Spacing.md)
+                .padding(.vertical, 14)
+                .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                        .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
+                )
+            }
+        }
+    }
+
+    private var filteredConditioningDrills: [Drill] {
+        var base = conditioningDrills
+
+        if !searchText.isEmpty {
+            let query = searchText.lowercased()
+            base = base.filter {
+                $0.name.localizedStandardContains(query) ||
+                $0.description.localizedStandardContains(query) ||
+                $0.tags.contains(where: { $0.localizedStandardContains(query) })
+            }
+        }
+
+        switch activeListFilter {
+        case .all: break
+        case .favorites: base = base.filter { storage.isFavorite($0.id) }
+        case .completed: base = base.filter { storage.completedDrillIDs.contains($0.id) }
+        case .notDone: base = base.filter { !storage.completedDrillIDs.contains($0.id) }
+        }
+
+        return base
+    }
+
+    private func conditioningDrillsForType(_ type: ConditioningType) -> [Drill] {
+        filteredConditioningDrills.filter { ConditioningType.classify($0) == type }
+    }
+
+    private var groupedConditioningDrills: [(category: String, icon: String, color: Color, drills: [Drill])] {
+        var result: [(category: String, icon: String, color: Color, drills: [Drill])] = []
+        for type in ConditioningType.allCases {
+            let drills = conditioningDrillsForType(type)
+            if !drills.isEmpty {
+                result.append((category: type.rawValue, icon: type.icon, color: conditioningColor(type), drills: drills))
+            }
+        }
+        return result
+    }
+
+    private var conditioningSections: some View {
+        LazyVStack(spacing: KickIQTheme.Spacing.sm + 4) {
+            ForEach(Array(groupedConditioningDrills.enumerated()), id: \.element.category) { sectionIndex, group in
                 let isExpanded = expandedCategories.contains(group.category)
                 let completedInCategory = group.drills.filter { storage.completedDrillIDs.contains($0.id) }.count
 
@@ -248,11 +479,11 @@ struct DrillsView: View {
                         HStack(spacing: KickIQTheme.Spacing.sm + 2) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 10)
-                                    .fill(KickIQTheme.accent.opacity(0.12))
+                                    .fill(group.color.opacity(0.12))
                                     .frame(width: 40, height: 40)
                                 Image(systemName: group.icon)
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(KickIQTheme.accent)
+                                    .foregroundStyle(group.color)
                             }
 
                             VStack(alignment: .leading, spacing: 3) {
@@ -298,7 +529,7 @@ struct DrillsView: View {
                                 Button {
                                     selectedDrill = drill
                                 } label: {
-                                    drillGridCard(drill)
+                                    conditioningGridCard(drill, typeColor: group.color)
                                 }
                             }
                         }
@@ -312,6 +543,185 @@ struct DrillsView: View {
                 .animation(.spring(response: 0.4).delay(Double(sectionIndex) * 0.04), value: appeared)
             }
         }
+    }
+
+    private func conditioningGridCard(_ drill: Drill, typeColor: Color) -> some View {
+        let isCompleted = storage.completedDrillIDs.contains(drill.id)
+        let isFav = storage.isFavorite(drill.id)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: drill.intensity.icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(intensityColor(drill.intensity))
+
+                Text(drill.intensity.rawValue)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(intensityColor(drill.intensity))
+
+                Spacer()
+
+                if isFav {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.pink)
+                }
+
+                if isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.green)
+                }
+            }
+
+            Text(drill.name)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(KickIQTheme.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(drill.description)
+                .font(.caption2)
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .lineLimit(3)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 4)
+
+            HStack(spacing: 6) {
+                HStack(spacing: 3) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 9))
+                    Text(drill.duration)
+                }
+
+                if !drill.reps.isEmpty {
+                    Text("·")
+                    HStack(spacing: 3) {
+                        Image(systemName: "repeat")
+                            .font(.system(size: 9))
+                        Text(drill.reps)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .frame(maxWidth: .infinity, minHeight: 160, alignment: .leading)
+        .background(
+            KickIQTheme.surface
+                .shadow(.drop(color: .black.opacity(0.06), radius: 3, y: 1)),
+            in: .rect(cornerRadius: KickIQTheme.Radius.lg)
+        )
+    }
+
+    private func intensityColor(_ intensity: DrillIntensity) -> Color {
+        switch intensity {
+        case .low: .green
+        case .moderate: .yellow
+        case .high: .orange
+        case .maximum: .red
+        }
+    }
+
+    private func conditioningColor(_ type: ConditioningType) -> Color {
+        switch type {
+        case .sprints: .red
+        case .hiit: .orange
+        case .endurance: .blue
+        case .strength: .purple
+        case .agility: .green
+        case .flexibility: .teal
+        case .plyometrics: .pink
+        case .crossTraining: .cyan
+        }
+    }
+
+    // MARK: - Shared
+
+    private func categoryRow(group: (category: String, icon: String, drills: [Drill]), sectionIndex: Int) -> some View {
+        let isExpanded = expandedCategories.contains(group.category)
+        let completedInCategory = group.drills.filter { storage.completedDrillIDs.contains($0.id) }.count
+
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    if isExpanded {
+                        expandedCategories.remove(group.category)
+                    } else {
+                        expandedCategories.insert(group.category)
+                    }
+                }
+            } label: {
+                HStack(spacing: KickIQTheme.Spacing.sm + 2) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(KickIQTheme.accent.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: group.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(KickIQTheme.accent)
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(group.category)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(KickIQTheme.textPrimary)
+                        HStack(spacing: 6) {
+                            Text("\(group.drills.count) drill\(group.drills.count == 1 ? "" : "s")")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(KickIQTheme.textSecondary)
+
+                            if completedInCategory > 0 {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 8, weight: .bold))
+                                    Text("\(completedInCategory)")
+                                        .font(.system(size: 11, weight: .bold))
+                                }
+                                .foregroundStyle(.green)
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
+                        .rotationEffect(.degrees(isExpanded ? 0 : -90))
+                }
+                .padding(KickIQTheme.Spacing.md)
+                .background(
+                    KickIQTheme.card
+                        .shadow(.drop(color: .black.opacity(0.08), radius: 4, y: 2)),
+                    in: .rect(cornerRadius: KickIQTheme.Radius.lg)
+                )
+            }
+            .sensoryFeedback(.selection, trigger: isExpanded)
+
+            if isExpanded {
+                LazyVGrid(columns: isIPad ? AdaptiveLayout.iPadTripleColumns : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                    ForEach(group.drills, id: \.id) { drill in
+                        Button {
+                            selectedDrill = drill
+                        } label: {
+                            drillGridCard(drill)
+                        }
+                    }
+                }
+                .padding(.top, 10)
+                .padding(.horizontal, 4)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 12)
+        .animation(.spring(response: 0.4).delay(Double(sectionIndex) * 0.04), value: appeared)
     }
 
     private func drillGridCard(_ drill: Drill) -> some View {

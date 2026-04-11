@@ -53,6 +53,7 @@ class StorageService {
     private let favoritesKey = "kickiq_favorite_drills"
     private let personalRecordsKey = "kickiq_personal_records"
     private let streakFreezeKey = "kickiq_streak_freeze_date"
+    private let conditioningPlanKey = "kickiq_conditioning_plan"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -132,6 +133,22 @@ class StorageService {
 
         updateDailyDrillSeed()
         updateStreak()
+    }
+
+    var savedConditioningPlan: ConditioningPlan? {
+        guard let data = UserDefaults.standard.data(forKey: conditioningPlanKey),
+              let decoded = try? JSONDecoder().decode(ConditioningPlan.self, from: data) else { return nil }
+        return decoded
+    }
+
+    func saveConditioningPlan(_ plan: ConditioningPlan) {
+        if let data = try? JSONEncoder().encode(plan) {
+            UserDefaults.standard.set(data, forKey: conditioningPlanKey)
+        }
+    }
+
+    func clearConditioningPlan() {
+        UserDefaults.standard.removeObject(forKey: conditioningPlanKey)
     }
 
     func saveProfile(_ newProfile: PlayerProfile) {
