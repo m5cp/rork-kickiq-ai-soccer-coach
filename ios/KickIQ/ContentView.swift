@@ -4,8 +4,9 @@ enum AppTab: Int, CaseIterable, Identifiable {
     case home = 0
     case analyze = 1
     case drills = 2
-    case progress = 3
-    case profile = 4
+    case team = 3
+    case progress = 4
+    case profile = 5
 
     var id: Int { rawValue }
 
@@ -14,6 +15,7 @@ enum AppTab: Int, CaseIterable, Identifiable {
         case .home: "Home"
         case .analyze: "Analyze"
         case .drills: "Drills"
+        case .team: "Team"
         case .progress: "Progress"
         case .profile: "Profile"
         }
@@ -24,6 +26,7 @@ enum AppTab: Int, CaseIterable, Identifiable {
         case .home: "house.fill"
         case .analyze: "video.fill"
         case .drills: "figure.soccer"
+        case .team: "person.3.fill"
         case .progress: "chart.line.uptrend.xyaxis"
         case .profile: "person.fill"
         }
@@ -111,11 +114,15 @@ struct ContentView: View {
                 DrillsView(storage: storage)
             }
 
-            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 3) {
+            Tab("Team", systemImage: "person.3.fill", value: 3) {
+                TeamView(storage: storage)
+            }
+
+            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 4) {
                 ProgressTabView(storage: storage)
             }
 
-            Tab("Profile", systemImage: "person.fill", value: 4) {
+            Tab("Profile", systemImage: "person.fill", value: 5) {
                 ProfileView(storage: storage, calendarService: calendarService)
             }
         }
@@ -220,8 +227,10 @@ struct ContentView: View {
         case 2:
             DrillsView(storage: storage)
         case 3:
-            ProgressTabView(storage: storage)
+            TeamView(storage: storage)
         case 4:
+            ProgressTabView(storage: storage)
+        case 5:
             ProfileView(storage: storage, calendarService: calendarService)
         default:
             HomeView(storage: storage, calendarService: calendarService, selectedTab: $selectedTab)
