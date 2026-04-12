@@ -4,14 +4,8 @@ struct ConditioningDrillsView: View {
     let storage: StorageService
     @State private var conditioningService = ConditioningDrillsService()
     @State private var appeared = false
-    @State private var selectedDrill: Drill?
-    @State private var completedTrigger = 0
-    @State private var expandedCategories: Set<String> = []
     @State private var showGeneratePlan = false
     @State private var showPlanDetail = false
-    @State private var showQRSheet = false
-    @State private var qrDrill: Drill?
-    @State private var drillsService = DrillsService()
 
     var body: some View {
         ScrollView {
@@ -24,21 +18,18 @@ struct ConditioningDrillsView: View {
                     emptyState
                 } else {
                     conditioningHeaderInfo
-                    conditioningCategorySections
+                    categoryCardsGrid
                 }
             }
             .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
             .padding(.bottom, KickIQAICoachTheme.Spacing.xl)
         }
         .scrollIndicators(.hidden)
-        .background(KickIQAICoachTheme.background.ignoresSafeArea())
-        .navigationTitle("Conditioning")
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .navigationTitle("Fitness Generator")
         .navigationBarTitleDisplayMode(.large)
-        .sheet(item: $selectedDrill) { drill in
-            DrillDetailSheet(drill: drill, storage: storage, drillsService: drillsService, completedTrigger: $completedTrigger)
-        }
         .sheet(isPresented: $showGeneratePlan) {
-            PlanGeneratorSheet(storage: storage, planType: .conditioning) { plan in
+            PlanGeneratorSheet(storage: storage, planType: .conditioning) { _ in
                 showPlanDetail = true
             }
         }
@@ -47,16 +38,10 @@ struct ConditioningDrillsView: View {
                 GeneratedPlanDetailView(storage: storage, plan: plan)
             }
         }
-        .sheet(isPresented: $showQRSheet) {
-            if let drill = qrDrill {
-                QRDrillShareSheet(drill: drill)
-            }
-        }
         .onAppear {
             loadDrills()
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
         }
-        .sensoryFeedback(.success, trigger: completedTrigger)
     }
 
     private var generatePlanBanner: some View {
@@ -74,7 +59,7 @@ struct ConditioningDrillsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("GENERATE CONDITIONING PLAN")
+                    Text("GENERATE FITNESS PLAN")
                         .font(.caption.weight(.black))
                         .tracking(1)
                         .foregroundStyle(KickIQAICoachTheme.accent)
@@ -119,7 +104,7 @@ struct ConditioningDrillsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Active Conditioning Plan")
+                    Text("Active Fitness Plan")
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQAICoachTheme.textPrimary)
                     Text("\(plan.config.weeks) weeks • \(plan.config.daysPerWeek) days/wk • \(plan.config.minutesPerSession)m")
@@ -156,154 +141,81 @@ struct ConditioningDrillsView: View {
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(KickIQAICoachTheme.textSecondary)
             }
-
-            ScrollView(.horizontal) {
-                HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
-                    ForEach(ConditioningFocus.allCases) { focus in
-                        HStack(spacing: 4) {
-                            Image(systemName: focus.icon)
-                                .font(.system(size: 10))
-                            Text(focus.rawValue)
-                                .font(.caption.weight(.semibold))
-                        }
-                        .foregroundStyle(KickIQAICoachTheme.accent)
-                        .padding(.horizontal, KickIQAICoachTheme.Spacing.sm + 4)
-                        .padding(.vertical, 6)
-                        .background(KickIQAICoachTheme.accent.opacity(0.15), in: Capsule())
-                    }
-                }
-            }
-            .contentMargins(.horizontal, 0)
-            .scrollIndicators(.hidden)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(appeared ? 1 : 0)
         .animation(.spring(response: 0.4).delay(0.05), value: appeared)
     }
 
-    private var conditioningCategorySections: some View {
+    private var categoryCardsGrid: some View {
         let groups = conditioningService.drillsByFocus()
+        let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
-        return LazyVStack(spacing: KickIQAICoachTheme.Spacing.md + 4) {
-            ForEach(Array(groups.enumerated()), id: \.element.focus) { sectionIndex, group in
-                VStack(spacing: 0) {
-                    conditioningCategoryHeader(group.focus, count: group.drills.count, isExpanded: expandedCategories.contains(group.focus.rawValue))
-                        .onAppear {
-                            if sectionIndex < 3 {
-                                expandedCategories.insert(group.focus.rawValue)
-                            }
-                        }
-
-                    if expandedCategories.contains(group.focus.rawValue) {
-                        VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
-                            ForEach(Array(group.drills.enumerated()), id: \.element.id) { drillIndex, drill in
-                                Button {
-                                    selectedDrill = drill
-                                } label: {
-                                    drillCard(drill)
-                                }
-                                .contextMenu {
-                                    Button {
-                                        qrDrill = drill
-                                        showQRSheet = true
-                                    } label: {
-                                        Label("Share QR Code", systemImage: "qrcode")
-                                    }
-                                }
-                                .opacity(appeared ? 1 : 0)
-                                .offset(y: appeared ? 0 : 10)
-                                .animation(.spring(response: 0.35).delay(Double(drillIndex) * 0.04), value: appeared)
-                            }
-                        }
-                        .padding(.top, KickIQAICoachTheme.Spacing.sm)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
+        return LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(Array(groups.enumerated()), id: \.element.focus) { index, group in
+                NavigationLink {
+                    ConditioningCategoryDetailView(
+                        focus: group.focus,
+                        drills: group.drills,
+                        storage: storage
+                    )
+                } label: {
+                    conditioningCategoryCard(focus: group.focus, drillCount: group.drills.count, drills: group.drills, index: index)
                 }
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 15)
-                .animation(.spring(response: 0.4).delay(Double(sectionIndex) * 0.06), value: appeared)
+                .animation(.spring(response: 0.4).delay(Double(index) * 0.05), value: appeared)
             }
         }
     }
 
-    private func conditioningCategoryHeader(_ focus: ConditioningFocus, count: Int, isExpanded: Bool) -> some View {
-        Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                if expandedCategories.contains(focus.rawValue) {
-                    expandedCategories.remove(focus.rawValue)
-                } else {
-                    expandedCategories.insert(focus.rawValue)
-                }
-            }
-        } label: {
-            HStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.sm)
-                        .fill(KickIQAICoachTheme.accent.opacity(0.15))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: focus.icon)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(KickIQAICoachTheme.accent)
-                }
+    private func conditioningCategoryCard(focus: ConditioningFocus, drillCount: Int, drills: [Drill], index: Int) -> some View {
+        let completedCount = drills.filter { storage.completedDrillIDs.contains($0.id) }.count
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(focus.rawValue)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                    Text("\(count) exercise\(count == 1 ? "" : "s")")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.4))
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-            }
-            .padding(KickIQAICoachTheme.Spacing.md)
-            .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
-        }
-        .sensoryFeedback(.selection, trigger: isExpanded)
-    }
-
-    private func drillCard(_ drill: Drill) -> some View {
-        let isCompleted = storage.completedDrillIDs.contains(drill.id)
-
-        return HStack(spacing: KickIQAICoachTheme.Spacing.md) {
+        return VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
             ZStack {
                 Circle()
-                    .fill(isCompleted ? Color.green.opacity(0.15) : KickIQAICoachTheme.surface)
-                    .frame(width: 38, height: 38)
-                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 16))
-                    .foregroundStyle(isCompleted ? .green : KickIQAICoachTheme.textSecondary.opacity(0.3))
+                    .fill(KickIQAICoachTheme.accent.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                Image(systemName: focus.icon)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
             }
 
-            VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.xs) {
-                Text(drill.name)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                    .lineLimit(1)
-                HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
-                    Label(drill.duration, systemImage: "clock")
-                    Text("·")
-                    Text(drill.difficulty.rawValue)
-                }
+            Text(focus.rawValue)
+                .font(.subheadline.weight(.black))
+                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            Text("\(drillCount) exercise\(drillCount == 1 ? "" : "s")")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(KickIQAICoachTheme.textSecondary)
-            }
 
             Spacer()
 
-            Image(systemName: "chevron.right")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
+            if completedCount > 0 {
+                HStack(spacing: 3) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.green)
+                    Text("\(completedCount) done")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.green)
+                }
+            }
         }
-        .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
-        .padding(.vertical, KickIQAICoachTheme.Spacing.sm + 4)
-        .background(KickIQAICoachTheme.surface, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(KickIQAICoachTheme.Spacing.md)
+        .frame(minHeight: 150)
+        .background(
+            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                .fill(KickIQAICoachTheme.card)
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                        .stroke(KickIQAICoachTheme.accent.opacity(0.12), lineWidth: 1)
+                )
+        )
     }
 
     private var emptyState: some View {
@@ -326,6 +238,5 @@ struct ConditioningDrillsView: View {
     private func loadDrills() {
         guard let profile = storage.profile else { return }
         conditioningService.loadDrills(for: profile.skillLevel)
-        drillsService.loadDrills(for: profile.position, weakness: profile.weakness, skillLevel: profile.skillLevel)
     }
 }

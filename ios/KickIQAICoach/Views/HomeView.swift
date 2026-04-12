@@ -24,31 +24,56 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: KickIQAICoachTheme.Spacing.md + 4) {
+                VStack(spacing: 0) {
                     headerSection
-                    trainingCategoryCards
-                    skillScoreCard
-                    aiCoachCTA
-                    playerLevelCard
-                    weeklyGoalCard
-                    streakCard
-                    quickStatsRow
-                    analyzeCTA
-                    if !storage.favoriteDrillIDs.isEmpty {
-                        favoriteDrillsPreview
+                        .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
+
+                    VStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                        trainingCategoryCards
                     }
+                    .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
+                    .padding(.top, KickIQAICoachTheme.Spacing.md)
+
+                    sectionBlock(title: "YOUR PROGRESS", icon: "chart.bar.fill") {
+                        VStack(spacing: KickIQAICoachTheme.Spacing.sm + 4) {
+                            skillScoreCard
+                            playerLevelCard
+                            quickStatsRow
+                        }
+                    }
+
+                    sectionBlock(title: "TRAINING", icon: "flame.fill") {
+                        VStack(spacing: KickIQAICoachTheme.Spacing.sm + 4) {
+                            weeklyGoalCard
+                            streakCard
+                        }
+                    }
+
+                    sectionBlock(title: "TOOLS", icon: "wrench.and.screwdriver.fill") {
+                        VStack(spacing: KickIQAICoachTheme.Spacing.sm + 4) {
+                            analyzeCTA
+                            if !storage.favoriteDrillIDs.isEmpty {
+                                favoriteDrillsPreview
+                            }
+                        }
+                    }
+
                     if storage.shouldShowMonthlyReassessment {
-                        reassessmentCard
+                        sectionBlock(title: "ACTION NEEDED", icon: "exclamationmark.circle.fill") {
+                            reassessmentCard
+                        }
                     }
+
                     if let session = storage.latestSession {
-                        recentAnalysisCard(session)
+                        sectionBlock(title: "RECENT", icon: "clock.arrow.circlepath") {
+                            recentAnalysisCard(session)
+                        }
                     }
                 }
-                .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
                 .padding(.bottom, KickIQAICoachTheme.Spacing.xl)
             }
             .scrollIndicators(.hidden)
-            .background(KickIQAICoachTheme.background.ignoresSafeArea())
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -94,87 +119,251 @@ struct HomeView: View {
         }
     }
 
+    private func sectionBlock<Content: View>(title: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                Text(title)
+                    .font(.system(.caption2, design: .default, weight: .black))
+                    .tracking(1.5)
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+            }
+            .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
+
+            VStack(spacing: KickIQAICoachTheme.Spacing.sm + 4) {
+                content()
+            }
+            .padding(KickIQAICoachTheme.Spacing.md)
+            .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.xl))
+            .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
+        }
+        .padding(.top, KickIQAICoachTheme.Spacing.lg)
+    }
+
     private var headerSection: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .bottomLeading) {
-                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                KickIQAICoachTheme.accent,
-                                KickIQAICoachTheme.accent.opacity(0.7)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            KickIQAICoachTheme.accent,
+                            KickIQAICoachTheme.accent.opacity(0.7)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                    .frame(height: 160)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                            .fill(
-                                MeshGradient(
-                                    width: 3, height: 3,
-                                    points: [
-                                        [0, 0], [0.5, 0], [1, 0],
-                                        [0, 0.5], [0.6, 0.4], [1, 0.5],
-                                        [0, 1], [0.5, 1], [1, 1]
-                                    ],
-                                    colors: [
-                                        .clear, .white.opacity(0.08), .clear,
-                                        .clear, .white.opacity(0.05), .clear,
-                                        .clear, .clear, .white.opacity(0.03)
-                                    ]
-                                )
+                )
+                .frame(height: 170)
+                .overlay {
+                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                        .fill(
+                            MeshGradient(
+                                width: 3, height: 3,
+                                points: [
+                                    [0, 0], [0.5, 0], [1, 0],
+                                    [0, 0.5], [0.6, 0.4], [1, 0.5],
+                                    [0, 1], [0.5, 1], [1, 1]
+                                ],
+                                colors: [
+                                    .clear, .white.opacity(0.08), .clear,
+                                    .clear, .white.opacity(0.05), .clear,
+                                    .clear, .clear, .white.opacity(0.03)
+                                ]
                             )
-                    }
-                    .overlay(alignment: .topTrailing) {
-                        Image(systemName: "soccerball")
-                            .font(.system(size: 80))
-                            .foregroundStyle(.white.opacity(0.08))
-                            .rotationEffect(.degrees(15))
-                            .offset(x: 10, y: -10)
-                    }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("KICKIQ")
-                        .font(.system(.caption, design: .default, weight: .black).width(.compressed))
-                        .tracking(4)
-                        .foregroundStyle(.white.opacity(0.7))
-
-                    Text("\(greeting),")
-                        .font(.system(.title3, design: .default, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.85))
-
-                    Text(storage.profile?.name ?? "Player")
-                        .font(.system(.title, design: .default, weight: .black))
-                        .foregroundStyle(.white)
-
-                    HStack(spacing: 8) {
-                        HStack(spacing: 4) {
-                            Image(systemName: storage.playerLevel.icon)
-                                .font(.system(size: 11, weight: .bold))
-                            Text(storage.playerLevel.rawValue)
+                        )
+                }
+                .overlay(alignment: .topTrailing) {
+                    Button {
+                        selectedTab = 1
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "brain.head.profile.fill")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("AI Coach")
                                 .font(.caption.weight(.black))
                         }
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
                         .background(.white.opacity(0.2), in: Capsule())
-
-                        HStack(spacing: 4) {
-                            Image(systemName: "bolt.fill")
-                                .font(.system(size: 9))
-                            Text("\(storage.xpPoints) XP")
-                                .font(.caption.weight(.bold))
-                        }
-                        .foregroundStyle(.white.opacity(0.8))
+                        .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 1))
                     }
+                    .padding(KickIQAICoachTheme.Spacing.md)
                 }
-                .padding(KickIQAICoachTheme.Spacing.lg)
+                .overlay(alignment: .bottomTrailing) {
+                    Image(systemName: "soccerball")
+                        .font(.system(size: 70))
+                        .foregroundStyle(.white.opacity(0.06))
+                        .rotationEffect(.degrees(15))
+                        .offset(x: 10, y: 10)
+                }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("KICKIQ")
+                    .font(.system(.caption, design: .default, weight: .black).width(.compressed))
+                    .tracking(4)
+                    .foregroundStyle(.white.opacity(0.7))
+
+                Text("\(greeting),")
+                    .font(.system(.title3, design: .default, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.85))
+
+                Text(storage.profile?.name ?? "Player")
+                    .font(.system(.title, design: .default, weight: .black))
+                    .foregroundStyle(.white)
+
+                HStack(spacing: 8) {
+                    HStack(spacing: 4) {
+                        Image(systemName: storage.playerLevel.icon)
+                            .font(.system(size: 11, weight: .bold))
+                        Text(storage.playerLevel.rawValue)
+                            .font(.caption.weight(.black))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.white.opacity(0.2), in: Capsule())
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 9))
+                        Text("\(storage.xpPoints) XP")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(.white.opacity(0.8))
+                }
             }
+            .padding(KickIQAICoachTheme.Spacing.lg)
         }
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 10)
+    }
+
+    private var trainingCategoryCards: some View {
+        HStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+            NavigationLink(value: "skills") {
+                VStack(alignment: .leading, spacing: 0) {
+                    ZStack {
+                        Circle()
+                            .fill(KickIQAICoachTheme.accent.opacity(0.2))
+                            .frame(width: 48, height: 48)
+                        Image(systemName: "figure.soccer")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                    }
+                    .padding(.bottom, 12)
+
+                    Text("DRILLS")
+                        .font(.system(.headline, design: .default, weight: .black))
+                        .tracking(1)
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                        .padding(.bottom, 2)
+
+                    Text("GENERATOR")
+                        .font(.system(.caption, design: .default, weight: .black))
+                        .tracking(1)
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                        .padding(.bottom, 8)
+
+                    if storage.skillsPlan != nil {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.green)
+                            Text("Active Plan")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.green)
+                        }
+                    } else {
+                        Text("Tap to explore")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(KickIQAICoachTheme.Spacing.md)
+                .frame(height: 170)
+                .background(
+                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                        .fill(
+                            LinearGradient(
+                                colors: [KickIQAICoachTheme.accent.opacity(0.15), KickIQAICoachTheme.accent.opacity(0.05)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                                .stroke(KickIQAICoachTheme.accent.opacity(0.25), lineWidth: 1)
+                        )
+                )
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: appeared)
+
+            NavigationLink(value: "conditioning") {
+                VStack(alignment: .leading, spacing: 0) {
+                    ZStack {
+                        Circle()
+                            .fill(KickIQAICoachTheme.accent.opacity(0.2))
+                            .frame(width: 48, height: 48)
+                        Image(systemName: "heart.circle.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                    }
+                    .padding(.bottom, 12)
+
+                    Text("FITNESS")
+                        .font(.system(.headline, design: .default, weight: .black))
+                        .tracking(1)
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                        .padding(.bottom, 2)
+
+                    Text("GENERATOR")
+                        .font(.system(.caption, design: .default, weight: .black))
+                        .tracking(1)
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                        .padding(.bottom, 8)
+
+                    if storage.conditioningPlan != nil {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.green)
+                            Text("Active Plan")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.green)
+                        }
+                    } else {
+                        Text("Tap to explore")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(KickIQAICoachTheme.Spacing.md)
+                .frame(height: 170)
+                .background(
+                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                        .fill(
+                            LinearGradient(
+                                colors: [KickIQAICoachTheme.accent.opacity(0.15), KickIQAICoachTheme.accent.opacity(0.05)],
+                                startPoint: .topTrailing,
+                                endPoint: .bottomLeading
+                            )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                                .stroke(KickIQAICoachTheme.accent.opacity(0.25), lineWidth: 1)
+                        )
+                )
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: appeared)
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.03), value: appeared)
     }
 
     private var skillScoreCard: some View {
@@ -184,7 +373,7 @@ struct HomeView: View {
             ZStack {
                 Circle()
                     .stroke(KickIQAICoachTheme.divider, lineWidth: 8)
-                    .frame(width: 100, height: 100)
+                    .frame(width: 90, height: 90)
 
                 Circle()
                     .trim(from: 0, to: scoreAnimated ? Double(score) / 100.0 : 0)
@@ -195,13 +384,13 @@ struct HomeView: View {
                         ),
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
-                    .frame(width: 100, height: 100)
+                    .frame(width: 90, height: 90)
                     .rotationEffect(.degrees(-90))
                     .shadow(color: KickIQAICoachTheme.accent.opacity(0.3), radius: 8, x: 0, y: 0)
 
                 VStack(spacing: 0) {
                     Text("\(score)")
-                        .font(.system(size: 36, weight: .black, design: .default))
+                        .font(.system(size: 32, weight: .black, design: .default))
                         .foregroundStyle(KickIQAICoachTheme.textPrimary)
                         .contentTransition(.numericText())
                     Text("/ 100")
@@ -235,15 +424,6 @@ struct HomeView: View {
 
             Spacer()
         }
-        .padding(KickIQAICoachTheme.Spacing.lg)
-        .background(
-            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                .fill(KickIQAICoachTheme.card)
-                .overlay(
-                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                        .stroke(KickIQAICoachTheme.accent.opacity(0.15), lineWidth: 1)
-                )
-        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Skill score \(score) out of 100")
         .opacity(appeared ? 1 : 0)
@@ -296,8 +476,8 @@ struct HomeView: View {
                 }
             }
         }
-        .padding(KickIQAICoachTheme.Spacing.md)
-        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+        .padding(KickIQAICoachTheme.Spacing.sm + 4)
+        .background(Color(.tertiarySystemGroupedBackground), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.07), value: appeared)
@@ -308,10 +488,10 @@ struct HomeView: View {
             ZStack {
                 Circle()
                     .fill(storage.isStreakBroken ? Color.red.opacity(0.12) : KickIQAICoachTheme.accent.opacity(0.15))
-                    .frame(width: 52, height: 52)
+                    .frame(width: 48, height: 48)
 
                 Image(systemName: storage.isStreakBroken ? "flame" : "flame.fill")
-                    .font(.system(size: 26))
+                    .font(.system(size: 24))
                     .foregroundStyle(storage.isStreakBroken ? KickIQAICoachTheme.textSecondary : KickIQAICoachTheme.accent)
                     .symbolEffect(.bounce, value: streakBounce)
             }
@@ -333,8 +513,8 @@ struct HomeView: View {
 
             Spacer()
         }
-        .padding(KickIQAICoachTheme.Spacing.md)
-        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+        .padding(KickIQAICoachTheme.Spacing.sm + 4)
+        .background(Color(.tertiarySystemGroupedBackground), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(storage.streakCount) day streak. \(storage.streakMessage)")
         .opacity(appeared ? 1 : 0)
@@ -355,16 +535,16 @@ struct HomeView: View {
                 ZStack {
                     Circle()
                         .stroke(KickIQAICoachTheme.divider, lineWidth: 5)
-                        .frame(width: 52, height: 52)
+                        .frame(width: 48, height: 48)
 
                     Circle()
                         .trim(from: 0, to: progress)
                         .stroke(KickIQAICoachTheme.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                        .frame(width: 52, height: 52)
+                        .frame(width: 48, height: 48)
                         .rotationEffect(.degrees(-90))
 
                     Text("\(completed)/\(target)")
-                        .font(.system(size: 12, weight: .black))
+                        .font(.system(size: 11, weight: .black))
                         .foregroundStyle(KickIQAICoachTheme.textPrimary)
                 }
 
@@ -375,7 +555,7 @@ struct HomeView: View {
                         .foregroundStyle(KickIQAICoachTheme.accent)
 
                     if goal != nil {
-                        Text(completed >= target ? "Goal reached! 🎯" : "\(target - completed) more to go")
+                        Text(completed >= target ? "Goal reached!" : "\(target - completed) more to go")
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(completed >= target ? .green : KickIQAICoachTheme.textSecondary)
                     } else {
@@ -391,12 +571,12 @@ struct HomeView: View {
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
             }
-            .padding(KickIQAICoachTheme.Spacing.md)
+            .padding(KickIQAICoachTheme.Spacing.sm + 4)
             .background(
-                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
-                    .fill(KickIQAICoachTheme.card)
+                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.md)
+                    .fill(Color(.tertiarySystemGroupedBackground))
                     .overlay(
-                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.md)
                             .stroke(completed >= target && goal != nil ? KickIQAICoachTheme.accent.opacity(0.3) : Color.clear, lineWidth: 1)
                     )
             )
@@ -404,162 +584,6 @@ struct HomeView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.08), value: appeared)
-    }
-
-    private var trainingCategoryCards: some View {
-        HStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
-            NavigationLink(value: "skills") {
-                ZStack(alignment: .bottomLeading) {
-                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                        .fill(
-                            LinearGradient(
-                                colors: [KickIQAICoachTheme.accent.opacity(0.15), KickIQAICoachTheme.accent.opacity(0.05)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                                .stroke(KickIQAICoachTheme.accent.opacity(0.25), lineWidth: 1)
-                        )
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(KickIQAICoachTheme.accent.opacity(0.2))
-                                .frame(width: 44, height: 44)
-                            Image(systemName: "figure.soccer")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(KickIQAICoachTheme.accent)
-                        }
-
-                        Text("SKILLS")
-                            .font(.headline.weight(.black))
-                            .tracking(1)
-                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
-
-                        Text("Drills & Plans")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
-
-                        if storage.skillsPlan != nil {
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.green)
-                                Text("Active Plan")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(.green)
-                            }
-                        }
-                    }
-                    .padding(KickIQAICoachTheme.Spacing.md)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 160)
-            }
-
-            NavigationLink(value: "conditioning") {
-                ZStack(alignment: .bottomLeading) {
-                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                        .fill(
-                            LinearGradient(
-                                colors: [KickIQAICoachTheme.accent.opacity(0.15), KickIQAICoachTheme.accent.opacity(0.05)],
-                                startPoint: .topTrailing,
-                                endPoint: .bottomLeading
-                            )
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                                .stroke(KickIQAICoachTheme.accent.opacity(0.25), lineWidth: 1)
-                        )
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(KickIQAICoachTheme.accent.opacity(0.2))
-                                .frame(width: 44, height: 44)
-                            Image(systemName: "heart.circle.fill")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(KickIQAICoachTheme.accent)
-                        }
-
-                        Text("CONDITIONING")
-                            .font(.headline.weight(.black))
-                            .tracking(1)
-                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
-
-                        Text("Fitness & Plans")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
-
-                        if storage.conditioningPlan != nil {
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.green)
-                                Text("Active Plan")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(.green)
-                            }
-                        }
-                    }
-                    .padding(KickIQAICoachTheme.Spacing.md)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 160)
-            }
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.03), value: appeared)
-    }
-
-    private var aiCoachCTA: some View {
-        Button {
-            selectedTab = 1
-        } label: {
-            HStack(spacing: KickIQAICoachTheme.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(.white.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "brain.head.profile.fill")
-                        .font(.title3)
-                        .foregroundStyle(.white)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("ASK AI COACH")
-                        .font(.subheadline.weight(.black))
-                        .tracking(1)
-                        .foregroundStyle(.white)
-                    Text("Get personalized training advice")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-            .padding(KickIQAICoachTheme.Spacing.md)
-            .background(
-                LinearGradient(
-                    colors: [KickIQAICoachTheme.accent, KickIQAICoachTheme.accent.opacity(0.8)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                ),
-                in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg)
-            )
-            .shadow(color: KickIQAICoachTheme.accent.opacity(0.2), radius: 12, x: 0, y: 4)
-        }
-        .sensoryFeedback(.impact(weight: .medium), trigger: selectedTab)
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.07), value: appeared)
     }
 
     private var analyzeCTA: some View {
@@ -574,12 +598,12 @@ struct HomeView: View {
             }
             .foregroundStyle(KickIQAICoachTheme.accent)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, 14)
             .background(
-                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.md)
                     .fill(KickIQAICoachTheme.accent.opacity(0.12))
                     .overlay(
-                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.md)
                             .stroke(KickIQAICoachTheme.accent.opacity(0.3), lineWidth: 1.5)
                     )
             )
@@ -592,77 +616,36 @@ struct HomeView: View {
 
     private var quickStatsRow: some View {
         HStack(spacing: 0) {
-            VStack(spacing: 3) {
-                HStack(spacing: 3) {
-                    Image(systemName: "clock.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(KickIQAICoachTheme.accent)
-                    Text("\(storage.thisWeekDrillMinutes)m")
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                }
-                Text("This Week")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
-            }
-            .frame(maxWidth: .infinity)
-
+            statItem(icon: "clock.fill", iconColor: KickIQAICoachTheme.accent, value: "\(storage.thisWeekDrillMinutes)m", label: "This Week")
             Rectangle().fill(KickIQAICoachTheme.divider).frame(width: 1, height: 28)
-
-            VStack(spacing: 3) {
-                HStack(spacing: 3) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.green)
-                    Text("\(storage.completedDrillIDs.count)")
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                }
-                Text("Drills Done")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
-            }
-            .frame(maxWidth: .infinity)
-
+            statItem(icon: "checkmark.circle.fill", iconColor: .green, value: "\(storage.completedDrillIDs.count)", label: "Drills Done")
             Rectangle().fill(KickIQAICoachTheme.divider).frame(width: 1, height: 28)
-
-            VStack(spacing: 3) {
-                HStack(spacing: 3) {
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.red.opacity(0.7))
-                    Text("\(storage.favoriteDrillIDs.count)")
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                }
-                Text("Favorites")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
-            }
-            .frame(maxWidth: .infinity)
-
+            statItem(icon: "heart.fill", iconColor: .red.opacity(0.7), value: "\(storage.favoriteDrillIDs.count)", label: "Favorites")
             Rectangle().fill(KickIQAICoachTheme.divider).frame(width: 1, height: 28)
-
-            VStack(spacing: 3) {
-                HStack(spacing: 3) {
-                    Image(systemName: "trophy.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(KickIQAICoachTheme.accent)
-                    Text("\(storage.sessions.map(\.overallScore).max() ?? 0)")
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                }
-                Text("Best Score")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
-            }
-            .frame(maxWidth: .infinity)
+            statItem(icon: "trophy.fill", iconColor: KickIQAICoachTheme.accent, value: "\(storage.sessions.map(\.overallScore).max() ?? 0)", label: "Best Score")
         }
         .padding(.vertical, KickIQAICoachTheme.Spacing.sm + 2)
-        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+        .background(Color(.tertiarySystemGroupedBackground), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.12), value: appeared)
+    }
+
+    private func statItem(icon: String, iconColor: Color, value: String, label: String) -> some View {
+        VStack(spacing: 3) {
+            HStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 9))
+                    .foregroundStyle(iconColor)
+                Text(value)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+            }
+            Text(label)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var favoriteDrillsPreview: some View {
@@ -690,8 +673,8 @@ struct HomeView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(KickIQAICoachTheme.textSecondary)
         }
-        .padding(KickIQAICoachTheme.Spacing.md)
-        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+        .padding(KickIQAICoachTheme.Spacing.sm + 4)
+        .background(Color(.tertiarySystemGroupedBackground), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.22), value: appeared)
@@ -737,15 +720,6 @@ struct HomeView: View {
                 }
             }
         }
-        .padding(KickIQAICoachTheme.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
-                .fill(KickIQAICoachTheme.card)
-                .overlay(
-                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
-                        .stroke(KickIQAICoachTheme.accent.opacity(0.3), lineWidth: 1)
-                )
-        )
         .sheet(isPresented: $showReassessment) {
             ReassessmentSheet(storage: storage)
         }
@@ -754,7 +728,7 @@ struct HomeView: View {
     private func recentAnalysisCard(_ session: TrainingSession) -> some View {
         VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
             HStack {
-                Text("RECENT ANALYSIS")
+                Text("LATEST SESSION")
                     .font(.caption.weight(.bold))
                     .tracking(1)
                     .foregroundStyle(KickIQAICoachTheme.accent)
@@ -794,8 +768,6 @@ struct HomeView: View {
                 .foregroundStyle(KickIQAICoachTheme.textSecondary)
                 .lineLimit(2)
         }
-        .padding(KickIQAICoachTheme.Spacing.md)
-        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.25), value: appeared)
