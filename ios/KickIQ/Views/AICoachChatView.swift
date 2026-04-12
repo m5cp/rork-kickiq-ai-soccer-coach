@@ -33,13 +33,17 @@ struct AICoachChatView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        saveSessionToJournal()
+                        dismiss()
+                    }
                         .fontWeight(.semibold)
                         .foregroundStyle(KickIQTheme.accent)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button {
+                            saveSessionToJournal()
                             chatService.clearChat()
                         } label: {
                             Label("New Session", systemImage: "arrow.counterclockwise")
@@ -392,6 +396,30 @@ struct AICoachChatView: View {
         Task {
             await chatService.sendMessage(originalText, storage: storage)
         }
+    }
+
+    private func saveSessionToJournal() {
+        let validMessages = chatService.messages.filter { !$0.isError }
+        guard validMessages.count >= 2 else { return }
+
+        let userMessages = validMessages.filter { $0.role == .user }
+        let firstTopic = userMessages.first?.content.prefix(60) ?? "Chat"
+
+        let transcript = validMessages.map { msg in
+            let role = msg.role == .user ? "You" : "AI Coach"
+            return "\(role): \(msg.content)"
+        }.joined(separator: "\n\n")
+
+        let summary = "\(userMessages.count) question\(userMessages.count == 1 ? "" : "s") \u{2014} \(firstTopic)\(firstTopic.count >= 60 ? "..." : "")"
+
+        let entry = JournalEntry(
+            type: .chatSession,
+            title: "AI Coach Session",
+            summary: summary,
+            fullContent: transcript,
+            tags: ["chat", "coaching"]
+        )
+        storage.addJournalEntry(entry)
     }
 }
 

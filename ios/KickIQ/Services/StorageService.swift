@@ -31,6 +31,7 @@ class StorageService {
     var lastStreakFreezeDate: Date?
     var streakFreezeUsedThisWeek: Bool = false
     var savedPlans: [SavedPlan] = []
+    var journalEntries: [JournalEntry] = []
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -56,6 +57,7 @@ class StorageService {
     private let streakFreezeKey = "kickiq_streak_freeze_date"
     private let conditioningPlanKey = "kickiq_conditioning_plan"
     private let savedPlansKey = "kickiq_saved_plans"
+    private let journalEntriesKey = "kickiq_journal_entries"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -130,6 +132,11 @@ class StorageService {
             savedPlans = decoded
         }
 
+        if let data = UserDefaults.standard.data(forKey: journalEntriesKey),
+           let decoded = try? JSONDecoder().decode([JournalEntry].self, from: data) {
+            journalEntries = decoded
+        }
+
         if let arr = UserDefaults.standard.array(forKey: favoritesKey) as? [String] {
             favoriteDrillIDs = Set(arr)
         }
@@ -177,6 +184,22 @@ class StorageService {
     private func persistSavedPlans() {
         if let data = try? JSONEncoder().encode(savedPlans) {
             UserDefaults.standard.set(data, forKey: savedPlansKey)
+        }
+    }
+
+    func addJournalEntry(_ entry: JournalEntry) {
+        journalEntries.insert(entry, at: 0)
+        persistJournalEntries()
+    }
+
+    func deleteJournalEntry(_ entryID: String) {
+        journalEntries.removeAll { $0.id == entryID }
+        persistJournalEntries()
+    }
+
+    private func persistJournalEntries() {
+        if let data = try? JSONEncoder().encode(journalEntries) {
+            UserDefaults.standard.set(data, forKey: journalEntriesKey)
         }
     }
 
@@ -304,7 +327,7 @@ class StorageService {
                        drillsKey, xpKey, analysisCountKey, maxStreakKey, reviewDateKey,
                        reviewCountKey, sessionDatesKey, lastStreakBrokenKey, lastReassessmentKey,
                        dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey, smartPlanKey,
-                       favoritesKey, personalRecordsKey, streakFreezeKey,
+                       favoritesKey, personalRecordsKey, streakFreezeKey, journalEntriesKey,
                        "kickiq_drill_day",
                        "kickiq_pref_streak", "kickiq_pref_weekly", "kickiq_pref_monthly"]
         allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
@@ -332,6 +355,7 @@ class StorageService {
         personalRecords = [:]
         lastStreakFreezeDate = nil
         streakFreezeUsedThisWeek = false
+        journalEntries = []
 
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }

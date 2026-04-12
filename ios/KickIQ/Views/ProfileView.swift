@@ -15,6 +15,7 @@ struct ProfileView: View {
     @State private var showSignOutAlert = false
     @State private var showNotificationPrefs = false
     @State private var showPostGameDebrief = false
+    @State private var showJournal = false
     @State private var auth = AuthService.shared
 
     var body: some View {
@@ -25,6 +26,7 @@ struct ProfileView: View {
                     statsRow
                     aiCoachCard
                     postGameDebriefCard
+                    journalCard
                     teamCard
                     coachReportCard
                     notificationCard
@@ -75,6 +77,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showPostGameDebrief) {
                 PostGameDebriefView(storage: storage)
+            }
+            .sheet(isPresented: $showJournal) {
+                JournalView(storage: storage)
             }
             .alert("Delete All Data?", isPresented: $showDeleteAlert) {
                 Button("Delete", role: .destructive) {
@@ -322,6 +327,59 @@ struct ProfileView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.08), value: appeared)
+    }
+
+    private var journalCard: some View {
+        Button {
+            showJournal = true
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(Color.indigo.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "book.closed.fill")
+                        .font(.title3)
+                        .foregroundStyle(.indigo)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text("Journal")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(KickIQTheme.textPrimary)
+                        if storage.journalEntries.count > 0 {
+                            Text("\(storage.journalEntries.count)")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(.white)
+                                .frame(width: 20, height: 20)
+                                .background(.indigo, in: Circle())
+                        }
+                    }
+                    Text("Debriefs, chats & analysis logs")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(KickIQTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(Color.indigo.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.085), value: appeared)
     }
 
     private var teamCard: some View {

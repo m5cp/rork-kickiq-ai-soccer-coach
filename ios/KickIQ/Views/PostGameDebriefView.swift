@@ -223,6 +223,14 @@ struct PostGameDebriefView: View {
                 Text("Your Debrief")
                     .font(.title2.weight(.black))
                     .foregroundStyle(KickIQTheme.textPrimary)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 10))
+                    Text("Auto-saved to Journal")
+                        .font(.caption.weight(.medium))
+                }
+                .foregroundStyle(KickIQTheme.accent.opacity(0.7))
             }
             .frame(maxWidth: .infinity)
 
@@ -284,13 +292,47 @@ struct PostGameDebriefView: View {
             do {
                 let response = try await callDebriefAI()
                 aiResponse = response
+                saveToJournal(response)
                 withAnimation(.spring(response: 0.5)) { currentStep = .results }
             } catch {
-                aiResponse = buildFallbackResponse()
+                let fallback = buildFallbackResponse()
+                aiResponse = fallback
+                saveToJournal(fallback)
                 withAnimation(.spring(response: 0.5)) { currentStep = .results }
             }
             isGenerating = false
         }
+    }
+
+    private func saveToJournal(_ response: String) {
+        var tags: [String] = ["debrief"]
+        if !whatWentWell.isEmpty { tags.append("strengths") }
+        if !whatWentWrong.isEmpty { tags.append("struggles") }
+
+        let summary: String
+        if gameRating >= 4 {
+            summary = "Rated \(gameRating)/5 — Strong performance"
+        } else if gameRating >= 3 {
+            summary = "Rated \(gameRating)/5 — Solid effort"
+        } else {
+            summary = "Rated \(gameRating)/5 — Tough game, learning opportunity"
+        }
+
+        var fullContent = "Game Rating: \(gameRating)/5\n\n"
+        if !whatWentWell.isEmpty { fullContent += "What went well: \(whatWentWell)\n\n" }
+        if !whatWentWrong.isEmpty { fullContent += "What was tough: \(whatWentWrong)\n\n" }
+        if !specificMoments.isEmpty { fullContent += "Key moments: \(specificMoments)\n\n" }
+        fullContent += "--- AI Coach Analysis ---\n\n\(response)"
+
+        let entry = JournalEntry(
+            type: .postGameDebrief,
+            title: "Post-Game Debrief",
+            summary: summary,
+            fullContent: fullContent,
+            gameRating: gameRating,
+            tags: tags
+        )
+        storage.addJournalEntry(entry)
     }
 
     private func callDebriefAI() async throws -> String {
