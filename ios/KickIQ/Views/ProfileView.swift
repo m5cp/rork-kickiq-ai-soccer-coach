@@ -16,7 +16,9 @@ struct ProfileView: View {
     @State private var showNotificationPrefs = false
     @State private var showPostGameDebrief = false
     @State private var showJournal = false
+    @State private var showPaywall = false
     @State private var auth = AuthService.shared
+    @State private var store = StoreViewModel.shared
 
     var body: some View {
         NavigationStack {
@@ -80,6 +82,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showJournal) {
                 JournalView(storage: storage)
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(store: store)
             }
             .alert("Delete All Data?", isPresented: $showDeleteAlert) {
                 Button("Delete", role: .destructive) {
@@ -151,17 +156,23 @@ struct ProfileView: View {
                     }
                 }
 
-                HStack(spacing: 4) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 9))
-                    Text("KICKIQ ATHLETE")
-                        .font(.system(size: 10, weight: .black))
-                        .tracking(1.5)
+                Button {
+                    if !store.isPremium {
+                        showPaywall = true
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: store.isPremium ? "crown.fill" : "bolt.fill")
+                            .font(.system(size: 9))
+                        Text(store.isPremium ? "KICKIQ PRO · \(store.tierDisplayName.uppercased())" : "UPGRADE TO PRO")
+                            .font(.system(size: 10, weight: .black))
+                            .tracking(1.5)
+                    }
+                    .foregroundStyle(store.isPremium ? KickIQTheme.accent : .white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(store.isPremium ? KickIQTheme.accent.opacity(0.15) : KickIQTheme.accent, in: Capsule())
                 }
-                .foregroundStyle(KickIQTheme.accent)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
                 .padding(.top, KickIQTheme.Spacing.xs)
             }
         }
@@ -555,6 +566,7 @@ struct ProfileView: View {
                     }
                 }
                 settingsActionRow(icon: "arrow.counterclockwise", title: "Restore Purchases") {
+                    Task { await store.restore() }
                 }
             }
         }

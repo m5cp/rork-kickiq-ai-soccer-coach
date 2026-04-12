@@ -32,6 +32,7 @@ struct ContentView: View {
     @State private var storage = StorageService()
     @State private var notificationService = NotificationService()
     @State private var calendarService = CalendarService()
+    @State private var store = StoreViewModel.shared
     @State private var selectedTab: Int = 0
     @State private var celebratingBadge: MilestoneBadge?
     @State private var previousBadgeCount: Int = 0

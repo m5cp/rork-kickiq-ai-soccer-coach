@@ -11,9 +11,6 @@ class ChatTokenService {
     private let sessionIDKey = "kickiq_chat_session_id"
     private let bonusTokensKey = "kickiq_chat_bonus_tokens"
 
-    private let maxPerSession = 20
-    private let maxPerDay = 60
-
     var sessionMessageCount: Int = 0
     var dailyMessageCount: Int = 0
     var bonusTokens: Int = 0
@@ -22,6 +19,14 @@ class ChatTokenService {
 
     init() {
         loadState()
+    }
+
+    private var maxPerSession: Int {
+        StoreViewModel.shared.sessionMessageLimit
+    }
+
+    private var maxPerDay: Int {
+        StoreViewModel.shared.dailyMessageLimit
     }
 
     var sessionRemaining: Int {
@@ -40,10 +45,13 @@ class ChatTokenService {
 
     var limitReason: String? {
         if sessionMessageCount >= maxPerSession {
-            return "You've reached the 20-message session limit. Start a new chat session to continue."
+            return "You've reached the \(maxPerSession)-message session limit. Start a new chat session to continue."
         }
         if dailyMessageCount >= maxPerDay && bonusTokens <= 0 {
-            return "You've used all 60 daily messages. Purchase extra tokens or come back tomorrow."
+            if StoreViewModel.shared.isPremium {
+                return "You've used all \(maxPerDay) daily messages on your \(StoreViewModel.shared.tierDisplayName) plan. Come back tomorrow or upgrade for more."
+            }
+            return "You've used all \(maxPerDay) daily messages. Upgrade to Premium for more messages."
         }
         return nil
     }

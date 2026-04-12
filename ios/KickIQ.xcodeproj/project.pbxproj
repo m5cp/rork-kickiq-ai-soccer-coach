@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		XX04F26848145D50BC4182XX /* KickIQWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = XX5FCC46B52D16D8FEA01AXX /* KickIQWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		XX298127CFBB2CF3FA631BXX /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */; };
 		XX50D61ED0BAE05FA2F8E9XX /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = XX1C9FF110ABBCE8BF456CXX /* Supabase */; };
 /* End PBXBuildFile section */
 
@@ -67,13 +68,20 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		XXA647312772BAA0C64433XX /* KickIQWidget */ = {
+		105FC57C2E9EAD3100EA8BCF /* KickIQ */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = KickIQWidget;
+			path = KickIQ;
 			sourceTree = "<group>";
-			exceptions = (
-				XX59FF957993BDFFA06C74XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
-			);
+		};
+		105FC58C2E9EAD3200EA8BCF /* KickIQTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KickIQTests;
+			sourceTree = "<group>";
+		};
+		105FC5962E9EAD3200EA8BCF /* KickIQUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KickIQUITests;
+			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -83,6 +91,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				XX50D61ED0BAE05FA2F8E9XX /* Supabase in Frameworks */,
+				XX298127CFBB2CF3FA631BXX /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -110,20 +119,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		105FC57C2E9EAD3100EA8BCF /* KickIQ */ = {
+		XXA647312772BAA0C64433XX /* KickIQWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = KickIQ;
+			path = KickIQWidget;
 			sourceTree = "<group>";
-		};
-		105FC58C2E9EAD3200EA8BCF /* KickIQTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = KickIQTests;
-			sourceTree = "<group>";
-		};
-		105FC5962E9EAD3200EA8BCF /* KickIQUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = KickIQUITests;
-			sourceTree = "<group>";
+			exceptions = (
+				XX59FF957993BDFFA06C74XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -173,6 +175,7 @@
 			name = KickIQ;
 			packageProductDependencies = (
 				XX1C9FF110ABBCE8BF456CXX /* Supabase */,
+				XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */,
 			);
 			productName = KickIQ;
 			productReference = 105FC57A2E9EAD3100EA8BCF /* KickIQ.app */;
@@ -288,6 +291,7 @@
 			);
 			packageReferences = (
 				XX20EB7F6EA71E9F2E096CXX /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 		};
 /* End PBXProject section */
@@ -757,6 +761,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -764,6 +776,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = XX20EB7F6EA71E9F2E096CXX /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

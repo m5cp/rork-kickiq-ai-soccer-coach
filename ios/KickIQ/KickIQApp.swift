@@ -1,9 +1,19 @@
 import SwiftUI
+import RevenueCat
 
 @main
 struct KickIQApp: App {
     @State private var themeManager = ThemeManager.shared
     @State private var showSplash: Bool = true
+
+    init() {
+        #if DEBUG
+        Purchases.logLevel = .debug
+        Purchases.configure(withAPIKey: Config.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY)
+        #else
+        Purchases.configure(withAPIKey: Config.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY)
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup {

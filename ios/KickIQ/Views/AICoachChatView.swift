@@ -77,7 +77,7 @@ struct AICoachChatView: View {
                 Image(systemName: "bubble.left.and.bubble.right.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(KickIQTheme.accent)
-                Text("Session: \(max(0, 20 - tokenService.sessionMessageCount))/20")
+                Text("Session: \(max(0, StoreViewModel.shared.sessionMessageLimit - tokenService.sessionMessageCount))/\(StoreViewModel.shared.sessionMessageLimit)")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
@@ -88,7 +88,7 @@ struct AICoachChatView: View {
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(KickIQTheme.accent)
-                Text("Today: \(max(0, 60 - tokenService.dailyMessageCount))/60")
+                Text("Today: \(max(0, StoreViewModel.shared.dailyMessageLimit - tokenService.dailyMessageCount))/\(StoreViewModel.shared.dailyMessageLimit)")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
@@ -426,6 +426,8 @@ struct AICoachChatView: View {
 struct TokenStoreSheet: View {
     let tokenService: ChatTokenService
     @Environment(\.dismiss) private var dismiss
+    @State private var store = StoreViewModel.shared
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -454,17 +456,22 @@ struct TokenStoreSheet: View {
 
                     VStack(spacing: KickIQTheme.Spacing.sm) {
                         currentBalanceCard
+
+                        if !store.isPremium {
+                            upgradeCard
+                        }
+
                         tokenPackage(tokens: 20, price: "$0.99", label: "Starter Pack", icon: "bolt.fill")
                         tokenPackage(tokens: 50, price: "$1.99", label: "Training Pack", icon: "bolt.circle.fill", popular: true)
                         tokenPackage(tokens: 120, price: "$3.99", label: "Pro Pack", icon: "bolt.shield.fill")
                     }
 
                     VStack(spacing: KickIQTheme.Spacing.xs) {
-                        Text("FREE DAILY ALLOWANCE")
+                        Text("YOUR PLAN: \(store.tierDisplayName.uppercased())")
                             .font(.caption.weight(.bold))
                             .tracking(1)
                             .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
-                        Text("20 messages per session · 60 messages per day")
+                        Text("\(store.sessionMessageLimit) messages per session · \(store.dailyMessageLimit) messages per day")
                             .font(.caption)
                             .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
                         Text("Bonus tokens carry over and never expire")
@@ -485,6 +492,9 @@ struct TokenStoreSheet: View {
                     Button("Done") { dismiss() }
                         .foregroundStyle(KickIQTheme.accent)
                 }
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(store: store)
             }
         }
         .presentationDetents([.medium, .large])
@@ -512,13 +522,54 @@ struct TokenStoreSheet: View {
                 Text("Daily Left")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
-                Text("\(max(0, 60 - tokenService.dailyMessageCount))")
+                Text("\(max(0, store.dailyMessageLimit - tokenService.dailyMessageCount))")
                     .font(.title.weight(.black))
                     .foregroundStyle(KickIQTheme.accent)
             }
         }
         .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+    }
+
+    private var upgradeCard: some View {
+        Button {
+            showPaywall = true
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(KickIQTheme.accent.opacity(0.2))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "crown.fill")
+                        .font(.title3)
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Upgrade to Pro")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Up to 500 daily messages & 100 analyses")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.accent)
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(KickIQTheme.accent.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1.5)
+                    )
+            )
+        }
     }
 
     private func tokenPackage(tokens: Int, price: String, label: String, icon: String, popular: Bool = false) -> some View {

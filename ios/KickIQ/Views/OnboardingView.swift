@@ -1,7 +1,10 @@
 import SwiftUI
 
+import RevenueCat
+
 struct OnboardingView: View {
     let storage: StorageService
+    @State private var store = StoreViewModel.shared
     @State private var currentStep: Int = 0
     @State private var name: String = ""
     @State private var position: PlayerPosition = .midfielder
@@ -10,6 +13,7 @@ struct OnboardingView: View {
     @State private var weakness: WeaknessArea = .firstTouch
     @State private var userRole: UserRole = .player
     @State private var appeared = false
+    @State private var selectedPackage: Package?
 
     private let totalSteps = 10
 
@@ -442,40 +446,87 @@ struct OnboardingView: View {
                 }
                 .padding(.top, KickIQTheme.Spacing.lg)
 
-                VStack(spacing: 10) {
-                    pricingCard(title: "Annual", price: "$99.99/yr", perWeek: "$1.92/week", badge: "BEST VALUE", isHighlighted: true, trialText: "3-day free trial, then $99.99/year")
-                    pricingCard(title: "Monthly", price: "$19.99/mo", perWeek: "$4.99/week", badge: nil, isHighlighted: false, trialText: nil)
-                    pricingCard(title: "Weekly", price: "$6.99/wk", perWeek: nil, badge: nil, isHighlighted: false, trialText: nil)
-                }
-                .padding(.horizontal, KickIQTheme.Spacing.md)
+                if let current = store.offerings?.current {
+                    VStack(spacing: 10) {
+                        ForEach(sortedOnboardingPackages(current.availablePackages), id: \.identifier) { package in
+                            onboardingPricingCard(package: package)
+                        }
+                    }
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
 
-                Button {
-                    completeOnboarding()
-                } label: {
-                    Text("Start 3-Day Free Trial")
-                        .font(.headline)
-                        .foregroundStyle(.black)
+                    Button {
+                        guard let pkg = selectedPackage else {
+                            completeOnboarding()
+                            return
+                        }
+                        Task { await store.purchase(package: pkg) }
+                    } label: {
+                        Group {
+                            if store.isPurchasing {
+                                ProgressView().tint(.black)
+                            } else {
+                                Text(onboardingSubscribeText)
+                                    .font(.headline)
+                                    .foregroundStyle(.black)
+                            }
+                        }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, KickIQTheme.Spacing.md)
                         .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-                }
-                .padding(.horizontal, KickIQTheme.Spacing.md)
-                .sensoryFeedback(.impact(weight: .medium), trigger: currentStep)
+                    }
+                    .disabled(store.isPurchasing)
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
+                    .sensoryFeedback(.impact(weight: .medium), trigger: store.isPurchasing)
+                } else if store.isLoading {
+                    ProgressView()
+                        .padding(.vertical, KickIQTheme.Spacing.xl)
+                } else {
+                    VStack(spacing: 10) {
+                        pricingCard(title: "Annual", price: "$99.99/yr", perWeek: "$1.92/week", badge: "BEST VALUE", isHighlighted: true, trialText: "3-day free trial, then $99.99/year")
+                        pricingCard(title: "Monthly", price: "$19.99/mo", perWeek: "$4.99/week", badge: nil, isHighlighted: false, trialText: nil)
+                        pricingCard(title: "Weekly", price: "$6.99/wk", perWeek: nil, badge: nil, isHighlighted: false, trialText: nil)
+                    }
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
 
-                Button {
-                    completeOnboarding()
-                } label: {
-                    Text("Restore Purchases")
-                        .font(.subheadline)
-                        .foregroundStyle(KickIQTheme.textSecondary)
+                    Button {
+                        completeOnboarding()
+                    } label: {
+                        Text("Continue")
+                            .font(.headline)
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, KickIQTheme.Spacing.md)
+                            .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                    }
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
+                }
+
+                HStack(spacing: KickIQTheme.Spacing.lg) {
+                    Button {
+                        Task { await store.restore() }
+                    } label: {
+                        Text("Restore Purchases")
+                            .font(.subheadline)
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+
+                    Button {
+                        completeOnboarding()
+                    } label: {
+                        Text("Skip")
+                            .font(.subheadline)
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
                 }
 
                 VStack(spacing: 4) {
-                    Text("After the 3-day free trial, the Annual plan auto-renews at $99.99/year. Cancel anytime in Settings > Subscriptions at least 24 hours before the trial ends to avoid being charged.")
-                        .font(.caption2)
-                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, KickIQTheme.Spacing.md)
+                    if let pkg = selectedPackage {
+                        Text(onboardingBillingDisclosure(for: pkg))
+                            .font(.caption2)
+                            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, KickIQTheme.Spacing.md)
+                    }
                     HStack(spacing: KickIQTheme.Spacing.md) {
                         NavigationLink("Privacy Policy") {
                             LegalPageView(page: .privacyPolicy)
@@ -492,6 +543,128 @@ struct OnboardingView: View {
             }
         }
         .scrollIndicators(.hidden)
+        .onChange(of: store.isPremium) { _, isPremium in
+            if isPremium { completeOnboarding() }
+        }
+    }
+
+    private func sortedOnboardingPackages(_ packages: [Package]) -> [Package] {
+        let order = ["$rc_annual", "$rc_monthly", "$rc_weekly"]
+        return packages.sorted { a, b in
+            let ai = order.firstIndex(of: a.identifier) ?? 99
+            let bi = order.firstIndex(of: b.identifier) ?? 99
+            return ai < bi
+        }
+    }
+
+    private func onboardingPricingCard(package: Package) -> some View {
+        let isSelected = selectedPackage?.identifier == package.identifier
+        let isAnnual = package.identifier == "$rc_annual"
+        let product = package.storeProduct
+
+        return Button {
+            withAnimation(.spring(response: 0.3)) {
+                selectedPackage = package
+            }
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Text(product.localizedTitle)
+                            .font(.headline)
+                            .foregroundStyle(KickIQTheme.textPrimary)
+
+                        if isAnnual {
+                            Text("BEST VALUE")
+                                .font(.system(size: 9, weight: .black))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(KickIQTheme.accent, in: Capsule())
+                        }
+                    }
+
+                    if let intro = product.introductoryDiscount {
+                        Text(onboardingIntroText(intro, price: product.localizedPriceString, package: package))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(KickIQTheme.accent)
+                    }
+                }
+
+                Spacer()
+
+                Text(product.localizedPriceString)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(isSelected ? KickIQTheme.accent.opacity(0.12) : KickIQTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(isSelected ? KickIQTheme.accent : KickIQTheme.divider, lineWidth: isSelected ? 2 : 1)
+                    )
+            )
+        }
+        .sensoryFeedback(.selection, trigger: isSelected)
+        .onAppear {
+            if isAnnual && selectedPackage == nil {
+                selectedPackage = package
+            }
+        }
+    }
+
+    private func onboardingIntroText(_ discount: StoreProductDiscount, price: String, package: Package) -> String {
+        let value = discount.subscriptionPeriod.value
+        let unit: String
+        switch discount.subscriptionPeriod.unit {
+        case .day: unit = value == 1 ? "day" : "days"
+        case .week: unit = value == 1 ? "week" : "weeks"
+        case .month: unit = value == 1 ? "month" : "months"
+        case .year: unit = value == 1 ? "year" : "years"
+        @unknown default: unit = "period"
+        }
+        let suffix: String
+        switch package.identifier {
+        case "$rc_annual": suffix = "/year"
+        case "$rc_monthly": suffix = "/month"
+        case "$rc_weekly": suffix = "/week"
+        default: suffix = ""
+        }
+        return "\(value)-\(unit) free trial, then \(price)\(suffix)"
+    }
+
+    private var onboardingSubscribeText: String {
+        guard let pkg = selectedPackage else { return "Continue" }
+        if pkg.storeProduct.introductoryDiscount != nil {
+            return "Start Free Trial"
+        }
+        return "Subscribe Now"
+    }
+
+    private func onboardingBillingDisclosure(for package: Package) -> String {
+        let price = package.storeProduct.localizedPriceString
+        let suffix: String
+        switch package.identifier {
+        case "$rc_annual": suffix = "year"
+        case "$rc_monthly": suffix = "month"
+        case "$rc_weekly": suffix = "week"
+        default: suffix = "period"
+        }
+        if let intro = package.storeProduct.introductoryDiscount {
+            let value = intro.subscriptionPeriod.value
+            let unit: String
+            switch intro.subscriptionPeriod.unit {
+            case .day: unit = value == 1 ? "day" : "days"
+            case .week: unit = value == 1 ? "week" : "weeks"
+            case .month: unit = value == 1 ? "month" : "months"
+            case .year: unit = value == 1 ? "year" : "years"
+            @unknown default: unit = "period"
+            }
+            return "After the \(value)-\(unit) free trial, auto-renews at \(price)/\(suffix). Cancel anytime in Settings > Subscriptions at least 24 hours before the trial ends."
+        }
+        return "Auto-renews at \(price)/\(suffix). Cancel anytime in Settings > Subscriptions."
     }
 
     // MARK: - Continue Button
