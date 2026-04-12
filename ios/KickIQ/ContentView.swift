@@ -88,6 +88,7 @@ struct ContentView: View {
                 ProfileView(storage: storage)
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .tint(KickIQTheme.accent)
         .environment(themeManager)
     }

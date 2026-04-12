@@ -285,6 +285,14 @@ struct DrillsView: View {
                                 }
                                 .contextMenu {
                                     Button {
+                                        storage.toggleFavoriteDrill(drill.id)
+                                    } label: {
+                                        Label(
+                                            storage.isDrillFavorite(drill.id) ? "Remove from Favorites" : "Add to Favorites",
+                                            systemImage: storage.isDrillFavorite(drill.id) ? "heart.slash" : "heart"
+                                        )
+                                    }
+                                    Button {
                                         qrDrill = drill
                                         showQRSheet = true
                                     } label: {
@@ -503,9 +511,14 @@ struct DrillDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showTimer = false
     @State private var showQR = false
+    @State private var favoriteTrigger = 0
 
     private var isCompleted: Bool {
         storage.completedDrillIDs.contains(drill.id)
+    }
+
+    private var isFavorite: Bool {
+        storage.isDrillFavorite(drill.id)
     }
 
     var body: some View {
@@ -530,14 +543,26 @@ struct DrillDetailSheet: View {
 
                             Spacer()
 
+                            Button {
+                                storage.toggleFavoriteDrill(drill.id)
+                                favoriteTrigger += 1
+                            } label: {
+                                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                                    .font(.title3)
+                                    .foregroundStyle(isFavorite ? .red : KickIQTheme.textSecondary.opacity(0.4))
+                                    .symbolEffect(.bounce, value: favoriteTrigger)
+                            }
+                        }
+
+                        HStack {
+                            Text(drill.name)
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(KickIQTheme.textPrimary)
+                            Spacer()
                             Label(drill.duration, systemImage: "clock")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(KickIQTheme.textSecondary)
                         }
-
-                        Text(drill.name)
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(KickIQTheme.textPrimary)
                     }
 
                     VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
@@ -623,6 +648,7 @@ struct DrillDetailSheet: View {
                     Button {
                         if !isCompleted {
                             storage.completeDrill(drill)
+                            storage.recordDrillCompletion(drill.id, drillName: drill.name, duration: parseDrillMinutes(drill.duration) * 60)
                             completedTrigger += 1
                         }
                         dismiss()
@@ -667,5 +693,10 @@ struct DrillDetailSheet: View {
         case .intermediate: .orange
         case .advanced: .red
         }
+    }
+
+    private func parseDrillMinutes(_ duration: String) -> Int {
+        let numbers = duration.components(separatedBy: CharacterSet.decimalDigits.inverted).compactMap { Int($0) }
+        return numbers.first ?? 10
     }
 }

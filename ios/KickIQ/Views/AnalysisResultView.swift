@@ -16,6 +16,12 @@ struct AnalysisResultView: View {
                 headerSection
                 overallScoreSection
                 skillBreakdownSection
+                if !session.strengths.isEmpty || !session.weaknesses.isEmpty {
+                    strengthsWeaknessesSection
+                }
+                if !session.coachingPoints.isEmpty {
+                    coachingPointsSection
+                }
                 feedbackSection
                 drillsSection
                 sessionNotesButton
@@ -168,6 +174,110 @@ struct AnalysisResultView: View {
                 }
                 .padding(KickIQTheme.Spacing.sm)
                 .background(KickIQTheme.surface, in: .rect(cornerRadius: KickIQTheme.Radius.sm))
+            }
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+    }
+
+    private var strengthsWeaknessesSection: some View {
+        HStack(alignment: .top, spacing: KickIQTheme.Spacing.sm) {
+            if !session.strengths.isEmpty {
+                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                        Text("STRENGTHS")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(.green)
+                    }
+
+                    ForEach(session.strengths, id: \.self) { strength in
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.green)
+                                .padding(.top, 3)
+                            Text(strength)
+                                .font(.caption)
+                                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
+                                .lineSpacing(2)
+                        }
+                    }
+                }
+                .padding(KickIQTheme.Spacing.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.green.opacity(0.06), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                        .stroke(Color.green.opacity(0.15), lineWidth: 1)
+                )
+            }
+
+            if !session.weaknesses.isEmpty {
+                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Text("WORK ON")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(.orange)
+                    }
+
+                    ForEach(session.weaknesses, id: \.self) { weakness in
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.orange)
+                                .padding(.top, 3)
+                            Text(weakness)
+                                .font(.caption)
+                                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
+                                .lineSpacing(2)
+                        }
+                    }
+                }
+                .padding(KickIQTheme.Spacing.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.06), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                        .stroke(Color.orange.opacity(0.15), lineWidth: 1)
+                )
+            }
+        }
+        .opacity(appeared ? 1 : 0)
+    }
+
+    private var coachingPointsSection: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: 6) {
+                Image(systemName: "figure.soccer")
+                    .font(.caption)
+                Text("COACHING PRIORITIES")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+            }
+            .foregroundStyle(KickIQTheme.accent)
+
+            ForEach(Array(session.coachingPoints.enumerated()), id: \.offset) { index, point in
+                HStack(alignment: .top, spacing: KickIQTheme.Spacing.sm) {
+                    Text("\(index + 1)")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(KickIQTheme.onAccent)
+                        .frame(width: 22, height: 22)
+                        .background(KickIQTheme.accent, in: Circle())
+
+                    Text(point)
+                        .font(.subheadline)
+                        .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
+                        .lineSpacing(3)
+                }
             }
         }
         .padding(KickIQTheme.Spacing.md)

@@ -30,9 +30,13 @@ struct HomeView: View {
                     skillScoreCard
                     weeklyGoalCard
                     streakCard
+                    quickStatsRow
                     analyzeCTA
                     trainingPlanCTA
                     todaysDrillCard
+                    if !storage.favoriteDrillIDs.isEmpty {
+                        favoriteDrillsPreview
+                    }
                     if storage.shouldShowMonthlyReassessment {
                         reassessmentCard
                     }
@@ -428,6 +432,113 @@ struct HomeView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.2), value: appeared)
+    }
+
+    private var quickStatsRow: some View {
+        HStack(spacing: 0) {
+            VStack(spacing: 3) {
+                HStack(spacing: 3) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(KickIQTheme.accent)
+                    Text("\(storage.thisWeekDrillMinutes)m")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                }
+                Text("This Week")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+
+            Rectangle().fill(KickIQTheme.divider).frame(width: 1, height: 28)
+
+            VStack(spacing: 3) {
+                HStack(spacing: 3) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.green)
+                    Text("\(storage.completedDrillIDs.count)")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                }
+                Text("Drills Done")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+
+            Rectangle().fill(KickIQTheme.divider).frame(width: 1, height: 28)
+
+            VStack(spacing: 3) {
+                HStack(spacing: 3) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.red.opacity(0.7))
+                    Text("\(storage.favoriteDrillIDs.count)")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                }
+                Text("Favorites")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+
+            Rectangle().fill(KickIQTheme.divider).frame(width: 1, height: 28)
+
+            VStack(spacing: 3) {
+                HStack(spacing: 3) {
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(KickIQTheme.accent)
+                    Text("\(storage.sessions.map(\.overallScore).max() ?? 0)")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                }
+                Text("Best Score")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.vertical, KickIQTheme.Spacing.sm + 2)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.12), value: appeared)
+    }
+
+    private var favoriteDrillsPreview: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "heart.fill")
+                        .font(.caption)
+                    Text("SAVED DRILLS")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                }
+                .foregroundStyle(.red.opacity(0.8))
+                Spacer()
+                Button {
+                    selectedTab = 2
+                } label: {
+                    Text("See All")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+            }
+
+            Text("\(storage.favoriteDrillIDs.count) drill\(storage.favoriteDrillIDs.count == 1 ? "" : "s") saved for quick access")
+                .font(.subheadline)
+                .foregroundStyle(KickIQTheme.textSecondary)
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.22), value: appeared)
     }
 
     private var reassessmentCard: some View {

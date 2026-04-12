@@ -23,6 +23,9 @@ class StorageService {
     var weeklyGoal: WeeklyGoal?
     var sessionNotes: [SessionNote] = []
     var trainingPlan: TrainingPlan?
+    var favoriteDrillIDs: Set<String> = []
+    var personalRecords: [PersonalRecord] = []
+    var drillCompletionHistory: [DrillCompletion] = []
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -42,6 +45,9 @@ class StorageService {
     private let weeklyGoalKey = "kickiq_weekly_goal"
     private let sessionNotesKey = "kickiq_session_notes"
     private let trainingPlanKey = "kickiq_training_plan"
+    private let favoriteDrillsKey = "kickiq_favorite_drills"
+    private let personalRecordsKey = "kickiq_personal_records"
+    private let drillCompletionHistoryKey = "kickiq_drill_completion_history"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -99,6 +105,17 @@ class StorageService {
         if let data = UserDefaults.standard.data(forKey: trainingPlanKey),
            let decoded = try? JSONDecoder().decode(TrainingPlan.self, from: data) {
             trainingPlan = decoded
+        }
+        if let arr = UserDefaults.standard.array(forKey: favoriteDrillsKey) as? [String] {
+            favoriteDrillIDs = Set(arr)
+        }
+        if let data = UserDefaults.standard.data(forKey: personalRecordsKey),
+           let decoded = try? JSONDecoder().decode([PersonalRecord].self, from: data) {
+            personalRecords = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: drillCompletionHistoryKey),
+           let decoded = try? JSONDecoder().decode([DrillCompletion].self, from: data) {
+            drillCompletionHistory = decoded
         }
 
         updateDailyDrillSeed()
@@ -165,6 +182,73 @@ class StorageService {
         }
     }
 
+    func toggleFavoriteDrill(_ drillID: String) {
+        if favoriteDrillIDs.contains(drillID) {
+            favoriteDrillIDs.remove(drillID)
+        } else {
+            favoriteDrillIDs.insert(drillID)
+        }
+        UserDefaults.standard.set(Array(favoriteDrillIDs), forKey: favoriteDrillsKey)
+    }
+
+    func isDrillFavorite(_ drillID: String) -> Bool {
+        favoriteDrillIDs.contains(drillID)
+    }
+
+    func addPersonalRecord(_ record: PersonalRecord) {
+        if let index = personalRecords.firstIndex(where: { $0.category == record.category }) {
+            if record.value > personalRecords[index].value {
+                personalRecords[index] = record
+            }
+        } else {
+            personalRecords.append(record)
+        }
+        if let data = try? JSONEncoder().encode(personalRecords) {
+            UserDefaults.standard.set(data, forKey: personalRecordsKey)
+        }
+    }
+
+    func recordDrillCompletion(_ drillID: String, drillName: String, duration: Int) {
+        let completion = DrillCompletion(drillID: drillID, drillName: drillName, date: .now, durationSeconds: duration)
+        drillCompletionHistory.insert(completion, at: 0)
+        if drillCompletionHistory.count > 200 {
+            drillCompletionHistory = Array(drillCompletionHistory.prefix(200))
+        }
+        if let data = try? JSONEncoder().encode(drillCompletionHistory) {
+            UserDefaults.standard.set(data, forKey: drillCompletionHistoryKey)
+        }
+    }
+
+    var totalDrillMinutes: Int {
+        drillCompletionHistory.reduce(0) { $0 + $1.durationSeconds } / 60
+    }
+
+    var thisWeekDrillMinutes: Int {
+        let calendar = Calendar.current
+        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: .now))!
+        return drillCompletionHistory.filter { $0.date >= startOfWeek }.reduce(0) { $0 + $1.durationSeconds } / 60
+    }
+
+    var bestSkillScore: (category: SkillCategory, score: Int)? {
+        guard let latest = sessions.first else { return nil }
+        guard let best = latest.skillScores.max(by: { $0.score < $1.score }) else { return nil }
+        return (best.category, best.score)
+    }
+
+    var averageSessionScore: Int {
+        guard !sessions.isEmpty else { return 0 }
+        return sessions.reduce(0) { $0 + $1.overallScore } / sessions.count
+    }
+
+    var improvementRate: Int? {
+        guard sessions.count >= 2 else { return nil }
+        let recent = Array(sessions.prefix(3))
+        let older = Array(sessions.suffix(min(3, sessions.count)))
+        let recentAvg = recent.reduce(0) { $0 + $1.overallScore } / recent.count
+        let olderAvg = older.reduce(0) { $0 + $1.overallScore } / older.count
+        return recentAvg - olderAvg
+    }
+
     var weeklySessionsCompleted: Int {
         let calendar = Calendar.current
         let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: .now))!
@@ -192,6 +276,7 @@ class StorageService {
                        drillsKey, xpKey, analysisCountKey, maxStreakKey, reviewDateKey,
                        reviewCountKey, sessionDatesKey, lastStreakBrokenKey, lastReassessmentKey,
                        dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey,
+                       favoriteDrillsKey, personalRecordsKey, drillCompletionHistoryKey,
                        "kickiq_drill_day",
                        "kickiq_pref_streak", "kickiq_pref_weekly", "kickiq_pref_monthly"]
         allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
@@ -214,6 +299,9 @@ class StorageService {
         weeklyGoal = nil
         sessionNotes = []
         trainingPlan = nil
+        favoriteDrillIDs = []
+        personalRecords = []
+        drillCompletionHistory = []
 
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }

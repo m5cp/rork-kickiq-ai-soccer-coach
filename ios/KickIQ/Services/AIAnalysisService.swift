@@ -7,6 +7,9 @@ nonisolated struct AIAnalysisResponse: Codable, Sendable {
     let feedback: String
     let drills: [AIDrill]
     let topImprovement: String?
+    let strengths: [String]?
+    let weaknesses: [String]?
+    let coachingPoints: [String]?
 }
 
 nonisolated struct AISkillScore: Codable, Sendable {
@@ -175,7 +178,10 @@ class AIAnalysisService {
                 skillScores: finalScores,
                 feedback: aiResponse.feedback,
                 drills: finalDrills,
-                topImprovement: aiResponse.topImprovement ?? ""
+                topImprovement: aiResponse.topImprovement ?? "",
+                strengths: aiResponse.strengths ?? [],
+                weaknesses: aiResponse.weaknesses ?? [],
+                coachingPoints: aiResponse.coachingPoints ?? []
             )
         } catch {
             errorMessage = "Analysis error: \(error.localizedDescription)"

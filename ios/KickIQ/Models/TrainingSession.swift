@@ -76,6 +76,9 @@ nonisolated struct TrainingSession: Codable, Sendable, Identifiable {
     let feedback: String
     let drills: [Drill]
     let topImprovement: String
+    let strengths: [String]
+    let weaknesses: [String]
+    let coachingPoints: [String]
 
     init(
         id: String = UUID().uuidString,
@@ -84,7 +87,10 @@ nonisolated struct TrainingSession: Codable, Sendable, Identifiable {
         skillScores: [SkillScore],
         feedback: String,
         drills: [Drill],
-        topImprovement: String = ""
+        topImprovement: String = "",
+        strengths: [String] = [],
+        weaknesses: [String] = [],
+        coachingPoints: [String] = []
     ) {
         self.id = id
         self.date = date
@@ -94,6 +100,9 @@ nonisolated struct TrainingSession: Codable, Sendable, Identifiable {
         self.feedback = feedback
         self.drills = drills
         self.topImprovement = topImprovement.isEmpty ? (skillScores.min(by: { $0.score < $1.score })?.category.rawValue ?? "") : topImprovement
+        self.strengths = strengths
+        self.weaknesses = weaknesses
+        self.coachingPoints = coachingPoints
     }
 }
 

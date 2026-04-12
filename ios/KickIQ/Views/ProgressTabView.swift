@@ -21,11 +21,14 @@ struct ProgressTabView: View {
                         emptyState
                     } else {
                         levelOverviewCard
+                        personalRecordsCard
                         scoreOverTimeCard
                         if storage.sessions.count >= 2 {
                             compareSessionsButton
                         }
+                        improvementTrendCard
                         skillBreakdownCard
+                        trainingVolumeCard
                         streakHeatmapCard
                         badgesSection
                         sessionHistoryList
@@ -155,6 +158,165 @@ struct ProgressTabView: View {
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
+    }
+
+    private var personalRecordsCard: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm + 2) {
+            Text("PERSONAL BESTS")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(KickIQTheme.accent)
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: KickIQTheme.Spacing.sm), GridItem(.flexible(), spacing: KickIQTheme.Spacing.sm)], spacing: KickIQTheme.Spacing.sm) {
+                recordTile(icon: "chart.bar.fill", value: "\(storage.sessions.map(\.overallScore).max() ?? 0)", label: "Best Score", highlight: true)
+                recordTile(icon: "flame.fill", value: "\(storage.maxStreak)", label: "Longest Streak")
+                if let best = storage.bestSkillScore {
+                    recordTile(icon: best.category.icon, value: "\(best.score)/10", label: "Best: \(best.category.rawValue)")
+                }
+                recordTile(icon: "clock.fill", value: "\(storage.totalDrillMinutes)m", label: "Total Training")
+            }
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.03), value: appeared)
+    }
+
+    private func recordTile(icon: String, value: String, label: String, highlight: Bool = false) -> some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                    .foregroundStyle(highlight ? KickIQTheme.accent : KickIQTheme.textSecondary)
+                Text(value)
+                    .font(.title3.weight(.black))
+                    .foregroundStyle(highlight ? KickIQTheme.accent : KickIQTheme.textPrimary)
+            }
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, KickIQTheme.Spacing.sm + 2)
+        .background(highlight ? KickIQTheme.accent.opacity(0.08) : KickIQTheme.surface, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+    }
+
+    private var improvementTrendCard: some View {
+        let rate = storage.improvementRate
+        let avgScore = storage.averageSessionScore
+        let totalSessions = storage.sessions.count
+
+        return VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm + 2) {
+            Text("IMPROVEMENT TREND")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(KickIQTheme.accent)
+
+            HStack(spacing: 0) {
+                VStack(spacing: 4) {
+                    if let rate {
+                        HStack(spacing: 3) {
+                            Image(systemName: rate >= 0 ? "arrow.up.right" : "arrow.down.right")
+                                .font(.system(size: 11, weight: .bold))
+                            Text(rate >= 0 ? "+\(rate)" : "\(rate)")
+                                .font(.headline.weight(.black))
+                        }
+                        .foregroundStyle(rate >= 0 ? .green : .red)
+                    } else {
+                        Text("—")
+                            .font(.headline.weight(.black))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+                    Text("Recent vs. Earlier")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+
+                Rectangle().fill(KickIQTheme.divider).frame(width: 1, height: 36)
+
+                VStack(spacing: 4) {
+                    Text("\(avgScore)")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Avg Score")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+
+                Rectangle().fill(KickIQTheme.divider).frame(width: 1, height: 36)
+
+                VStack(spacing: 4) {
+                    Text("\(totalSessions)")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Sessions")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.vertical, KickIQTheme.Spacing.sm)
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.08), value: appeared)
+    }
+
+    private var trainingVolumeCard: some View {
+        let calendar = Calendar.current
+        let last4Weeks: [(label: String, minutes: Int)] = (0..<4).reversed().map { weekOffset in
+            let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: .now))!)!
+            let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart)!
+            let mins = storage.drillCompletionHistory.filter { $0.date >= weekStart && $0.date < weekEnd }.reduce(0) { $0 + $1.durationSeconds } / 60
+            let label = weekOffset == 0 ? "This" : "\(weekOffset)w ago"
+            return (label: label, minutes: mins)
+        }
+
+        let maxMins = max(last4Weeks.map(\.minutes).max() ?? 1, 1)
+
+        return VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm + 2) {
+            HStack {
+                Text("TRAINING VOLUME")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(KickIQTheme.accent)
+                Spacer()
+                Text("\(storage.thisWeekDrillMinutes) min this week")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+
+            HStack(alignment: .bottom, spacing: KickIQTheme.Spacing.sm) {
+                ForEach(Array(last4Weeks.enumerated()), id: \.offset) { _, week in
+                    VStack(spacing: 4) {
+                        Text("\(week.minutes)m")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(week.label == "This" ? KickIQTheme.accent : KickIQTheme.accent.opacity(0.4))
+                            .frame(height: max(8, CGFloat(week.minutes) / CGFloat(maxMins) * 60))
+
+                        Text(week.label)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 90)
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.1), value: appeared)
     }
 
     // MARK: - Score Over Time Chart
