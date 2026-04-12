@@ -341,7 +341,7 @@ struct AnalysisResultView: View {
                     Text("New Session")
                 }
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.black)
+                .foregroundStyle(KickIQTheme.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.md))

@@ -30,7 +30,6 @@ struct DrillsView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Drills")
             .navigationBarTitleDisplayMode(.large)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(item: $selectedDrill) { drill in
                 DrillDetailSheet(drill: drill, storage: storage, drillsService: drillsService, completedTrigger: $completedTrigger)
             }
@@ -61,7 +60,7 @@ struct DrillsView: View {
                         Text(cat.rawValue)
                             .font(.subheadline.weight(.semibold))
                     }
-                    .foregroundStyle(selectedCategory == cat ? .black : KickIQTheme.textSecondary)
+                    .foregroundStyle(selectedCategory == cat ? KickIQTheme.onAccent : KickIQTheme.textSecondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(selectedCategory == cat ? KickIQTheme.accent : KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.md))
@@ -469,7 +468,7 @@ struct QRDrillShareSheet: View {
                             Text("Share QR Code")
                         }
                         .font(.headline)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(KickIQTheme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, KickIQTheme.Spacing.md)
                         .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -488,7 +487,7 @@ struct QRDrillShareSheet: View {
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+        .presentationBackground(.background)
         .onAppear {
             let payload = QRSharingService.drillPayload(drill)
             qrImage = QRSharingService.generateQRCode(from: payload)
@@ -633,7 +632,7 @@ struct DrillDetailSheet: View {
                             Text(isCompleted ? "Completed" : "Mark Complete")
                         }
                         .font(.headline)
-                        .foregroundStyle(isCompleted ? KickIQTheme.textSecondary : .black)
+                        .foregroundStyle(isCompleted ? KickIQTheme.textSecondary : KickIQTheme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, KickIQTheme.Spacing.md)
                         .background(isCompleted ? KickIQTheme.surface : KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -653,7 +652,7 @@ struct DrillDetailSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+.presentationBackground(.background)
         .sheet(isPresented: $showTimer) {
             DrillTimerView(drill: drill)
         }

@@ -29,7 +29,6 @@ struct TrainingPlanView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Training Plan")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -39,7 +38,7 @@ struct TrainingPlanView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+        .presentationBackground(.background)
         .onAppear {
             withAnimation(.easeOut(duration: 0.4)) { appeared = true }
         }
@@ -188,14 +187,14 @@ struct TrainingPlanView: View {
             HStack(spacing: KickIQTheme.Spacing.sm) {
                 if isGenerating {
                     ProgressView()
-                        .tint(.black)
+                        .tint(KickIQTheme.onAccent)
                 } else {
                     Image(systemName: "sparkles")
                 }
                 Text(isGenerating ? "Generating Plan..." : "Generate AI Training Plan")
             }
             .font(.headline)
-            .foregroundStyle(.black)
+            .foregroundStyle(KickIQTheme.onAccent)
             .frame(maxWidth: .infinity)
             .padding(.vertical, KickIQTheme.Spacing.md)
             .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))

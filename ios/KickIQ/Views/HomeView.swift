@@ -362,7 +362,7 @@ struct HomeView: View {
                 Text("Analyze a Clip")
                     .font(.headline)
             }
-            .foregroundStyle(.black)
+            .foregroundStyle(KickIQTheme.onAccent)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 18)
             .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -455,7 +455,7 @@ struct HomeView: View {
                 } label: {
                     Text("Update Focus")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(KickIQTheme.onAccent)
                         .padding(.horizontal, KickIQTheme.Spacing.md)
                         .padding(.vertical, KickIQTheme.Spacing.sm)
                         .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.sm))
@@ -611,7 +611,7 @@ struct ReassessmentSheet: View {
                     } label: {
                         Text("Update Focus")
                             .font(.headline)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(KickIQTheme.onAccent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, KickIQTheme.Spacing.md)
                             .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -631,7 +631,7 @@ struct ReassessmentSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+        .presentationBackground(.background)
         .onAppear {
             selectedWeakness = storage.profile?.weakness ?? .firstTouch
         }

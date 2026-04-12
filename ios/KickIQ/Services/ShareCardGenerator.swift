@@ -56,7 +56,7 @@ struct AnalysisShareCard: View {
                         Text("KICKIQ")
                             .font(.system(size: 11, weight: .black, design: .default).width(.compressed))
                             .tracking(4)
-                            .foregroundStyle(Color(hex: 0xFF6D00))
+                            .foregroundStyle(KickIQTheme.accent)
                         Text("SESSION REPORT")
                             .font(.system(size: 9, weight: .bold))
                             .tracking(2)
@@ -90,7 +90,7 @@ struct AnalysisShareCard: View {
                 }
 
                 Rectangle()
-                    .fill(LinearGradient(colors: [Color(hex: 0xFF6D00), Color(hex: 0xFF6D00).opacity(0)], startPoint: .leading, endPoint: .trailing))
+                    .fill(LinearGradient(colors: [KickIQTheme.accent, KickIQTheme.accent.opacity(0)], startPoint: .leading, endPoint: .trailing))
                     .frame(height: 1.5)
 
                 VStack(spacing: 7) {
@@ -98,7 +98,7 @@ struct AnalysisShareCard: View {
                         HStack(spacing: 8) {
                             Image(systemName: score.category.icon)
                                 .font(.system(size: 9))
-                                .foregroundStyle(Color(hex: 0xFF6D00))
+                                .foregroundStyle(KickIQTheme.accent)
                                 .frame(width: 14)
 
                             Text(score.category.rawValue)
@@ -114,7 +114,7 @@ struct AnalysisShareCard: View {
                                 Capsule()
                                     .fill(
                                         LinearGradient(
-                                            colors: [Color(hex: 0xFF6D00).opacity(0.6), Color(hex: 0xFF6D00)],
+                                            colors: [KickIQTheme.accent.opacity(0.6), KickIQTheme.accent],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
@@ -140,11 +140,11 @@ struct AnalysisShareCard: View {
                         if !top.tip.isEmpty {
                             Text("— \(top.tip)")
                                 .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(Color(hex: 0xFF6D00).opacity(0.7))
+                                .foregroundStyle(KickIQTheme.accent.opacity(0.7))
                                 .lineLimit(1)
                         }
                     }
-                    .foregroundStyle(Color(hex: 0xFF6D00))
+                    .foregroundStyle(KickIQTheme.accent)
                 }
             }
             .padding(20)
@@ -168,7 +168,7 @@ struct AnalysisShareCard: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
-            .background(Color(hex: 0xFF6D00))
+            .background(KickIQTheme.accent)
         }
         .frame(width: 320)
         .clipShape(.rect(cornerRadius: 16))
@@ -182,10 +182,10 @@ struct AnalysisShareCard: View {
                 .font(.system(size: 9, weight: .black))
                 .tracking(1.5)
         }
-        .foregroundStyle(Color(hex: 0xFF6D00))
+        .foregroundStyle(KickIQTheme.accent)
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
-        .background(Color(hex: 0xFF6D00).opacity(0.15), in: Capsule())
+        .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
     }
 }
 
@@ -207,7 +207,7 @@ struct ProgressShareCardPremium: View {
                         Text("KICKIQ")
                             .font(.system(size: 11, weight: .black, design: .default).width(.compressed))
                             .tracking(4)
-                            .foregroundStyle(Color(hex: 0xFF6D00))
+                            .foregroundStyle(KickIQTheme.accent)
                         Text("PROGRESS REPORT")
                             .font(.system(size: 9, weight: .bold))
                             .tracking(2)
@@ -272,7 +272,7 @@ struct ProgressShareCardPremium: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
-            .background(Color(hex: 0xFF6D00))
+            .background(KickIQTheme.accent)
         }
         .frame(width: 320)
         .clipShape(.rect(cornerRadius: 16))
@@ -284,11 +284,11 @@ struct ProgressShareCardPremium: View {
                 if let icon {
                     Image(systemName: icon)
                         .font(.system(size: large ? 16 : 12))
-                        .foregroundStyle(Color(hex: 0xFF6D00))
+                        .foregroundStyle(KickIQTheme.accent)
                 }
                 Text(value)
                     .font(.system(size: large ? 36 : 24, weight: .black))
-                    .foregroundStyle(accent ? Color(hex: 0xFF6D00) : .white)
+                    .foregroundStyle(accent ? KickIQTheme.accent : .white)
             }
             Text(label)
                 .font(.system(size: 8, weight: .bold))
@@ -306,10 +306,10 @@ struct ProgressShareCardPremium: View {
                 .font(.system(size: 9, weight: .black))
                 .tracking(1.5)
         }
-        .foregroundStyle(Color(hex: 0xFF6D00))
+        .foregroundStyle(KickIQTheme.accent)
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
-        .background(Color(hex: 0xFF6D00).opacity(0.15), in: Capsule())
+        .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
     }
 }
 
@@ -328,21 +328,21 @@ struct MilestoneShareCard: View {
                 Text("KICKIQ")
                     .font(.system(size: 11, weight: .black, design: .default).width(.compressed))
                     .tracking(4)
-                    .foregroundStyle(Color(hex: 0xFF6D00))
+                    .foregroundStyle(KickIQTheme.accent)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 ZStack {
                     Circle()
-                        .fill(Color(hex: 0xFF6D00).opacity(0.1))
+                        .fill(KickIQTheme.accent.opacity(0.1))
                         .frame(width: 90, height: 90)
 
                     Circle()
-                        .fill(Color(hex: 0xFF6D00).opacity(0.05))
+                        .fill(KickIQTheme.accent.opacity(0.05))
                         .frame(width: 120, height: 120)
 
                     Image(systemName: badge.icon)
                         .font(.system(size: 40))
-                        .foregroundStyle(Color(hex: 0xFF6D00))
+                        .foregroundStyle(KickIQTheme.accent)
                 }
 
                 VStack(spacing: 4) {
@@ -372,7 +372,7 @@ struct MilestoneShareCard: View {
                         HStack(spacing: 3) {
                             Image(systemName: "flame.fill")
                                 .font(.system(size: 12))
-                                .foregroundStyle(Color(hex: 0xFF6D00))
+                                .foregroundStyle(KickIQTheme.accent)
                             Text("\(streak)")
                                 .font(.system(size: 20, weight: .black))
                                 .foregroundStyle(.white)
@@ -419,7 +419,7 @@ struct MilestoneShareCard: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
-            .background(Color(hex: 0xFF6D00))
+            .background(KickIQTheme.accent)
         }
         .frame(width: 300)
         .clipShape(.rect(cornerRadius: 16))
@@ -433,7 +433,7 @@ struct MilestoneShareCard: View {
                 .font(.system(size: 9, weight: .black))
                 .tracking(1.5)
         }
-        .foregroundStyle(Color(hex: 0xFF6D00))
+        .foregroundStyle(KickIQTheme.accent)
     }
 }
 
@@ -451,14 +451,14 @@ struct StreakShareCard: View {
                 Text("KICKIQ")
                     .font(.system(size: 11, weight: .black, design: .default).width(.compressed))
                     .tracking(4)
-                    .foregroundStyle(Color(hex: 0xFF6D00))
+                    .foregroundStyle(KickIQTheme.accent)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "flame.fill")
                     .font(.system(size: 56))
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Color(hex: 0xFF6D00), Color(hex: 0xE65100)],
+                            colors: [KickIQTheme.accent, KickIQTheme.accent.opacity(0.7)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -489,13 +489,13 @@ struct StreakShareCard: View {
                             .font(.system(size: 9, weight: .black))
                             .tracking(1.5)
                     }
-                    .foregroundStyle(Color(hex: 0xFF6D00))
+                    .foregroundStyle(KickIQTheme.accent)
                 }
 
                 VStack(spacing: 2) {
                     Text("\(score)")
                         .font(.system(size: 20, weight: .black))
-                        .foregroundStyle(Color(hex: 0xFF6D00))
+                        .foregroundStyle(KickIQTheme.accent)
                     Text("SKILL SCORE")
                         .font(.system(size: 8, weight: .bold))
                         .tracking(1)
@@ -523,7 +523,7 @@ struct StreakShareCard: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
-            .background(Color(hex: 0xFF6D00))
+            .background(KickIQTheme.accent)
         }
         .frame(width: 280)
         .clipShape(.rect(cornerRadius: 16))

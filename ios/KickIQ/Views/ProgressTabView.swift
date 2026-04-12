@@ -39,7 +39,6 @@ struct ProgressTabView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Progress")
             .navigationBarTitleDisplayMode(.large)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(item: $selectedSession) { session in
                 NavigationStack {
                     AnalysisResultView(session: session, storage: storage) {
@@ -47,7 +46,7 @@ struct ProgressTabView: View {
                     }
                 }
                 .presentationDragIndicator(.visible)
-                .presentationBackground(KickIQTheme.background)
+                .presentationBackground(.background)
             }
             .sheet(isPresented: $showShareSheet) {
                 if let image = shareImage {
@@ -258,7 +257,7 @@ struct ProgressTabView: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, KickIQTheme.Spacing.sm)
                         .background(selectedSkill == nil ? KickIQTheme.accent : KickIQTheme.surface, in: Capsule())
-                        .foregroundStyle(selectedSkill == nil ? .black : KickIQTheme.textSecondary)
+                        .foregroundStyle(selectedSkill == nil ? KickIQTheme.onAccent : KickIQTheme.textSecondary)
                 }
 
                 ForEach(position.skills) { skill in
@@ -274,7 +273,7 @@ struct ProgressTabView: View {
                         .padding(.horizontal, KickIQTheme.Spacing.sm + 2)
                         .padding(.vertical, KickIQTheme.Spacing.sm)
                         .background(selectedSkill == skill ? KickIQTheme.accent : KickIQTheme.surface, in: Capsule())
-                        .foregroundStyle(selectedSkill == skill ? .black : KickIQTheme.textSecondary)
+                        .foregroundStyle(selectedSkill == skill ? KickIQTheme.onAccent : KickIQTheme.textSecondary)
                     }
                 }
             }

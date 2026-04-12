@@ -320,7 +320,7 @@ struct OnboardingView: View {
                 } label: {
                     Text("Start Free Trial")
                         .font(.headline)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(KickIQTheme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, KickIQTheme.Spacing.md)
                         .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -361,7 +361,7 @@ struct OnboardingView: View {
         } label: {
             Text("Continue")
                 .font(.headline)
-                .foregroundStyle(.black)
+                .foregroundStyle(KickIQTheme.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, KickIQTheme.Spacing.md)
                 .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -488,7 +488,7 @@ struct OnboardingView: View {
                     if let badge {
                         Text(badge)
                             .font(.system(size: 9, weight: .black))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(KickIQTheme.onAccent)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .background(KickIQTheme.accent, in: Capsule())

@@ -36,7 +36,6 @@ struct CoachReportView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Coach Report")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -51,7 +50,7 @@ struct CoachReportView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+        .presentationBackground(.background)
     }
 
     private var reportHeader: some View {
@@ -255,7 +254,7 @@ struct CoachReportView: View {
                     HStack {
                         Text("\(index + 1)")
                             .font(.caption.weight(.black))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(KickIQTheme.onAccent)
                             .frame(width: 22, height: 22)
                             .background(KickIQTheme.accent, in: Circle())
 
@@ -453,7 +452,7 @@ struct CoachReportView: View {
                 Text(isGenerating ? "Generating..." : "Export & Send to Coach")
             }
             .font(.headline)
-            .foregroundStyle(.black)
+            .foregroundStyle(KickIQTheme.onAccent)
             .frame(maxWidth: .infinity)
             .padding(.vertical, KickIQTheme.Spacing.md)
             .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -473,9 +472,10 @@ struct CoachReportView: View {
                 .font: UIFont.systemFont(ofSize: 24, weight: .black),
                 .foregroundColor: UIColor.label
             ]
+            let accentUIColor = UIColor(KickIQTheme.accent)
             let titleAttrs: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 14, weight: .bold),
-                .foregroundColor: UIColor(red: 1.0, green: 0.427, blue: 0, alpha: 1.0)
+                .foregroundColor: accentUIColor
             ]
             let bodyAttrs: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: 11, weight: .regular),
@@ -498,7 +498,7 @@ struct CoachReportView: View {
             let line = UIBezierPath()
             line.move(to: CGPoint(x: 40, y: y))
             line.addLine(to: CGPoint(x: 572, y: y))
-            UIColor(red: 1.0, green: 0.427, blue: 0, alpha: 1.0).setStroke()
+            accentUIColor.setStroke()
             line.lineWidth = 2
             line.stroke()
             y += 20

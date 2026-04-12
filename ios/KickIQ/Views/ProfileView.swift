@@ -27,7 +27,6 @@ struct ProfileView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -67,7 +66,7 @@ struct ProfileView: View {
                             .frame(width: 28, height: 28)
                         Image(systemName: "pencil")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(KickIQTheme.onAccent)
                     }
                     .offset(x: 2, y: 2)
                 }

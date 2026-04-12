@@ -55,7 +55,6 @@ struct SettingsView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -82,7 +81,7 @@ struct SettingsView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+        .presentationBackground(.background)
         .onAppear {
             withAnimation(.easeOut(duration: 0.4)) { appeared = true }
         }
@@ -121,7 +120,7 @@ struct SettingsView: View {
     }
 
     private var teamColorSection: some View {
-        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.md) {
             Text("TEAM COLORS")
                 .font(.caption.weight(.bold))
                 .tracking(1)
@@ -129,7 +128,7 @@ struct SettingsView: View {
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 70), spacing: KickIQTheme.Spacing.sm)], spacing: KickIQTheme.Spacing.sm) {
                 ForEach(TeamColor.allPresets, id: \.name) { color in
-                    let isSelected = KickIQTheme.shared.teamColor == color
+                    let isSelected = !KickIQTheme.shared.useCustomColor && KickIQTheme.shared.teamColor == color
                     Button {
                         withAnimation(.spring(response: 0.3)) {
                             KickIQTheme.shared.setTeamColor(color)
@@ -143,7 +142,7 @@ struct SettingsView: View {
                                     if isSelected {
                                         Image(systemName: "checkmark")
                                             .font(.system(size: 14, weight: .bold))
-                                            .foregroundStyle(.white)
+                                            .foregroundStyle(color.onPrimaryColor)
                                     }
                                 }
 
@@ -165,9 +164,74 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            customColorSection
         }
         .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+    }
+
+    @State private var pickerColor: Color = Color(hex: KickIQTheme.shared.activeTeamColor.primary)
+
+    private var customColorSection: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack {
+                Text("CUSTOM COLOR")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
+
+                Spacer()
+
+                if KickIQTheme.shared.useCustomColor {
+                    Text("Active")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(KickIQTheme.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
+                }
+            }
+
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ColorPicker("", selection: $pickerColor, supportsOpacity: false)
+                    .labelsHidden()
+                    .frame(width: 44, height: 44)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Pick any color")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Match your team's exact colors")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Button {
+                    applyCustomColor()
+                } label: {
+                    Text("Apply")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(KickIQTheme.onAccent)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.sm))
+                }
+            }
+            .padding(KickIQTheme.Spacing.sm)
+            .background(KickIQTheme.surface, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+        }
+    }
+
+    private func applyCustomColor() {
+        let resolved = UIColor(pickerColor)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+        resolved.getRed(&r, green: &g, blue: &b, alpha: nil)
+        withAnimation(.spring(response: 0.3)) {
+            KickIQTheme.shared.setCustomColor(red: Double(r), green: Double(g), blue: Double(b))
+        }
     }
 
     private func sectionHeader(_ title: String) -> some View {

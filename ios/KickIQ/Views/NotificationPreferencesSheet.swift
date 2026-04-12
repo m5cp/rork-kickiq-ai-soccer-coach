@@ -52,7 +52,6 @@ struct NotificationPreferencesSheet: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Notifications")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
@@ -66,7 +65,7 @@ struct NotificationPreferencesSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+        .presentationBackground(.background)
         .task {
             await checkNotificationStatus()
             loadPreferences()
@@ -96,7 +95,7 @@ struct NotificationPreferencesSheet: View {
             } label: {
                 Text("Open Settings")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(KickIQTheme.onAccent)
                     .padding(.horizontal, KickIQTheme.Spacing.lg)
                     .padding(.vertical, KickIQTheme.Spacing.sm)
                     .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.sm))

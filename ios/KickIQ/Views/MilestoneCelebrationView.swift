@@ -83,7 +83,7 @@ struct MilestoneCelebrationView: View {
                     } label: {
                         Text("Continue")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(KickIQTheme.onAccent)
                             .padding(.horizontal, KickIQTheme.Spacing.lg)
                             .padding(.vertical, 14)
                             .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.md))

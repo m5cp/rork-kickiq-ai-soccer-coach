@@ -89,5 +89,6 @@ struct ContentView: View {
             }
         }
         .tint(KickIQTheme.accent)
+        .environment(themeManager)
     }
 }

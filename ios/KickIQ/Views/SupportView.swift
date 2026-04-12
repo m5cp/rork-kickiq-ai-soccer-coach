@@ -79,7 +79,7 @@ struct SupportView: View {
         .scrollIndicators(.hidden)
         .background(KickIQTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        
         .alert("Email Not Available", isPresented: $showMailUnavailable) {
             Button("Copy Email") {
                 UIPasteboard.general.string = "contact@m5cairo.com"

@@ -70,7 +70,7 @@ struct WeeklyGoalSheet: View {
                 } label: {
                     Text("Set Goal")
                         .font(.headline)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(KickIQTheme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, KickIQTheme.Spacing.md)
                         .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -106,7 +106,7 @@ struct WeeklyGoalSheet: View {
                             if day <= sessionsPerWeek {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(.black)
+                                    .foregroundStyle(KickIQTheme.onAccent)
                             }
                         }
 

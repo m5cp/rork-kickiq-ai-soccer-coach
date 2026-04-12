@@ -32,7 +32,6 @@ struct DrillTimerView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle(drill.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -47,7 +46,7 @@ struct DrillTimerView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+        .presentationBackground(.background)
         .onAppear { setupTimer() }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             guard timerActive else { return }
@@ -127,7 +126,7 @@ struct DrillTimerView: View {
             } label: {
                 Image(systemName: timerActive ? "pause.fill" : "play.fill")
                     .font(.title)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(KickIQTheme.onAccent)
                     .frame(width: 80, height: 80)
                     .background(KickIQTheme.accent, in: Circle())
             }
@@ -167,7 +166,7 @@ struct DrillTimerView: View {
                 } label: {
                     Text("Done")
                         .font(.headline)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(KickIQTheme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, KickIQTheme.Spacing.md)
                         .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))

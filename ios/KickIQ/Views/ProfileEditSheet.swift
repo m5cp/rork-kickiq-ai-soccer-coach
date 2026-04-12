@@ -44,7 +44,6 @@ struct ProfileEditSheet: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -62,7 +61,7 @@ struct ProfileEditSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+        .presentationBackground(.background)
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }
             Task {
@@ -112,7 +111,7 @@ struct ProfileEditSheet: View {
                     } label: {
                         Text(type.rawValue)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(selectedAvatarType == type ? .black : KickIQTheme.textSecondary)
+                            .foregroundStyle(selectedAvatarType == type ? KickIQTheme.onAccent : KickIQTheme.textSecondary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, KickIQTheme.Spacing.sm)
                             .background(selectedAvatarType == type ? KickIQTheme.accent : KickIQTheme.surface, in: .rect(cornerRadius: KickIQTheme.Radius.sm))

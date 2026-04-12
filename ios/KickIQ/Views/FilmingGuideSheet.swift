@@ -86,7 +86,7 @@ struct FilmingGuideSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
+        .presentationBackground(.background)
         .onAppear {
             withAnimation(.easeOut(duration: 0.4)) { appeared = true }
         }
