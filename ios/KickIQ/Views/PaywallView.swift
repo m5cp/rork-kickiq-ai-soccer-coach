@@ -103,7 +103,7 @@ struct PaywallView: View {
                 .tracking(2)
                 .foregroundStyle(KickIQTheme.textPrimary)
 
-            Text("Train smarter with unlimited AI coaching")
+            Text("Train smarter with premium AI coaching")
                 .font(.subheadline)
                 .foregroundStyle(KickIQTheme.textSecondary)
         }
@@ -115,8 +115,8 @@ struct PaywallView: View {
     private var featuresGrid: some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                featureItem(icon: "brain.head.profile.fill", title: "AI Chat", free: "5/session", pro: "Up to 100")
-                featureItem(icon: "video.fill", title: "Video Analysis", free: "2/day", pro: "Up to 100")
+                featureItem(icon: "brain.head.profile.fill", title: "AI Chat", free: "10/day", pro: "Up to 500/day")
+                featureItem(icon: "video.fill", title: "Video Analysis", free: "2/day", pro: "Up to 100/day")
             }
             HStack(spacing: 10) {
                 featureItem(icon: "figure.soccer", title: "Custom Drills", free: "Basic", pro: "Advanced")
