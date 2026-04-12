@@ -14,13 +14,13 @@ nonisolated enum DeepLink: String, Sendable {
     var tabIndex: Int {
         switch self {
         case .home: 0
-        case .coach: 1
-        case .analyze: 2
-        case .drills: 3
-        case .progress: 4
-        case .profile: 5
-        case .skills: 3
-        case .conditioning: 3
+        case .coach: 0
+        case .analyze: 1
+        case .drills: 2
+        case .progress: 3
+        case .profile: 4
+        case .skills: 2
+        case .conditioning: 2
         }
     }
 }

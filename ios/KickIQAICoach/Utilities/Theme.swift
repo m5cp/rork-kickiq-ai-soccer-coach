@@ -30,7 +30,7 @@ nonisolated struct TeamColor: Codable, Sendable, Equatable {
     let secondary: UInt
     let accent: UInt
 
-    static let tarHeels = TeamColor(name: "Tar Heels", primary: 0x7BAFD4, secondary: 0x13294B, accent: 0x7BAFD4)
+    static let skyBlueClassic = TeamColor(name: "Sky Blue", primary: 0x7BAFD4, secondary: 0x13294B, accent: 0x7BAFD4)
     static let classic = TeamColor(name: "Classic Orange", primary: 0xFF6D00, secondary: 0xE65100, accent: 0xFF6D00)
     static let crimson = TeamColor(name: "Crimson", primary: 0xDC143C, secondary: 0x8B0000, accent: 0xDC143C)
     static let emerald = TeamColor(name: "Emerald", primary: 0x50C878, secondary: 0x2E8B57, accent: 0x50C878)
@@ -40,12 +40,12 @@ nonisolated struct TeamColor: Codable, Sendable, Equatable {
     static let teal = TeamColor(name: "Teal", primary: 0x1ABC9C, secondary: 0x16A085, accent: 0x1ABC9C)
     static let navy = TeamColor(name: "Navy", primary: 0x13294B, secondary: 0x0A1628, accent: 0x13294B)
     static let scarlet = TeamColor(name: "Scarlet", primary: 0xBB0000, secondary: 0x660000, accent: 0xBB0000)
-    static let skyBlue = TeamColor(name: "Sky Blue", primary: 0x6CACE4, secondary: 0x3A7CC1, accent: 0x6CACE4)
+    static let black = TeamColor(name: "Black", primary: 0x1C1C1E, secondary: 0x000000, accent: 0x1C1C1E)
     static let maroon = TeamColor(name: "Maroon", primary: 0x800000, secondary: 0x4B0000, accent: 0x800000)
 
     static let allPresets: [TeamColor] = [
-        .tarHeels, .classic, .crimson, .emerald, .royal, .gold,
-        .purple, .teal, .navy, .scarlet, .skyBlue, .maroon
+        .skyBlueClassic, .classic, .crimson, .emerald, .royal, .gold,
+        .purple, .teal, .navy, .scarlet, .black, .maroon
     ]
 
     var primaryColor: Color { Color(hex: primary) }
@@ -85,7 +85,7 @@ nonisolated struct CustomTeamColor: Codable, Sendable {
 @MainActor
 class ThemeManager {
     var appearanceMode: AppearanceMode = .system
-    var teamColor: TeamColor = .tarHeels
+    var teamColor: TeamColor = .skyBlueClassic
     var useCustomColor: Bool = false
     var customColor: CustomTeamColor = CustomTeamColor(red: 0.48, green: 0.69, blue: 0.83)
 

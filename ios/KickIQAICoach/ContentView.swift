@@ -94,23 +94,19 @@ struct ContentView: View {
                 HomeView(storage: storage, selectedTab: $selectedTab)
             }
 
-            Tab("Coach", systemImage: "brain.head.profile.fill", value: 1) {
-                AICoachView(storage: storage)
-            }
-
-            Tab("Analyze", systemImage: "video.fill", value: 2) {
+            Tab("Analyze", systemImage: "video.fill", value: 1) {
                 AnalyzeView(storage: storage)
             }
 
-            Tab("Drills", systemImage: "figure.soccer", value: 3) {
+            Tab("Drills", systemImage: "figure.soccer", value: 2) {
                 DrillsView(storage: storage)
             }
 
-            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 4) {
+            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 3) {
                 ProgressTabView(storage: storage)
             }
 
-            Tab("Profile", systemImage: "person.fill", value: 5) {
+            Tab("Profile", systemImage: "person.fill", value: 4) {
                 ProfileView(storage: storage, storeVM: storeVM)
             }
         }
