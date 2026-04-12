@@ -87,6 +87,7 @@ struct ContentView: View {
         .task {
             previousBadgeCount = storage.earnedBadges.count
             storage.markMilestonesShown(storage.earnedBadges)
+            store.syncUserRole(from: storage.profile)
         }
     }
 

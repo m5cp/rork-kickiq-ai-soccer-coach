@@ -17,6 +17,8 @@ struct AnalyzeView: View {
     @State private var showCamera = false
     @State private var showFilmingGuide = false
     @State private var showProfile = false
+    @State private var showPaywall = false
+    @State private var store = StoreViewModel.shared
 
     private var isIPad: Bool { sizeClass == .regular }
 
@@ -94,6 +96,10 @@ struct AnalyzeView: View {
                 .padding(.horizontal, KickIQTheme.Spacing.md)
                 .padding(.vertical, 10)
                 .background(KickIQTheme.card, in: Capsule())
+            }
+
+            if !store.canAnalyze {
+                analysisLimitBanner
             }
 
             clipRequirements
@@ -273,7 +279,54 @@ struct AnalyzeView: View {
         }
     }
 
+    private var analysisLimitBanner: some View {
+        Button {
+            showPaywall = true
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.orange)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Daily analysis limit reached")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("\(store.dailyAnalysisRemaining)/\(store.analysisLimit) analyses remaining today")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                if !store.isPremium {
+                    Text("Upgrade")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(KickIQTheme.accent, in: Capsule())
+                }
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(Color.orange.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.md)
+        .sheet(isPresented: $showPaywall) {
+            PaywallView(store: store, userRole: storage.profile?.userRole ?? .player)
+        }
+    }
+
     private func handleVideoSelection(_ item: PhotosPickerItem) async {
+        guard store.canAnalyze else { return }
+
         if let data = try? await item.loadTransferable(type: Data.self),
            let image = UIImage(data: data) {
             thumbnailImage = image
@@ -290,6 +343,7 @@ struct AnalyzeView: View {
               let position = storage.profile?.position,
               let level = storage.profile?.skillLevel else { return }
 
+        store.consumeAnalysis()
         let result = await aiService.analyzeVideo(frames: extractedFrames, videoURL: videoURL, position: position, skillLevel: level)
 
         if let result {
@@ -300,6 +354,8 @@ struct AnalyzeView: View {
     }
 
     private func handleRecordedVideo(_ url: URL) async {
+        guard store.canAnalyze else { return }
+
         videoURL = url
         let frames = await AIAnalysisService.extractFrames(from: url, count: 4)
         extractedFrames = frames
@@ -309,6 +365,7 @@ struct AnalyzeView: View {
               let position = storage.profile?.position,
               let level = storage.profile?.skillLevel else { return }
 
+        store.consumeAnalysis()
         let result = await aiService.analyzeVideo(frames: extractedFrames, videoURL: videoURL, position: position, skillLevel: level)
 
         if let result {

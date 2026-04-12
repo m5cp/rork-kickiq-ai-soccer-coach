@@ -76,6 +76,43 @@ class StoreViewModel {
         Task { await fetchOfferings() }
     }
 
+    func syncUserRole(from profile: PlayerProfile?) {
+        guard let role = profile?.userRole else { return }
+        if userRole != role {
+            userRole = role
+        }
+    }
+
+    var dailyAnalysisRemaining: Int {
+        let used = UserDefaults.standard.integer(forKey: "kickiq_daily_analysis_count")
+        let dateKey = UserDefaults.standard.string(forKey: "kickiq_daily_analysis_date") ?? ""
+        let today = formattedToday()
+        if dateKey != today { return analysisLimit }
+        return max(0, analysisLimit - used)
+    }
+
+    var canAnalyze: Bool {
+        dailyAnalysisRemaining > 0
+    }
+
+    func consumeAnalysis() {
+        let today = formattedToday()
+        let dateKey = UserDefaults.standard.string(forKey: "kickiq_daily_analysis_date") ?? ""
+        var count = UserDefaults.standard.integer(forKey: "kickiq_daily_analysis_count")
+        if dateKey != today {
+            count = 0
+            UserDefaults.standard.set(today, forKey: "kickiq_daily_analysis_date")
+        }
+        count += 1
+        UserDefaults.standard.set(count, forKey: "kickiq_daily_analysis_count")
+    }
+
+    private func formattedToday() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: .now)
+    }
+
     private func listenForUpdates() async {
         for await info in Purchases.shared.customerInfoStream {
             updateTier(from: info)

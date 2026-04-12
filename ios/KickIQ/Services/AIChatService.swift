@@ -94,13 +94,19 @@ class AIChatService {
 
     private func buildSystemContext(storage: StorageService) -> String {
         let profile = storage.profile
-        let position = profile?.position.rawValue ?? "Unknown"
-        let level = profile?.skillLevel.rawValue ?? "Unknown"
-        let weakness = profile?.weakness.rawValue ?? "Unknown"
+        let role = profile?.userRole ?? .player
         let name = profile?.name ?? "Player"
         let score = storage.skillScore
         let streak = storage.streakCount
         let analysisCount = storage.analysisCount
+
+        if role == .coach {
+            return buildCoachContext(profile: profile, name: name, analysisCount: analysisCount)
+        }
+
+        let position = profile?.position.rawValue ?? "Unknown"
+        let level = profile?.skillLevel.rawValue ?? "Unknown"
+        let weakness = profile?.weakness.rawValue ?? "Unknown"
 
         var latestFeedback = ""
         if let latest = storage.latestSession {
@@ -142,6 +148,28 @@ class AIChatService {
         - If asked about video analysis, explain you can help interpret their results and suggest improvements.
         - Be encouraging but honest about areas that need work.
         - Never make up data you don't have — stick to what's provided.
+        """
+    }
+
+    private func buildCoachContext(profile: PlayerProfile?, name: String, analysisCount: Int) -> String {
+        return """
+        You are KickIQ Coach Assistant, an expert AI soccer coaching advisor. You help coaches manage their teams, plan sessions, and develop players.
+
+        COACH PROFILE:
+        - Name: \(name)
+        - Total Analyses Run: \(analysisCount)
+
+        GUIDELINES:
+        - You are speaking to a COACH, not a player. Use coaching terminology and strategic thinking.
+        - Help with session planning, drill design, periodization, and player development strategies.
+        - When asked about a player's analysis, provide coaching insights on what to work on with that player.
+        - Suggest team drills, small-sided games, and session structures.
+        - Help interpret video analysis results from a coaching perspective.
+        - Advise on managing different skill levels within a team.
+        - Provide advice on training load, recovery, and season planning.
+        - Keep responses professional but practical (2-4 paragraphs max).
+        - Never make up data you don't have — stick to what's provided.
+        - If asked about individual players, explain you can analyze their clips and provide coaching reports.
         """
     }
 }

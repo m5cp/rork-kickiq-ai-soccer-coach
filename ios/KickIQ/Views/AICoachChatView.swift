@@ -10,6 +10,8 @@ struct AICoachChatView: View {
     @State private var appeared = false
     @FocusState private var isInputFocused: Bool
 
+    private var isCoachRole: Bool { storage.profile?.userRole == .coach }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -60,7 +62,7 @@ struct AICoachChatView: View {
                 }
             }
             .sheet(isPresented: $showTokenStore) {
-                TokenStoreSheet(tokenService: tokenService)
+                TokenStoreSheet(tokenService: tokenService, userRole: storage.profile?.userRole ?? .player)
             }
         }
         .presentationDetents([.large])
@@ -127,20 +129,29 @@ struct AICoachChatView: View {
                 }
 
                 VStack(spacing: KickIQTheme.Spacing.sm) {
-                    Text("KickIQ Coach")
+                    Text(isCoachRole ? "Coach Assistant" : "KickIQ Coach")
                         .font(.title2.weight(.bold))
                         .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("Your personal AI soccer coach.\nAsk about drills, technique, or get\nfeedback on your progress.")
+                    Text(isCoachRole
+                         ? "Your AI coaching assistant.\nAsk about session planning, drills,\nor player development strategies."
+                         : "Your personal AI soccer coach.\nAsk about drills, technique, or get\nfeedback on your progress.")
                         .font(.subheadline)
                         .foregroundStyle(KickIQTheme.textSecondary)
                         .multilineTextAlignment(.center)
                 }
 
                 VStack(spacing: KickIQTheme.Spacing.sm) {
-                    suggestionChip("What should I work on today?")
-                    suggestionChip("Explain my latest analysis results")
-                    suggestionChip("Give me a drill for my weak foot")
-                    suggestionChip("How can I improve my first touch?")
+                    if isCoachRole {
+                        suggestionChip("Plan a 90-minute training session for U16")
+                        suggestionChip("Give me a warm-up drill for 20 players")
+                        suggestionChip("How do I develop a weak midfielder?")
+                        suggestionChip("Small-sided game ideas for finishing")
+                    } else {
+                        suggestionChip("What should I work on today?")
+                        suggestionChip("Explain my latest analysis results")
+                        suggestionChip("Give me a drill for my weak foot")
+                        suggestionChip("How can I improve my first touch?")
+                    }
                 }
                 .padding(.horizontal, KickIQTheme.Spacing.lg)
             }
@@ -425,6 +436,7 @@ struct AICoachChatView: View {
 
 struct TokenStoreSheet: View {
     let tokenService: ChatTokenService
+    var userRole: UserRole = .player
     @Environment(\.dismiss) private var dismiss
     @State private var store = StoreViewModel.shared
     @State private var showPaywall = false
@@ -494,7 +506,7 @@ struct TokenStoreSheet: View {
                 }
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView(store: store)
+                PaywallView(store: store, userRole: userRole)
             }
         }
         .presentationDetents([.medium, .large])
