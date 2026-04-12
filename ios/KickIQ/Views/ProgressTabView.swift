@@ -2,16 +2,12 @@ import SwiftUI
 
 struct ProgressTabView: View {
     let storage: StorageService
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var selectedSkill: SkillCategory?
     @State private var appeared = false
     @State private var selectedSession: TrainingSession?
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var showComparison = false
-    @State private var showProfile = false
-
-    private var isIPad: Bool { sizeClass == .regular }
 
     private var position: PlayerPosition {
         storage.profile?.position ?? .midfielder
@@ -20,29 +16,30 @@ struct ProgressTabView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                if isIPad {
-                    iPadProgressLayout
-                } else {
-                    iPhoneProgressLayout
+                VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                    if storage.sessions.isEmpty {
+                        emptyState
+                    } else {
+                        levelOverviewCard
+                        scoreOverTimeCard
+                        if storage.sessions.count >= 2 {
+                            compareSessionsButton
+                        }
+                        skillBreakdownCard
+                        streakHeatmapCard
+                        badgesSection
+                        sessionHistoryList
+                        shareProgressButton
+                    }
                 }
+                .padding(.horizontal, KickIQTheme.Spacing.md)
+                .padding(.bottom, KickIQTheme.Spacing.xl)
             }
             .scrollIndicators(.hidden)
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Progress")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showProfile = true
-                    } label: {
-                        progressProfileIcon
-                    }
-                    .accessibilityLabel("Profile")
-                }
-            }
-            .sheet(isPresented: $showProfile) {
-                ProfileView(storage: storage, calendarService: CalendarService())
-            }
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(item: $selectedSession) { session in
                 NavigationStack {
                     AnalysisResultView(session: session, storage: storage) {
@@ -66,119 +63,22 @@ struct ProgressTabView: View {
         }
     }
 
-    private var iPhoneProgressLayout: some View {
-        VStack(spacing: KickIQTheme.Spacing.md + 4) {
-            if storage.sessions.isEmpty {
-                emptyState
-            } else {
-                levelOverviewCard
-                scoreOverTimeCard
-                if storage.sessions.count >= 2 {
-                    compareSessionsButton
-                }
-                skillBreakdownCard
-                streakHeatmapCard
-                badgesSection
-                sessionHistoryList
-                shareProgressButton
-            }
-        }
-        .padding(.horizontal, KickIQTheme.Spacing.md)
-        .padding(.bottom, KickIQTheme.Spacing.xl)
-    }
-
-    private var iPadProgressLayout: some View {
-        VStack(spacing: KickIQTheme.Spacing.lg) {
-            if storage.sessions.isEmpty {
-                emptyState
-            } else {
-                HStack(alignment: .top, spacing: KickIQTheme.Spacing.lg) {
-                    VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                        levelOverviewCard
-                        scoreOverTimeCard
-                        if storage.sessions.count >= 2 {
-                            compareSessionsButton
-                        }
-                        shareProgressButton
-                    }
-                    .frame(maxWidth: .infinity)
-
-                    VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                        skillBreakdownCard
-                        streakHeatmapCard
-                        badgesSection
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-
-                sessionHistoryList
-            }
-        }
-        .padding(.horizontal, KickIQTheme.Spacing.lg)
-        .padding(.bottom, KickIQTheme.Spacing.xl)
-        .frame(maxWidth: AdaptiveLayout.iPadWideMaxContentWidth)
-        .frame(maxWidth: .infinity)
-    }
-
     private var emptyState: some View {
-        VStack(spacing: KickIQTheme.Spacing.lg) {
-            Spacer().frame(height: 40)
+        VStack(spacing: KickIQTheme.Spacing.md) {
+            Spacer().frame(height: 60)
 
-            ZStack {
-                Circle()
-                    .fill(KickIQTheme.accent.opacity(0.08))
-                    .frame(width: 120, height: 120)
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 48))
+                .foregroundStyle(KickIQTheme.accent.opacity(0.5))
 
-                Circle()
-                    .fill(KickIQTheme.accent.opacity(0.04))
-                    .frame(width: 160, height: 160)
+            Text("No Progress Yet")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(KickIQTheme.textPrimary)
 
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 52))
-                    .foregroundStyle(KickIQTheme.accent.opacity(0.6))
-                    .symbolEffect(.pulse.wholeSymbol, options: .repeating)
-            }
-
-            VStack(spacing: KickIQTheme.Spacing.sm) {
-                Text("No Progress Yet")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(KickIQTheme.textPrimary)
-
-                Text("Complete your first analysis session\nto start tracking your progress")
-                    .font(.subheadline)
-                    .foregroundStyle(KickIQTheme.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            VStack(spacing: KickIQTheme.Spacing.sm) {
-                HStack(spacing: KickIQTheme.Spacing.sm) {
-                    emptyStateStep(number: 1, text: "Upload a training clip")
-                    emptyStateStep(number: 2, text: "Get AI analysis")
-                    emptyStateStep(number: 3, text: "Track your growth")
-                }
-            }
-            .padding(.top, KickIQTheme.Spacing.sm)
-
-            Spacer().frame(height: 20)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func emptyStateStep(number: Int, text: String) -> some View {
-        VStack(spacing: 6) {
-            ZStack {
-                Circle()
-                    .fill(KickIQTheme.accent.opacity(0.15))
-                    .frame(width: 32, height: 32)
-                Text("\(number)")
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(KickIQTheme.accent)
-            }
-            Text(text)
-                .font(.system(size: 10, weight: .medium))
+            Text("Complete your first analysis session\nto start tracking your progress")
+                .font(.subheadline)
                 .foregroundStyle(KickIQTheme.textSecondary)
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
         }
         .frame(maxWidth: .infinity)
     }
@@ -651,30 +551,6 @@ struct ProgressTabView: View {
                 RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
                     .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
             )
-        }
-    }
-
-    @ViewBuilder
-    private var progressProfileIcon: some View {
-        if let avatar = storage.profile?.avatar,
-           let data = avatar.imageDataValue,
-           let uiImage = UIImage(data: data) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 30, height: 30)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.4), lineWidth: 1.5))
-        } else {
-            ZStack {
-                Circle()
-                    .fill(KickIQTheme.accent.opacity(0.15))
-                    .frame(width: 30, height: 30)
-                Image(systemName: "person.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(KickIQTheme.accent)
-            }
-            .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1))
         }
     }
 

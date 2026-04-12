@@ -3,22 +3,10 @@ import PhotosUI
 
 struct ProfileView: View {
     let storage: StorageService
-    let calendarService: CalendarService
-    @Environment(\.dismiss) private var dismiss
     @State private var appeared = false
     @State private var showEditProfile = false
     @State private var showSettings = false
     @State private var showCoachReport = false
-    @State private var showTeam = false
-    @State private var showAICoach = false
-    @State private var showDeleteAlert = false
-    @State private var showSignOutAlert = false
-    @State private var showNotificationPrefs = false
-    @State private var showPostGameDebrief = false
-    @State private var showJournal = false
-    @State private var showPaywall = false
-    @State private var auth = AuthService.shared
-    @State private var store = StoreViewModel.shared
 
     var body: some View {
         NavigationStack {
@@ -26,12 +14,7 @@ struct ProfileView: View {
                 VStack(spacing: KickIQTheme.Spacing.md + 4) {
                     avatarSection
                     statsRow
-                    aiCoachCard
-                    postGameDebriefCard
-                    journalCard
-                    teamCard
                     coachReportCard
-                    notificationCard
                     legalSection
                     supportSection
                     dangerSection
@@ -44,12 +27,8 @@ struct ProfileView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .fontWeight(.semibold)
-                        .foregroundStyle(KickIQTheme.accent)
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showSettings = true
@@ -63,55 +42,12 @@ struct ProfileView: View {
                 ProfileEditSheet(storage: storage)
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView(storage: storage, calendarService: calendarService)
+                SettingsView(storage: storage)
             }
             .sheet(isPresented: $showCoachReport) {
                 CoachReportView(storage: storage)
             }
-            .sheet(isPresented: $showAICoach) {
-                AICoachChatView(storage: storage)
-            }
-            .sheet(isPresented: $showTeam) {
-                TeamView(storage: storage)
-            }
-            .sheet(isPresented: $showNotificationPrefs) {
-                NotificationPreferencesSheet()
-            }
-            .sheet(isPresented: $showPostGameDebrief) {
-                PostGameDebriefView(storage: storage)
-            }
-            .sheet(isPresented: $showJournal) {
-                JournalView(storage: storage)
-            }
-            .sheet(isPresented: $showPaywall) {
-                PaywallView(store: store, userRole: storage.profile?.userRole ?? .player)
-            }
-            .alert("Delete All Data?", isPresented: $showDeleteAlert) {
-                Button("Delete Everything", role: .destructive) {
-                    Task {
-                        if auth.isSignedIn {
-                            await auth.deleteAccount()
-                        }
-                        storage.deleteAccount()
-                        dismiss()
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will permanently delete your profile, all local data, and your account from our servers. This action cannot be undone.")
-            }
-            .alert("Sign Out?", isPresented: $showSignOutAlert) {
-                Button("Sign Out", role: .destructive) {
-                    Task { await auth.signOut() }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("You'll be signed out of team features. Your local data (drills, progress, scores) stays on your phone.")
-            }
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(KickIQTheme.background)
         .onAppear {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
         }
@@ -161,23 +97,17 @@ struct ProfileView: View {
                     }
                 }
 
-                Button {
-                    if !store.isPremium {
-                        showPaywall = true
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: store.isPremium ? "crown.fill" : "bolt.fill")
-                            .font(.system(size: 9))
-                        Text(store.isPremium ? "KICKIQ PRO · \(store.tierDisplayName.uppercased())" : "UPGRADE TO PRO")
-                            .font(.system(size: 10, weight: .black))
-                            .tracking(1.5)
-                    }
-                    .foregroundStyle(store.isPremium ? KickIQTheme.accent : .white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(store.isPremium ? KickIQTheme.accent.opacity(0.15) : KickIQTheme.accent, in: Capsule())
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 9))
+                    Text("KICKIQ ATHLETE")
+                        .font(.system(size: 10, weight: .black))
+                        .tracking(1.5)
                 }
+                .foregroundStyle(KickIQTheme.accent)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
                 .padding(.top, KickIQTheme.Spacing.xs)
             }
         }
@@ -257,191 +187,6 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var aiCoachCard: some View {
-        Button {
-            showAICoach = true
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(Color.purple.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "brain.head.profile.fill")
-                        .font(.title3)
-                        .foregroundStyle(.purple)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("AI Coach")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("Chat with your personal AI soccer coach")
-                        .font(.caption)
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .fill(KickIQTheme.card)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                            .stroke(Color.purple.opacity(0.2), lineWidth: 1)
-                    )
-            )
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.07), value: appeared)
-    }
-
-    private var postGameDebriefCard: some View {
-        Button {
-            showPostGameDebrief = true
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(Color.green.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "sportscourt.fill")
-                        .font(.title3)
-                        .foregroundStyle(.green)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Post-Game Debrief")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("Tell the AI about your game, get a drill plan")
-                        .font(.caption)
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .fill(KickIQTheme.card)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                            .stroke(Color.green.opacity(0.2), lineWidth: 1)
-                    )
-            )
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.08), value: appeared)
-    }
-
-    private var journalCard: some View {
-        Button {
-            showJournal = true
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(Color.indigo.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "book.closed.fill")
-                        .font(.title3)
-                        .foregroundStyle(.indigo)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text("Journal")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(KickIQTheme.textPrimary)
-                        if storage.journalEntries.count > 0 {
-                            Text("\(storage.journalEntries.count)")
-                                .font(.system(size: 10, weight: .black))
-                                .foregroundStyle(.white)
-                                .frame(width: 20, height: 20)
-                                .background(.indigo, in: Circle())
-                        }
-                    }
-                    Text("Debriefs, chats & analysis logs")
-                        .font(.caption)
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .fill(KickIQTheme.card)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                            .stroke(Color.indigo.opacity(0.2), lineWidth: 1)
-                    )
-            )
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.085), value: appeared)
-    }
-
-    private var teamCard: some View {
-        Button {
-            showTeam = true
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(Color.blue.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "person.3.fill")
-                        .font(.title3)
-                        .foregroundStyle(.blue)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Team")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("Manage teams, leaderboards, and challenges")
-                        .font(.caption)
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .fill(KickIQTheme.card)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                            .stroke(Color.blue.opacity(0.2), lineWidth: 1)
-                    )
-            )
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.09), value: appeared)
-    }
-
     private var coachReportCard: some View {
         Button {
             showCoachReport = true
@@ -483,51 +228,7 @@ struct ProfileView: View {
         }
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.11), value: appeared)
-    }
-
-    private var notificationCard: some View {
-        Button {
-            showNotificationPrefs = true
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "bell.badge.fill")
-                        .font(.title3)
-                        .foregroundStyle(.orange)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Notifications")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("Manage streak reminders & weekly summaries")
-                        .font(.caption)
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .fill(KickIQTheme.card)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                            .stroke(Color.orange.opacity(0.2), lineWidth: 1)
-                    )
-            )
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.13), value: appeared)
+        .animation(.spring(response: 0.5).delay(0.1), value: appeared)
     }
 
     private var legalSection: some View {
@@ -571,7 +272,6 @@ struct ProfileView: View {
                     }
                 }
                 settingsActionRow(icon: "arrow.counterclockwise", title: "Restore Purchases") {
-                    Task { await store.restore() }
                 }
             }
         }
@@ -584,15 +284,7 @@ struct ProfileView: View {
         VStack(spacing: 0) {
             sectionHeader("ACCOUNT")
 
-            VStack(spacing: 2) {
-                if auth.isSignedIn {
-                    settingsActionRow(icon: "rectangle.portrait.and.arrow.right", title: "Sign Out") {
-                        showSignOutAlert = true
-                    }
-                }
-                settingsActionRow(icon: "trash.fill", title: "Delete All Data", isDestructive: true) {
-                    showDeleteAlert = true
-                }
+            settingsActionRow(icon: "trash.fill", title: "Delete Account", isDestructive: true) {
             }
         }
         .opacity(appeared ? 1 : 0)

@@ -3,9 +3,7 @@ import StoreKit
 
 struct HomeView: View {
     let storage: StorageService
-    let calendarService: CalendarService
     @Binding var selectedTab: Int
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var appeared = false
     @State private var streakBounce = false
     @State private var scoreAnimated = false
@@ -13,11 +11,6 @@ struct HomeView: View {
     @State private var showReassessment = false
     @State private var showWeeklyGoal = false
     @State private var showTrainingPlan = false
-    @State private var showQRScanner = false
-    @State private var showSkillAssessment = false
-    @State private var showProfile = false
-    @State private var showAICoach = false
-    @State private var showFeedbackPrompt = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
@@ -28,88 +21,49 @@ struct HomeView: View {
         }
     }
 
-    private var isIPad: Bool { sizeClass == .regular }
-
-    private var showStreakAtRisk: Bool {
-        let hour = Calendar.current.component(.hour, from: .now)
-        guard hour >= 17 else { return false }
-        guard storage.streakCount > 0 else { return false }
-        guard !storage.streakFrozenToday else { return false }
-        if let last = storage.lastSessionDate {
-            return !Calendar.current.isDateInToday(last)
-        }
-        return false
-    }
-
     var body: some View {
         NavigationStack {
             ScrollView {
-                if isIPad {
-                    iPadHomeLayout
-                } else {
-                    iPhoneHomeLayout
+                VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                    headerSection
+                    playerLevelCard
+                    skillScoreCard
+                    weeklyGoalCard
+                    streakCard
+                    analyzeCTA
+                    trainingPlanCTA
+                    todaysDrillCard
+                    if storage.shouldShowMonthlyReassessment {
+                        reassessmentCard
+                    }
+                    if let session = storage.latestSession {
+                        recentAnalysisCard(session)
+                    }
                 }
+                .padding(.horizontal, KickIQTheme.Spacing.md)
+                .padding(.bottom, KickIQTheme.Spacing.xl)
             }
             .scrollIndicators(.hidden)
-            .refreshable {
-                await refreshHomeData()
-            }
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    HStack(spacing: 12) {
-                        Button {
-                            showQRScanner = true
-                        } label: {
-                            Image(systemName: "qrcode.viewfinder")
-                                .foregroundStyle(KickIQTheme.accent)
-                        }
-                        .accessibilityLabel("Scan QR code")
-                        Button {
-                            showAICoach = true
-                        } label: {
-                            Image(systemName: "brain.head.profile.fill")
-                                .foregroundStyle(KickIQTheme.accent)
-                        }
-                        .accessibilityLabel("AI Coach chat")
-                    }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showProfile = true
+                        showSettings = true
                     } label: {
-                        profileToolbarIcon
+                        Image(systemName: "gearshape.fill")
+                            .foregroundStyle(KickIQTheme.textSecondary)
                     }
-                    .accessibilityLabel("Profile")
                 }
             }
-            .sheet(isPresented: $showProfile) {
-                ProfileView(storage: storage, calendarService: calendarService)
-            }
-            .sheet(isPresented: $showAICoach) {
-                AICoachChatView(storage: storage)
-            }
             .sheet(isPresented: $showSettings) {
-                SettingsView(storage: storage, calendarService: calendarService)
+                SettingsView(storage: storage)
             }
             .sheet(isPresented: $showWeeklyGoal) {
                 WeeklyGoalSheet(storage: storage)
             }
             .sheet(isPresented: $showTrainingPlan) {
                 TrainingPlanView(storage: storage)
-            }
-            .sheet(isPresented: $showQRScanner) {
-                QRScannerView(storage: storage)
-            }
-            .sheet(isPresented: $showSkillAssessment) {
-                SkillAssessmentView(storage: storage)
-            }
-            .sheet(isPresented: $showFeedbackPrompt) {
-                FeedbackPromptView(storage: storage)
-                    .presentationDetents([.medium])
-                    .presentationDragIndicator(.visible)
-                    .presentationBackground(KickIQTheme.background)
             }
         }
         .onAppear {
@@ -126,117 +80,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - iPhone Layout
-
-    private var iPhoneHomeLayout: some View {
-        VStack(spacing: KickIQTheme.Spacing.md + 4) {
-            headerSection
-            if showStreakAtRisk {
-                streakAtRiskBanner
-            }
-            heroCard
-            startSessionCTA
-            quickActions
-            trainingPlanCTA
-            todaysDrillCard
-            if storage.shouldShowMonthlyReassessment {
-                reassessmentCard
-            }
-            if let session = storage.latestSession {
-                recentAnalysisCard(session)
-            }
-            tipOfTheDayCard
-        }
-        .padding(.horizontal, KickIQTheme.Spacing.md)
-        .padding(.bottom, KickIQTheme.Spacing.xl)
-    }
-
-    // MARK: - iPad Layout
-
-    private var iPadHomeLayout: some View {
-        VStack(spacing: KickIQTheme.Spacing.lg) {
-            headerSection
-
-            if showStreakAtRisk {
-                streakAtRiskBanner
-            }
-
-            HStack(alignment: .top, spacing: KickIQTheme.Spacing.lg) {
-                VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                    heroCard
-                    startSessionCTA
-                }
-                .frame(maxWidth: .infinity)
-
-                VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                    quickActions
-                    trainingPlanCTA
-                }
-                .frame(maxWidth: .infinity)
-            }
-
-            todaysDrillCard
-
-            if storage.shouldShowMonthlyReassessment {
-                reassessmentCard
-            }
-            if let session = storage.latestSession {
-                recentAnalysisCard(session)
-            }
-            tipOfTheDayCard
-        }
-        .padding(.horizontal, KickIQTheme.Spacing.lg)
-        .padding(.bottom, KickIQTheme.Spacing.xl)
-        .frame(maxWidth: AdaptiveLayout.iPadWideMaxContentWidth)
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Streak At Risk Banner
-
-    private var streakAtRiskBanner: some View {
-        Button {
-            selectedTab = 1
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.sm + 2) {
-                Image(systemName: "flame.fill")
-                    .font(.title3)
-                    .foregroundStyle(.orange)
-                    .symbolEffect(.pulse.wholeSymbol, options: .repeating)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Your \(storage.streakCount)-day streak is at risk!")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("Train now to keep it alive")
-                        .font(.caption)
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.orange.opacity(0.6))
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .fill(Color.orange.opacity(0.08))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-                    )
-            )
-        }
-        .sensoryFeedback(.warning, trigger: showStreakAtRisk)
-        .transition(.move(edge: .top).combined(with: .opacity))
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.03), value: appeared)
-    }
-
-    // MARK: - Cards
-
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: KickIQTheme.Spacing.xs) {
             Text("KICKIQ")
@@ -245,7 +88,7 @@ struct HomeView: View {
                 .foregroundStyle(KickIQTheme.accent)
 
             Text("\(greeting), \(storage.profile?.name ?? "Player")")
-                .font(.system(isIPad ? .title : .title2, design: .default, weight: .bold))
+                .font(.system(.title2, design: .default, weight: .bold))
                 .foregroundStyle(KickIQTheme.textPrimary)
 
             HStack(spacing: 6) {
@@ -268,378 +111,187 @@ struct HomeView: View {
         .offset(y: appeared ? 0 : 10)
     }
 
-    // MARK: - Hero Card (consolidated score + streak + level)
-
-    private var heroCard: some View {
+    private var skillScoreCard: some View {
         let score = storage.skillScore
-        let circleSize: CGFloat = isIPad ? 130 : 110
 
         return VStack(spacing: KickIQTheme.Spacing.md) {
-            HStack(spacing: KickIQTheme.Spacing.lg) {
-                ZStack {
-                    Circle()
-                        .stroke(KickIQTheme.divider, lineWidth: 8)
-                        .frame(width: circleSize, height: circleSize)
+            Text("SKILL SCORE")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(KickIQTheme.accent)
 
-                    Circle()
-                        .trim(from: 0, to: scoreAnimated ? Double(score) / 100.0 : 0)
-                        .stroke(
-                            AngularGradient(
-                                colors: [KickIQTheme.accent, KickIQTheme.accent.opacity(0.4), KickIQTheme.accent],
-                                center: .center
-                            ),
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        .frame(width: circleSize, height: circleSize)
-                        .rotationEffect(.degrees(-90))
-
-                    VStack(spacing: 0) {
-                        Text("\(score)")
-                            .font(.system(size: isIPad ? 44 : 38, weight: .black, design: .default))
-                            .foregroundStyle(KickIQTheme.textPrimary)
-                            .contentTransition(.numericText())
-                        Text("/ 100")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(KickIQTheme.textSecondary)
-                    }
-                    .scaleEffect(scoreAnimated ? 1 : 0.6)
-                    .opacity(scoreAnimated ? 1 : 0)
-                }
-
-                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm + 2) {
-                    HStack(spacing: 6) {
-                        Image(systemName: storage.streakFrozenToday ? "snowflake" : "flame.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(storage.streakFrozenToday ? .blue : storage.streakCount > 0 ? KickIQTheme.accent : KickIQTheme.textSecondary.opacity(0.4))
-                            .symbolEffect(.bounce, value: streakBounce)
-                        Text("\(storage.streakCount)")
-                            .font(.system(.title3, design: .default, weight: .black))
-                            .foregroundStyle(KickIQTheme.textPrimary)
-                        Text("day streak")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(KickIQTheme.textSecondary)
-                    }
-
-                    HStack(spacing: 6) {
-                        Image(systemName: storage.playerLevel.icon)
-                            .font(.system(size: 12))
-                            .foregroundStyle(KickIQTheme.accent)
-                        Text(storage.playerLevel.rawValue)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(KickIQTheme.accent)
-                        Text("\(storage.xpPoints) XP")
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(KickIQTheme.textSecondary)
-                    }
-
-                    if let progress = storage.xpProgress {
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(KickIQTheme.divider)
-                                    .frame(height: 5)
-                                Capsule()
-                                    .fill(KickIQTheme.accent)
-                                    .frame(width: max(0, geo.size.width * Double(progress.current) / Double(max(1, progress.needed))), height: 5)
-                            }
-                        }
-                        .frame(height: 5)
-                    }
-
-                    Button {
-                        showWeeklyGoal = true
-                    } label: {
-                        let goal = storage.weeklyGoal
-                        let completed = storage.weeklySessionsCompleted
-                        let target = goal?.sessionsPerWeek ?? 3
-                        HStack(spacing: 4) {
-                            Image(systemName: "target")
-                                .font(.system(size: 10, weight: .semibold))
-                            Text(goal != nil ? "\(completed)/\(target) weekly" : "Set goal")
-                                .font(.caption2.weight(.bold))
-                        }
-                        .foregroundStyle(completed >= target && goal != nil ? .green : KickIQTheme.accent)
-                    }
-                }
-            }
-
-            if storage.canUseStreakFreeze && !storage.streakFrozenToday {
-                Button {
-                    storage.useStreakFreeze()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "snowflake")
-                            .font(.caption.weight(.bold))
-                        Text("Use Streak Freeze")
-                            .font(.caption.weight(.bold))
-                        Text("(1/week)")
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(.blue.opacity(0.7))
-                    }
-                    .foregroundStyle(.blue)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(Color.blue.opacity(0.1), in: .rect(cornerRadius: KickIQTheme.Radius.sm))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.sm)
-                            .stroke(Color.blue.opacity(0.2), lineWidth: 1)
-                    )
-                }
-            }
-        }
-        .padding(KickIQTheme.Spacing.md)
-        .background {
             ZStack {
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.xl)
-                    .fill(KickIQTheme.card)
+                Circle()
+                    .stroke(KickIQTheme.divider, lineWidth: 10)
+                    .frame(width: 140, height: 140)
 
-                MeshGradient(
-                    width: 3, height: 3,
-                    points: [
-                        .init(0, 0), .init(0.5, 0), .init(1, 0),
-                        .init(0, 0.5), .init(0.5, 0.5), .init(1, 0.5),
-                        .init(0, 1), .init(0.5, 1), .init(1, 1)
-                    ],
-                    colors: [
-                        .clear, KickIQTheme.accent.opacity(0.04), .clear,
-                        KickIQTheme.accent.opacity(0.02), KickIQTheme.accent.opacity(0.08), KickIQTheme.accent.opacity(0.02),
-                        .clear, KickIQTheme.accent.opacity(0.03), .clear
-                    ]
-                )
-                .clipShape(.rect(cornerRadius: KickIQTheme.Radius.xl))
+                Circle()
+                    .trim(from: 0, to: scoreAnimated ? Double(score) / 100.0 : 0)
+                    .stroke(
+                        AngularGradient(
+                            colors: [KickIQTheme.accent, KickIQTheme.accent.opacity(0.4), KickIQTheme.accent],
+                            center: .center
+                        ),
+                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                    )
+                    .frame(width: 140, height: 140)
+                    .rotationEffect(.degrees(-90))
 
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.xl)
-                    .stroke(KickIQTheme.accent.opacity(0.15), lineWidth: 1)
+                VStack(spacing: 0) {
+                    Text("\(score)")
+                        .font(.system(size: 48, weight: .black, design: .default))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                        .contentTransition(.numericText())
+                    Text("/ 100")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+                .scaleEffect(scoreAnimated ? 1 : 0.6)
+                .opacity(scoreAnimated ? 1 : 0)
             }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, KickIQTheme.Spacing.lg)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.xl))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Skill score \(score) out of 100. \(storage.streakCount) day streak. Level \(storage.playerLevel.rawValue)")
+        .accessibilityLabel("Skill score \(score) out of 100")
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.05), value: appeared)
     }
 
-    // MARK: - Primary CTA
+    private var playerLevelCard: some View {
+        VStack(spacing: KickIQTheme.Spacing.sm) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: storage.playerLevel.icon)
+                        .font(.subheadline)
+                        .foregroundStyle(KickIQTheme.accent)
+                    Text(storage.playerLevel.rawValue.uppercased())
+                        .font(.caption.weight(.black))
+                        .tracking(1)
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+                Spacer()
+                if let progress = storage.xpProgress {
+                    Text("\(progress.current)/\(progress.needed) XP")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                } else {
+                    Text("MAX LEVEL")
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+            }
 
-    private var startSessionCTA: some View {
-        Button {
-            if storage.smartTrainingPlan?.todaysPlan != nil {
-                selectedTab = 3
-            } else {
-                selectedTab = 1
+            if let progress = storage.xpProgress {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(KickIQTheme.divider)
+                            .frame(height: 6)
+                        Capsule()
+                            .fill(KickIQTheme.accent)
+                            .frame(width: max(0, geo.size.width * Double(progress.current) / Double(max(1, progress.needed))), height: 6)
+                    }
+                }
+                .frame(height: 6)
+
+                if let next = storage.playerLevel.nextLevel {
+                    Text("Next: \(next.rawValue)")
+                        .font(.caption2)
+                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.6))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
             }
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.sm) {
-                Image(systemName: storage.smartTrainingPlan?.todaysPlan != nil ? "play.fill" : "video.fill")
-                    .font(.title3.weight(.semibold))
-                Text(storage.smartTrainingPlan?.todaysPlan != nil ? "Start Today's Session" : "Analyze a Clip")
-                    .font(.headline)
-            }
-            .foregroundStyle(.black)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
-            .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
         }
-        .sensoryFeedback(.impact(weight: .medium), trigger: selectedTab)
-        .accessibilityLabel(storage.smartTrainingPlan?.todaysPlan != nil ? "Start today's training session" : "Analyze a new clip")
-        .accessibilityHint("Double tap to begin")
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.07), value: appeared)
+    }
+
+    private var streakCard: some View {
+        HStack(spacing: KickIQTheme.Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(storage.isStreakBroken ? Color.red.opacity(0.12) : KickIQTheme.accent.opacity(0.15))
+                    .frame(width: 52, height: 52)
+
+                Image(systemName: storage.isStreakBroken ? "flame" : "flame.fill")
+                    .font(.system(size: 26))
+                    .foregroundStyle(storage.isStreakBroken ? KickIQTheme.textSecondary : KickIQTheme.accent)
+                    .symbolEffect(.bounce, value: streakBounce)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(storage.streakCount)")
+                        .font(.system(.title2, design: .default, weight: .black))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("day streak")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Text(storage.streakMessage)
+                    .font(.caption)
+                    .foregroundStyle(storage.isStreakBroken ? KickIQTheme.accent : KickIQTheme.textSecondary.opacity(0.7))
+            }
+
+            Spacer()
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(storage.streakCount) day streak. \(storage.streakMessage)")
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.1), value: appeared)
     }
 
-    // MARK: - Quick Actions Row
+    private var weeklyGoalCard: some View {
+        let goal = storage.weeklyGoal
+        let completed = storage.weeklySessionsCompleted
+        let target = goal?.sessionsPerWeek ?? 3
+        let progress = min(Double(completed) / Double(max(target, 1)), 1.0)
 
-    private var quickActions: some View {
-        HStack(spacing: KickIQTheme.Spacing.sm) {
-            quickActionButton(icon: "video.fill", label: "Analyze") {
-                selectedTab = 1
-            }
-            quickActionButton(icon: "clipboard.fill", label: "Assess") {
-                showSkillAssessment = true
-            }
-            quickActionButton(icon: "target", label: "Goals") {
-                showWeeklyGoal = true
-            }
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.12), value: appeared)
-    }
-
-    private func quickActionButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(KickIQTheme.accent)
-                Text(label)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(KickIQTheme.textSecondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, KickIQTheme.Spacing.md)
-            .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-        }
-    }
-
-    private var trainingPlanCTA: some View {
-        Button {
-            selectedTab = 3
-        } label: {
-            Group {
-                if let plan = storage.smartTrainingPlan, let today = plan.todaysPlan {
-                    smartPlanCard(today, plan: plan)
-                } else {
-                    HStack(spacing: KickIQTheme.Spacing.md) {
-                        ZStack {
-                            Circle()
-                                .fill(KickIQTheme.accent.opacity(0.15))
-                                .frame(width: 44, height: 44)
-                            Image(systemName: "calendar.badge.plus")
-                                .font(.title3)
-                                .foregroundStyle(KickIQTheme.accent)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Smart Training Plan")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(KickIQTheme.textPrimary)
-                            Text("30-day daily plan based on your weaknesses")
-                                .font(.caption)
-                                .foregroundStyle(KickIQTheme.textSecondary)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
-                    }
-                    .padding(KickIQTheme.Spacing.md)
-                    .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-                }
-            }
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.17), value: appeared)
-    }
-
-    private func smartPlanCard(_ today: DailyPlan, plan: SmartTrainingPlan) -> some View {
-        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.md) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "calendar")
-                            .font(.caption)
-                        Text("TODAY'S SESSION")
-                            .font(.caption.weight(.bold))
-                            .tracking(1)
-                    }
-                    .foregroundStyle(KickIQTheme.accent)
-
-                    Text(today.focus)
-                        .font(.headline)
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                }
-                Spacer()
-                VStack(spacing: 2) {
-                    Text("DAY")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(KickIQTheme.accent)
-                    Text("\(today.dayNumber)")
-                        .font(.system(size: 20, weight: .black))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                }
-                .frame(width: 42, height: 42)
-                .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.sm))
-            }
-
-            HStack(spacing: KickIQTheme.Spacing.sm) {
-                HStack(spacing: 4) {
-                    Image(systemName: today.intensity.icon)
-                        .font(.system(size: 10))
-                    Text(today.intensity.rawValue)
-                        .font(.caption2.weight(.bold))
-                }
-                .foregroundStyle(intensityColor(today.intensity))
-
-                HStack(spacing: 4) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 10))
-                    Text(today.duration.label)
-                        .font(.caption2.weight(.bold))
-                }
-                .foregroundStyle(KickIQTheme.textSecondary)
-
-                HStack(spacing: 4) {
-                    Image(systemName: today.mode.icon)
-                        .font(.system(size: 10))
-                    Text(today.mode.rawValue)
-                        .font(.caption2.weight(.bold))
-                }
-                .foregroundStyle(KickIQTheme.textSecondary)
-
-                Spacer()
-
-                Text("\(today.completedCount)/\(today.drills.count) drills")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(today.isFullyCompleted ? .green : KickIQTheme.accent)
-            }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(KickIQTheme.divider)
-                        .frame(height: 6)
-                    Capsule()
-                        .fill(today.isFullyCompleted ? Color.green : KickIQTheme.accent)
-                        .frame(width: max(0, geo.size.width * today.progressPercent), height: 6)
-                }
-            }
-            .frame(height: 6)
-        }
-        .padding(KickIQTheme.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                .fill(KickIQTheme.card)
-                .overlay(
-                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                        .stroke(KickIQTheme.accent.opacity(0.25), lineWidth: 1)
-                )
-        )
-    }
-
-    private func intensityColor(_ intensity: TrainingIntensity) -> Color {
-        switch intensity {
-        case .light: .green
-        case .medium: .orange
-        case .heavy: .red
-        }
-    }
-
-    private var skillAssessmentCTA: some View {
-        Button {
-            showSkillAssessment = true
+        return Button {
+            showWeeklyGoal = true
         } label: {
             HStack(spacing: KickIQTheme.Spacing.md) {
                 ZStack {
                     Circle()
-                        .fill(Color.purple.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "clipboard.fill")
-                        .font(.title3)
-                        .foregroundStyle(.purple)
+                        .stroke(KickIQTheme.divider, lineWidth: 5)
+                        .frame(width: 52, height: 52)
+
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(KickIQTheme.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .frame(width: 52, height: 52)
+                        .rotationEffect(.degrees(-90))
+
+                    Text("\(completed)/\(target)")
+                        .font(.system(size: 12, weight: .black))
+                        .foregroundStyle(KickIQTheme.textPrimary)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Skill Assessment")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("Test your skills with timed challenges")
-                        .font(.caption)
-                        .foregroundStyle(KickIQTheme.textSecondary)
+                    Text("WEEKLY GOAL")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(KickIQTheme.accent)
+
+                    if goal != nil {
+                        Text(completed >= target ? "Goal reached! 🎯" : "\(target - completed) more to go")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(completed >= target ? .green : KickIQTheme.textSecondary)
+                    } else {
+                        Text("Tap to set a weekly training goal")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(KickIQTheme.textSecondary)
+                    }
                 }
 
                 Spacer()
@@ -654,13 +306,50 @@ struct HomeView: View {
                     .fill(KickIQTheme.card)
                     .overlay(
                         RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                            .stroke(Color.purple.opacity(0.2), lineWidth: 1)
+                            .stroke(completed >= target && goal != nil ? KickIQTheme.accent.opacity(0.3) : Color.clear, lineWidth: 1)
                     )
             )
         }
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.16), value: appeared)
+        .animation(.spring(response: 0.5).delay(0.08), value: appeared)
+    }
+
+    private var trainingPlanCTA: some View {
+        Button {
+            showTrainingPlan = true
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(KickIQTheme.accent.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.title3)
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(storage.trainingPlan != nil ? "Your Training Plan" : "Get a Training Plan")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text(storage.trainingPlan != nil ? "View your personalized weekly schedule" : "AI-generated plan based on your weaknesses")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.17), value: appeared)
     }
 
     private var analyzeCTA: some View {
@@ -678,6 +367,10 @@ struct HomeView: View {
             .padding(.vertical, 18)
             .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
         }
+        .sensoryFeedback(.impact(weight: .medium), trigger: selectedTab)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.15), value: appeared)
     }
 
     private var todaysDrillCard: some View {
@@ -693,51 +386,45 @@ struct HomeView: View {
         ]
         let todaysDrillName = drillNames[drillIndex % drillNames.count]
 
-        return Group {
-            if storage.smartTrainingPlan?.todaysPlan != nil {
-                EmptyView()
-            } else {
-                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-                    HStack {
-                        HStack(spacing: 6) {
-                            Image(systemName: "calendar")
-                                .font(.caption)
-                            Text("TODAY'S DRILL")
-                                .font(.caption.weight(.bold))
-                                .tracking(1)
-                        }
-                        .foregroundStyle(KickIQTheme.accent)
-                        Spacer()
-                        Image(systemName: weakSkill.icon)
-                            .font(.caption)
-                            .foregroundStyle(KickIQTheme.accent)
-                    }
-
-                    Text(todaysDrillName)
-                        .font(.headline)
-                        .foregroundStyle(KickIQTheme.textPrimary)
-
-                    Text("Focus: \(weakSkill.rawValue) — tailored to your weakest area. Resets daily.")
-                        .font(.subheadline)
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                        .lineLimit(2)
-
-                    Button {
-                        selectedTab = 3
-                    } label: {
-                        Text("Start Drill")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(KickIQTheme.accent)
-                            .padding(.horizontal, KickIQTheme.Spacing.md)
-                            .padding(.vertical, KickIQTheme.Spacing.sm)
-                            .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.sm))
-                    }
-                    .padding(.top, KickIQTheme.Spacing.xs)
+        return VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.caption)
+                    Text("TODAY'S DRILL")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
                 }
-                .padding(KickIQTheme.Spacing.md)
-                .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                .foregroundStyle(KickIQTheme.accent)
+                Spacer()
+                Image(systemName: weakSkill.icon)
+                    .font(.caption)
+                    .foregroundStyle(KickIQTheme.accent)
             }
+
+            Text(todaysDrillName)
+                .font(.headline)
+                .foregroundStyle(KickIQTheme.textPrimary)
+
+            Text("Focus: \(weakSkill.rawValue) — tailored to your weakest area. Resets daily.")
+                .font(.subheadline)
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .lineLimit(2)
+
+            Button {
+                selectedTab = 2
+            } label: {
+                Text("Start Drill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.accent)
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
+                    .padding(.vertical, KickIQTheme.Spacing.sm)
+                    .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.sm))
+            }
+            .padding(.top, KickIQTheme.Spacing.xs)
         }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.2), value: appeared)
@@ -811,7 +498,7 @@ struct HomeView: View {
             }
 
             HStack(spacing: KickIQTheme.Spacing.sm) {
-                ForEach(session.skillScores.prefix(isIPad ? 5 : 3)) { score in
+                ForEach(session.skillScores.prefix(3)) { score in
                     VStack(spacing: 6) {
                         ZStack {
                             Circle()
@@ -838,7 +525,7 @@ struct HomeView: View {
             Text(session.feedback)
                 .font(.caption)
                 .foregroundStyle(KickIQTheme.textSecondary)
-                .lineLimit(isIPad ? 3 : 2)
+                .lineLimit(2)
         }
         .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
@@ -847,78 +534,13 @@ struct HomeView: View {
         .animation(.spring(response: 0.5).delay(0.25), value: appeared)
     }
 
-    private var tipOfTheDayCard: some View {
-        let tip = SoccerTip.tipOfTheDay()
-        return VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-            HStack(spacing: 6) {
-                Image(systemName: "lightbulb.fill")
-                    .font(.caption)
-                Text("TIP OF THE DAY")
-                    .font(.caption.weight(.bold))
-                    .tracking(1)
-            }
-            .foregroundStyle(.yellow)
-
-            Text(tip.text)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
-                .lineSpacing(3)
-
-            HStack(spacing: 6) {
-                Image(systemName: tip.icon)
-                    .font(.system(size: 10, weight: .semibold))
-                Text(tip.category)
-                    .font(.caption2.weight(.bold))
-            }
-            .foregroundStyle(KickIQTheme.textSecondary)
-        }
-        .padding(KickIQTheme.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                .fill(KickIQTheme.card)
-                .overlay(
-                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                        .stroke(Color.yellow.opacity(0.15), lineWidth: 1)
-                )
-        )
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.3), value: appeared)
-    }
-
-    private func refreshHomeData() async {
-        try? await Task.sleep(for: .seconds(0.5))
-        storage.loadAll()
-    }
-
     private func checkReviewPrompt() {
         guard storage.shouldPromptReview else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            showFeedbackPrompt = true
-        }
-    }
-
-    @ViewBuilder
-    private var profileToolbarIcon: some View {
-        if let avatar = storage.profile?.avatar,
-           let data = avatar.imageDataValue,
-           let uiImage = UIImage(data: data) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 30, height: 30)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.4), lineWidth: 1.5))
-        } else {
-            ZStack {
-                Circle()
-                    .fill(KickIQTheme.accent.opacity(0.15))
-                    .frame(width: 30, height: 30)
-                Image(systemName: "person.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(KickIQTheme.accent)
+            if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                AppStore.requestReview(in: scene)
+                storage.recordReviewPrompt()
             }
-            .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1))
         }
     }
 }
@@ -996,8 +618,6 @@ struct ReassessmentSheet: View {
                     }
                 }
                 .padding(.horizontal, KickIQTheme.Spacing.md)
-                .frame(maxWidth: AdaptiveLayout.iPadMaxContentWidth)
-                .frame(maxWidth: .infinity)
             }
             .scrollIndicators(.hidden)
             .background(KickIQTheme.background.ignoresSafeArea())

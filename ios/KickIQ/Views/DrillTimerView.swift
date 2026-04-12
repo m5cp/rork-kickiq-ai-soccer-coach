@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 import Combine
 
 struct DrillTimerView: View {
@@ -13,14 +12,8 @@ struct DrillTimerView: View {
     @State private var isResting: Bool = false
     @State private var timerActive: Bool = false
     @State private var showComplete: Bool = false
-    @State private var repCount: Int = 0
-    @State private var voiceEnabled: Bool = true
-    @State private var lastSpokenCueIndex: Int = -1
-    @State private var currentCueText: String = ""
-    @State private var showCue: Bool = false
 
     private let restDuration: Int = 30
-    private let synthesizer = AVSpeechSynthesizer()
 
     var body: some View {
         NavigationStack {
@@ -29,36 +22,21 @@ struct DrillTimerView: View {
 
                 timerRing
                 timerLabel
-
-                if showCue {
-                    coachingCueBanner
-                }
-
-                repCounter
                 setIndicator
                 controlButtons
 
+                Spacer()
                 Spacer()
             }
             .padding(.horizontal, KickIQTheme.Spacing.md)
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle(drill.name)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        synthesizer.stopSpeaking(at: .immediate)
-                        dismiss()
-                    }
-                    .foregroundStyle(KickIQTheme.accent)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        voiceEnabled.toggle()
-                    } label: {
-                        Image(systemName: voiceEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                            .foregroundStyle(voiceEnabled ? KickIQTheme.accent : KickIQTheme.textSecondary)
-                    }
+                    Button("Done") { dismiss() }
+                        .foregroundStyle(KickIQTheme.accent)
                 }
             }
             .overlay {
@@ -74,9 +52,6 @@ struct DrillTimerView: View {
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             guard timerActive else { return }
             tick()
-        }
-        .onDisappear {
-            synthesizer.stopSpeaking(at: .immediate)
         }
     }
 
@@ -124,63 +99,6 @@ struct DrillTimerView: View {
         }
     }
 
-    private var coachingCueBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "quote.bubble.fill")
-                .font(.caption)
-                .foregroundStyle(KickIQTheme.accent)
-
-            Text(currentCueText)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(KickIQTheme.textPrimary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-        }
-        .padding(.horizontal, KickIQTheme.Spacing.md)
-        .padding(.vertical, KickIQTheme.Spacing.sm + 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(KickIQTheme.accent.opacity(0.1), in: .rect(cornerRadius: KickIQTheme.Radius.md))
-        .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
-    }
-
-    private var repCounter: some View {
-        HStack(spacing: KickIQTheme.Spacing.lg) {
-            Button {
-                if repCount > 0 {
-                    repCount -= 1
-                }
-            } label: {
-                Image(systemName: "minus")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(KickIQTheme.textSecondary)
-                    .frame(width: 44, height: 44)
-                    .background(KickIQTheme.card, in: Circle())
-            }
-
-            VStack(spacing: 2) {
-                Text("\(repCount)")
-                    .font(.system(size: 32, weight: .black, design: .monospaced))
-                    .foregroundStyle(KickIQTheme.textPrimary)
-                    .contentTransition(.numericText())
-                Text("REPS")
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.6))
-            }
-
-            Button {
-                repCount += 1
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(KickIQTheme.accent)
-                    .frame(width: 44, height: 44)
-                    .background(KickIQTheme.accent.opacity(0.15), in: Circle())
-            }
-            .sensoryFeedback(.impact(weight: .light), trigger: repCount)
-        }
-    }
-
     private var setIndicator: some View {
         HStack(spacing: KickIQTheme.Spacing.sm) {
             ForEach(1...totalSets, id: \.self) { set in
@@ -204,16 +122,8 @@ struct DrillTimerView: View {
             }
 
             Button {
-                if !timerActive {
-                    timerActive = true
-                    isRunning = true
-                    if currentSet == 1 && timeRemaining == totalTime {
-                        speak("Let's go! Set 1 of \(totalSets). \(drill.targetSkill).")
-                    }
-                } else {
-                    timerActive = false
-                    isRunning = false
-                }
+                timerActive.toggle()
+                isRunning = timerActive
             } label: {
                 Image(systemName: timerActive ? "pause.fill" : "play.fill")
                     .font(.title)
@@ -252,21 +162,7 @@ struct DrillTimerView: View {
                     .font(.subheadline)
                     .foregroundStyle(KickIQTheme.textSecondary)
 
-                if repCount > 0 {
-                    HStack(spacing: 6) {
-                        Image(systemName: "trophy.fill")
-                            .foregroundStyle(.orange)
-                        Text("\(repCount) reps logged")
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(KickIQTheme.textPrimary)
-                    }
-                    .padding(.horizontal, KickIQTheme.Spacing.md)
-                    .padding(.vertical, KickIQTheme.Spacing.sm)
-                    .background(Color.orange.opacity(0.12), in: Capsule())
-                }
-
                 Button {
-                    synthesizer.stopSpeaking(at: .immediate)
                     dismiss()
                 } label: {
                     Text("Done")
@@ -305,98 +201,38 @@ struct DrillTimerView: View {
     }
 
     private func tick() {
-        guard timeRemaining > 0 else {
-            handleSetTransition()
-            return
-        }
-
-        timeRemaining -= 1
-
-        if !isResting {
-            if timeRemaining == 30 {
-                speak("30 seconds left!")
-            } else if timeRemaining == 10 {
-                speak("10 seconds! Push through!")
-            } else if timeRemaining == 3 {
-                speak("3")
-            } else if timeRemaining == 2 {
-                speak("2")
-            } else if timeRemaining == 1 {
-                speak("1")
-            }
-
-            let cueInterval = max(totalTime / max(drill.coachingCues.count + 1, 2), 15)
-            if !drill.coachingCues.isEmpty && timeRemaining > 5 && timeRemaining % cueInterval == 0 {
-                let nextIndex = (lastSpokenCueIndex + 1) % drill.coachingCues.count
-                let cue = drill.coachingCues[nextIndex]
-                lastSpokenCueIndex = nextIndex
-                showCoachingCue(cue)
-                speak(cue)
+        if timeRemaining > 0 {
+            timeRemaining -= 1
+            if timeRemaining == 3 || timeRemaining == 2 || timeRemaining == 1 {
+                // Haptic cue for countdown
             }
         } else {
-            if timeRemaining == 5 {
-                speak("Get ready!")
+            if isResting {
+                isResting = false
+                totalTime = max(parseDuration(drill.duration) / max(parseSets(), 1), 30)
+                timeRemaining = totalTime
+            } else if currentSet < totalSets {
+                currentSet += 1
+                isResting = true
+                totalTime = restDuration
+                timeRemaining = restDuration
+            } else {
+                timerActive = false
+                withAnimation(.spring(response: 0.5)) { showComplete = true }
             }
-        }
-    }
-
-    private func handleSetTransition() {
-        if isResting {
-            isResting = false
-            totalTime = max(parseDuration(drill.duration) / max(parseSets(), 1), 30)
-            timeRemaining = totalTime
-            speak("Go! Set \(currentSet) of \(totalSets).")
-        } else if currentSet < totalSets {
-            currentSet += 1
-            isResting = true
-            totalTime = restDuration
-            timeRemaining = restDuration
-            speak("Rest. Next set in \(restDuration) seconds.")
-        } else {
-            timerActive = false
-            speak("Great work! Drill complete.")
-            withAnimation(.spring(response: 0.5)) { showComplete = true }
         }
     }
 
     private func resetTimer() {
-        synthesizer.stopSpeaking(at: .immediate)
         timerActive = false
         isRunning = false
         currentSet = 1
         isResting = false
-        repCount = 0
-        lastSpokenCueIndex = -1
-        withAnimation { showCue = false }
         setupTimer()
     }
 
     private func skipToNext() {
         timeRemaining = 0
-    }
-
-    private func speak(_ text: String) {
-        guard voiceEnabled else { return }
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 1.05
-        utterance.pitchMultiplier = 1.1
-        utterance.volume = 0.9
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        synthesizer.stopSpeaking(at: .word)
-        synthesizer.speak(utterance)
-    }
-
-    private func showCoachingCue(_ text: String) {
-        withAnimation(.spring(response: 0.3)) {
-            currentCueText = text
-            showCue = true
-        }
-        Task {
-            try? await Task.sleep(for: .seconds(4))
-            withAnimation(.easeOut(duration: 0.3)) {
-                showCue = false
-            }
-        }
     }
 
     private func timeString(_ seconds: Int) -> String {

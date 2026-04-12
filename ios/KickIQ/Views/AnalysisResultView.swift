@@ -4,23 +4,26 @@ struct AnalysisResultView: View {
     let session: TrainingSession
     let storage: StorageService
     let onDismiss: () -> Void
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var appeared = false
     @State private var scoreAppeared = false
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var showSessionNotes = false
-    @State private var showQRShare = false
-
-    private var isIPad: Bool { sizeClass == .regular }
 
     var body: some View {
         ScrollView {
-            if isIPad {
-                iPadResultLayout
-            } else {
-                iPhoneResultLayout
+            VStack(spacing: KickIQTheme.Spacing.md + 4) {
+                headerSection
+                overallScoreSection
+                skillBreakdownSection
+                feedbackSection
+                drillsSection
+                sessionNotesButton
+                sharePromptBanner
+                actionButtons
             }
+            .padding(.horizontal, KickIQTheme.Spacing.md)
+            .padding(.bottom, KickIQTheme.Spacing.xl)
         }
         .scrollIndicators(.hidden)
         .background(KickIQTheme.background.ignoresSafeArea())
@@ -39,71 +42,6 @@ struct AnalysisResultView: View {
         .sheet(isPresented: $showSessionNotes) {
             SessionNotesSheet(sessionID: session.id, storage: storage)
         }
-        .sheet(isPresented: $showQRShare) {
-            QRCodeShareSheet(
-                payload: QRCodeService.payloadFromSession(session),
-                title: "Share Analysis",
-                subtitle: "Let your teammate scan to see your results"
-            )
-        }
-    }
-
-    private var iPhoneResultLayout: some View {
-        VStack(spacing: KickIQTheme.Spacing.md + 4) {
-            headerSection
-            videoQualityBanner
-            overallScoreSection
-            strengthsSection
-            needsImprovementSection
-            skillBreakdownSection
-            coachingPointsSection
-            nextSessionFocusSection
-            feedbackSection
-            drillsSection
-            sessionNotesButton
-            sharePromptBanner
-            actionButtons
-        }
-        .padding(.horizontal, KickIQTheme.Spacing.md)
-        .padding(.bottom, KickIQTheme.Spacing.xl)
-    }
-
-    private var iPadResultLayout: some View {
-        VStack(spacing: KickIQTheme.Spacing.lg) {
-            headerSection
-            videoQualityBanner
-
-            HStack(alignment: .top, spacing: KickIQTheme.Spacing.lg) {
-                VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                    overallScoreSection
-                    strengthsSection
-                    needsImprovementSection
-                    feedbackSection
-                }
-                .frame(maxWidth: .infinity)
-
-                VStack(spacing: KickIQTheme.Spacing.md + 4) {
-                    skillBreakdownSection
-                    coachingPointsSection
-                    nextSessionFocusSection
-                }
-                .frame(maxWidth: .infinity)
-            }
-
-            drillsSection
-            sessionNotesButton
-
-            HStack(spacing: KickIQTheme.Spacing.md) {
-                sharePromptBanner
-                    .frame(maxWidth: .infinity)
-                actionButtons
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(.horizontal, KickIQTheme.Spacing.lg)
-        .padding(.bottom, KickIQTheme.Spacing.xl)
-        .frame(maxWidth: AdaptiveLayout.iPadWideMaxContentWidth)
-        .frame(maxWidth: .infinity)
     }
 
     private var headerSection: some View {
@@ -130,63 +68,6 @@ struct AnalysisResultView: View {
         }
         .padding(.top, KickIQTheme.Spacing.md)
         .opacity(appeared ? 1 : 0)
-    }
-
-    // MARK: - Video Quality Banner
-
-    @ViewBuilder
-    private var videoQualityBanner: some View {
-        if let vq = session.videoQuality, vq.rating == "Poor" || vq.rating == "Fair" {
-            VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-                HStack(spacing: 6) {
-                    Image(systemName: vq.rating == "Poor" ? "exclamationmark.triangle.fill" : "info.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(vq.rating == "Poor" ? .red : .yellow)
-                    Text("VIDEO QUALITY: \(vq.rating.uppercased())")
-                        .font(.caption.weight(.bold))
-                        .tracking(1)
-                        .foregroundStyle(vq.rating == "Poor" ? .red.opacity(0.9) : .yellow.opacity(0.9))
-                }
-
-                if !vq.issues.isEmpty {
-                    ForEach(vq.issues, id: \.self) { issue in
-                        HStack(alignment: .top, spacing: 6) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.red.opacity(0.6))
-                                .padding(.top, 2)
-                            Text(issue)
-                                .font(.caption)
-                                .foregroundStyle(KickIQTheme.textSecondary)
-                        }
-                    }
-                }
-
-                if !vq.tips.isEmpty {
-                    ForEach(vq.tips, id: \.self) { tip in
-                        HStack(alignment: .top, spacing: 6) {
-                            Image(systemName: "lightbulb.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(KickIQTheme.accent)
-                                .padding(.top, 2)
-                            Text(tip)
-                                .font(.caption)
-                                .foregroundStyle(KickIQTheme.accent.opacity(0.9))
-                        }
-                    }
-                }
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(
-                (vq.rating == "Poor" ? Color.red : Color.yellow).opacity(0.08),
-                in: .rect(cornerRadius: KickIQTheme.Radius.lg)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .stroke((vq.rating == "Poor" ? Color.red : Color.yellow).opacity(0.2), lineWidth: 1)
-            )
-            .opacity(appeared ? 1 : 0)
-        }
     }
 
     private var overallScoreSection: some View {
@@ -229,84 +110,6 @@ struct AnalysisResultView: View {
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.xl))
     }
 
-    // MARK: - Strengths
-
-    @ViewBuilder
-    private var strengthsSection: some View {
-        if let sf = session.structuredFeedback, !sf.strengths.isEmpty {
-            VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-                HStack(spacing: 6) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .foregroundStyle(.green)
-                    Text("STRENGTHS")
-                        .font(.caption.weight(.bold))
-                        .tracking(1)
-                        .foregroundStyle(.green)
-                }
-
-                ForEach(sf.strengths, id: \.self) { strength in
-                    HStack(alignment: .top, spacing: KickIQTheme.Spacing.sm) {
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.green)
-                            .padding(.top, 3)
-                        Text(strength)
-                            .font(.subheadline)
-                            .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
-                            .lineSpacing(3)
-                    }
-                }
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(Color.green.opacity(0.06), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-            .overlay(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .stroke(Color.green.opacity(0.15), lineWidth: 1)
-            )
-            .opacity(appeared ? 1 : 0)
-        }
-    }
-
-    // MARK: - Needs Improvement
-
-    @ViewBuilder
-    private var needsImprovementSection: some View {
-        if let sf = session.structuredFeedback, !sf.needsImprovement.isEmpty {
-            VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(KickIQTheme.accent)
-                    Text("NEEDS IMPROVEMENT")
-                        .font(.caption.weight(.bold))
-                        .tracking(1)
-                        .foregroundStyle(KickIQTheme.accent)
-                }
-
-                ForEach(sf.needsImprovement, id: \.self) { item in
-                    HStack(alignment: .top, spacing: KickIQTheme.Spacing.sm) {
-                        Image(systemName: "arrow.forward")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(KickIQTheme.accent)
-                            .padding(.top, 3)
-                        Text(item)
-                            .font(.subheadline)
-                            .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
-                            .lineSpacing(3)
-                    }
-                }
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(KickIQTheme.accent.opacity(0.06), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-            .overlay(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .stroke(KickIQTheme.accent.opacity(0.15), lineWidth: 1)
-            )
-            .opacity(appeared ? 1 : 0)
-        }
-    }
-
-    // MARK: - Skill Breakdown
-
     private var skillBreakdownSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("SKILL BREAKDOWN")
@@ -328,12 +131,6 @@ struct AnalysisResultView: View {
 
                         Spacer()
 
-                        if let confidence = score.confidence {
-                            Image(systemName: confidence.icon)
-                                .font(.system(size: 11))
-                                .foregroundStyle(confidenceColor(confidence))
-                        }
-
                         Text("\(score.score)/10")
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(KickIQTheme.textPrimary)
@@ -353,43 +150,19 @@ struct AnalysisResultView: View {
                     }
                     .frame(height: 6)
 
-                    if let observed = score.observedAction, !observed.isEmpty {
-                        HStack(alignment: .top, spacing: 4) {
-                            Image(systemName: "eye.fill")
-                                .font(.system(size: 9))
-                                .foregroundStyle(.blue.opacity(0.7))
-                            Text(observed)
-                                .font(.caption)
-                                .foregroundStyle(KickIQTheme.textSecondary)
-                                .italic()
-                        }
-                    }
-
                     if !score.feedback.isEmpty {
                         Text(score.feedback)
                             .font(.caption)
                             .foregroundStyle(KickIQTheme.textSecondary)
                     }
-
                     if !score.tip.isEmpty {
-                        HStack(alignment: .top, spacing: 4) {
+                        HStack(spacing: 4) {
                             Image(systemName: "lightbulb.fill")
                                 .font(.system(size: 9))
                                 .foregroundStyle(KickIQTheme.accent)
                             Text(score.tip)
                                 .font(.caption)
                                 .foregroundStyle(KickIQTheme.accent.opacity(0.9))
-                        }
-                    }
-
-                    if let confidence = score.confidence, confidence == .low {
-                        HStack(spacing: 4) {
-                            Image(systemName: "questionmark.circle.fill")
-                                .font(.system(size: 9))
-                                .foregroundStyle(.yellow.opacity(0.7))
-                            Text("Low confidence — skill not clearly visible in clip")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.yellow.opacity(0.7))
                         }
                     }
                 }
@@ -400,75 +173,6 @@ struct AnalysisResultView: View {
         .padding(KickIQTheme.Spacing.md)
         .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
         .opacity(appeared ? 1 : 0)
-    }
-
-    // MARK: - Coaching Points
-
-    @ViewBuilder
-    private var coachingPointsSection: some View {
-        if let sf = session.structuredFeedback, !sf.coachingPoints.isEmpty {
-            VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-                HStack(spacing: 6) {
-                    Image(systemName: "clipboard.fill")
-                        .foregroundStyle(KickIQTheme.accent)
-                    Text("KEY COACHING POINTS")
-                        .font(.caption.weight(.bold))
-                        .tracking(1)
-                        .foregroundStyle(KickIQTheme.accent)
-                }
-
-                ForEach(Array(sf.coachingPoints.enumerated()), id: \.offset) { index, point in
-                    HStack(alignment: .top, spacing: KickIQTheme.Spacing.sm) {
-                        Text("\(index + 1)")
-                            .font(.caption2.weight(.black))
-                            .foregroundStyle(.black)
-                            .frame(width: 20, height: 20)
-                            .background(KickIQTheme.accent, in: Circle())
-
-                        Text(point)
-                            .font(.subheadline)
-                            .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
-                            .lineSpacing(3)
-                    }
-                }
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-            .opacity(appeared ? 1 : 0)
-        }
-    }
-
-    // MARK: - Next Session Focus
-
-    @ViewBuilder
-    private var nextSessionFocusSection: some View {
-        if let sf = session.structuredFeedback, !sf.nextSessionFocus.isEmpty {
-            VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
-                HStack(spacing: 6) {
-                    Image(systemName: "target")
-                        .foregroundStyle(KickIQTheme.accent)
-                    Text("NEXT SESSION FOCUS")
-                        .font(.caption.weight(.bold))
-                        .tracking(1)
-                        .foregroundStyle(KickIQTheme.accent)
-                }
-
-                Text(sf.nextSessionFocus)
-                    .font(.subheadline)
-                    .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
-                    .lineSpacing(4)
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(
-                KickIQTheme.accent.opacity(0.04),
-                in: .rect(cornerRadius: KickIQTheme.Radius.lg)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .stroke(KickIQTheme.accent.opacity(0.2), lineWidth: 1)
-            )
-            .opacity(appeared ? 1 : 0)
-        }
     }
 
     private var feedbackSection: some View {
@@ -523,6 +227,7 @@ struct AnalysisResultView: View {
                         Text(drill.description)
                             .font(.caption)
                             .foregroundStyle(KickIQTheme.textSecondary)
+                            .lineLimit(2)
 
                         HStack(spacing: KickIQTheme.Spacing.sm) {
                             Text(drill.difficulty.rawValue)
@@ -533,21 +238,6 @@ struct AnalysisResultView: View {
                             Text(drill.targetSkill)
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(KickIQTheme.accent)
-                        }
-
-                        if !drill.coachingCues.isEmpty {
-                            VStack(alignment: .leading, spacing: 2) {
-                                ForEach(drill.coachingCues, id: \.self) { cue in
-                                    HStack(alignment: .top, spacing: 4) {
-                                        Text("•")
-                                            .font(.caption2)
-                                            .foregroundStyle(KickIQTheme.accent.opacity(0.6))
-                                        Text(cue)
-                                            .font(.caption2)
-                                            .foregroundStyle(KickIQTheme.textSecondary)
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -624,43 +314,23 @@ struct AnalysisResultView: View {
     }
 
     private var actionButtons: some View {
-        VStack(spacing: KickIQTheme.Spacing.sm) {
-            HStack(spacing: KickIQTheme.Spacing.sm) {
-                Button {
-                    generateShareCard()
-                } label: {
-                    HStack(spacing: KickIQTheme.Spacing.sm) {
-                        Image(systemName: "square.and.arrow.up")
-                        Text("Share")
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.accent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
-                            .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
-                    )
+        HStack(spacing: KickIQTheme.Spacing.sm) {
+            Button {
+                generateShareCard()
+            } label: {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    Image(systemName: "square.and.arrow.up")
+                    Text("Share")
                 }
-
-                Button {
-                    showQRShare = true
-                } label: {
-                    HStack(spacing: KickIQTheme.Spacing.sm) {
-                        Image(systemName: "qrcode")
-                        Text("QR Code")
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(KickIQTheme.accent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
-                            .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
-                    )
-                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(KickIQTheme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.md))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
+                        .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
+                )
             }
 
             Button {
@@ -678,14 +348,6 @@ struct AnalysisResultView: View {
             }
         }
         .opacity(appeared ? 1 : 0)
-    }
-
-    private func confidenceColor(_ level: ConfidenceLevel) -> Color {
-        switch level {
-        case .high: .green
-        case .medium: .yellow
-        case .low: .red.opacity(0.7)
-        }
     }
 
     @MainActor

@@ -1,11 +1,9 @@
 import Foundation
 import UserNotifications
-import WidgetKit
 
 @Observable
 @MainActor
 class StorageService {
-    private let widgetSuiteName = "group.app.rork.kickiq.shared"
     var profile: PlayerProfile?
     var sessions: [TrainingSession] = []
     var hasCompletedOnboarding: Bool = false
@@ -25,13 +23,6 @@ class StorageService {
     var weeklyGoal: WeeklyGoal?
     var sessionNotes: [SessionNote] = []
     var trainingPlan: TrainingPlan?
-    var smartTrainingPlan: SmartTrainingPlan?
-    var favoriteDrillIDs: Set<String> = []
-    var personalRecords: [String: PersonalRecord] = [:]
-    var lastStreakFreezeDate: Date?
-    var streakFreezeUsedThisWeek: Bool = false
-    var savedPlans: [SavedPlan] = []
-    var journalEntries: [JournalEntry] = []
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -51,13 +42,6 @@ class StorageService {
     private let weeklyGoalKey = "kickiq_weekly_goal"
     private let sessionNotesKey = "kickiq_session_notes"
     private let trainingPlanKey = "kickiq_training_plan"
-    private let smartPlanKey = "kickiq_smart_plan"
-    private let favoritesKey = "kickiq_favorite_drills"
-    private let personalRecordsKey = "kickiq_personal_records"
-    private let streakFreezeKey = "kickiq_streak_freeze_date"
-    private let conditioningPlanKey = "kickiq_conditioning_plan"
-    private let savedPlansKey = "kickiq_saved_plans"
-    private let journalEntriesKey = "kickiq_journal_entries"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -67,7 +51,6 @@ class StorageService {
 
     init() {
         loadAll()
-        syncWidgetData()
     }
 
     func loadAll() {
@@ -117,90 +100,9 @@ class StorageService {
            let decoded = try? JSONDecoder().decode(TrainingPlan.self, from: data) {
             trainingPlan = decoded
         }
-        if let data = UserDefaults.standard.data(forKey: smartPlanKey),
-           let decoded = try? JSONDecoder().decode(SmartTrainingPlan.self, from: data) {
-            smartTrainingPlan = decoded
-        }
-
-        if let freezeInterval = UserDefaults.standard.object(forKey: streakFreezeKey) as? TimeInterval {
-            lastStreakFreezeDate = Date(timeIntervalSince1970: freezeInterval)
-        }
-        updateStreakFreezeWeekly()
-
-        if let data = UserDefaults.standard.data(forKey: savedPlansKey),
-           let decoded = try? JSONDecoder().decode([SavedPlan].self, from: data) {
-            savedPlans = decoded
-        }
-
-        if let data = UserDefaults.standard.data(forKey: journalEntriesKey),
-           let decoded = try? JSONDecoder().decode([JournalEntry].self, from: data) {
-            journalEntries = decoded
-        }
-
-        if let arr = UserDefaults.standard.array(forKey: favoritesKey) as? [String] {
-            favoriteDrillIDs = Set(arr)
-        }
-        if let data = UserDefaults.standard.data(forKey: personalRecordsKey),
-           let decoded = try? JSONDecoder().decode([String: PersonalRecord].self, from: data) {
-            personalRecords = decoded
-        }
 
         updateDailyDrillSeed()
         updateStreak()
-    }
-
-    var savedConditioningPlan: ConditioningPlan? {
-        guard let data = UserDefaults.standard.data(forKey: conditioningPlanKey),
-              let decoded = try? JSONDecoder().decode(ConditioningPlan.self, from: data) else { return nil }
-        return decoded
-    }
-
-    func saveConditioningPlan(_ plan: ConditioningPlan) {
-        if let data = try? JSONEncoder().encode(plan) {
-            UserDefaults.standard.set(data, forKey: conditioningPlanKey)
-        }
-    }
-
-    func clearConditioningPlan() {
-        UserDefaults.standard.removeObject(forKey: conditioningPlanKey)
-    }
-
-    func addSavedPlan(_ plan: SavedPlan) {
-        savedPlans.insert(plan, at: 0)
-        persistSavedPlans()
-    }
-
-    func updateSavedPlan(_ plan: SavedPlan) {
-        guard let idx = savedPlans.firstIndex(where: { $0.id == plan.id }) else { return }
-        savedPlans[idx] = plan
-        persistSavedPlans()
-    }
-
-    func deleteSavedPlan(_ planID: String) {
-        savedPlans.removeAll { $0.id == planID }
-        persistSavedPlans()
-    }
-
-    private func persistSavedPlans() {
-        if let data = try? JSONEncoder().encode(savedPlans) {
-            UserDefaults.standard.set(data, forKey: savedPlansKey)
-        }
-    }
-
-    func addJournalEntry(_ entry: JournalEntry) {
-        journalEntries.insert(entry, at: 0)
-        persistJournalEntries()
-    }
-
-    func deleteJournalEntry(_ entryID: String) {
-        journalEntries.removeAll { $0.id == entryID }
-        persistJournalEntries()
-    }
-
-    private func persistJournalEntries() {
-        if let data = try? JSONEncoder().encode(journalEntries) {
-            UserDefaults.standard.set(data, forKey: journalEntriesKey)
-        }
     }
 
     func saveProfile(_ newProfile: PlayerProfile) {
@@ -208,7 +110,6 @@ class StorageService {
         if let data = try? JSONEncoder().encode(newProfile) {
             UserDefaults.standard.set(data, forKey: profileKey)
         }
-        syncWidgetData()
     }
 
     func completeOnboarding() {
@@ -229,34 +130,6 @@ class StorageService {
         UserDefaults.standard.set(Array(sessionDates), forKey: sessionDatesKey)
 
         recordSessionDate()
-        syncWidgetData()
-    }
-
-    func toggleFavorite(_ drillID: String) {
-        if favoriteDrillIDs.contains(drillID) {
-            favoriteDrillIDs.remove(drillID)
-        } else {
-            favoriteDrillIDs.insert(drillID)
-        }
-        UserDefaults.standard.set(Array(favoriteDrillIDs), forKey: favoritesKey)
-    }
-
-    func isFavorite(_ drillID: String) -> Bool {
-        favoriteDrillIDs.contains(drillID)
-    }
-
-    func savePersonalRecord(_ record: PersonalRecord, for drillID: String) {
-        let existing = personalRecords[drillID]
-        if existing == nil || record.value > (existing?.value ?? 0) {
-            personalRecords[drillID] = record
-            if let data = try? JSONEncoder().encode(personalRecords) {
-                UserDefaults.standard.set(data, forKey: personalRecordsKey)
-            }
-        }
-    }
-
-    func personalRecord(for drillID: String) -> PersonalRecord? {
-        personalRecords[drillID]
     }
 
     func completeDrill(_ drill: Drill) {
@@ -265,7 +138,6 @@ class StorageService {
         xpPoints += 25
         UserDefaults.standard.set(xpPoints, forKey: xpKey)
         recordSessionDate()
-        syncWidgetData()
     }
 
     func saveWeeklyGoal(_ goal: WeeklyGoal) {
@@ -290,13 +162,6 @@ class StorageService {
         trainingPlan = plan
         if let data = try? JSONEncoder().encode(plan) {
             UserDefaults.standard.set(data, forKey: trainingPlanKey)
-        }
-    }
-
-    func saveSmartTrainingPlan(_ plan: SmartTrainingPlan) {
-        smartTrainingPlan = plan
-        if let data = try? JSONEncoder().encode(plan) {
-            UserDefaults.standard.set(data, forKey: smartPlanKey)
         }
     }
 
@@ -326,8 +191,7 @@ class StorageService {
         let allKeys = [profileKey, sessionsKey, onboardingKey, streakKey, lastSessionKey,
                        drillsKey, xpKey, analysisCountKey, maxStreakKey, reviewDateKey,
                        reviewCountKey, sessionDatesKey, lastStreakBrokenKey, lastReassessmentKey,
-                       dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey, smartPlanKey,
-                       favoritesKey, personalRecordsKey, streakFreezeKey, journalEntriesKey,
+                       dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey,
                        "kickiq_drill_day",
                        "kickiq_pref_streak", "kickiq_pref_weekly", "kickiq_pref_monthly"]
         allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
@@ -350,12 +214,6 @@ class StorageService {
         weeklyGoal = nil
         sessionNotes = []
         trainingPlan = nil
-        smartTrainingPlan = nil
-        favoriteDrillIDs = []
-        personalRecords = [:]
-        lastStreakFreezeDate = nil
-        streakFreezeUsedThisWeek = false
-        journalEntries = []
 
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
@@ -375,10 +233,6 @@ class StorageService {
         lastReviewPromptDate = .now
         UserDefaults.standard.set(reviewPromptCount, forKey: reviewCountKey)
         UserDefaults.standard.set(Date.now.timeIntervalSince1970, forKey: reviewDateKey)
-    }
-
-    func recordFeedbackPrompt() {
-        recordReviewPrompt()
     }
 
     var skillScore: Int {
@@ -410,47 +264,12 @@ class StorageService {
 
     var streakMessage: String {
         if streakCount > 0 {
-            if streakFrozenToday {
-                return "Streak frozen today — rest up!"
-            }
             return "Keep the fire going!"
         }
         if lastStreakBrokenDate != nil {
             return "Welcome back! Start a new streak today."
         }
         return "Start your streak today"
-    }
-
-    var canUseStreakFreeze: Bool {
-        guard streakCount > 0 else { return false }
-        guard !streakFreezeUsedThisWeek else { return false }
-        guard let last = lastSessionDate else { return false }
-        let calendar = Calendar.current
-        return calendar.isDateInYesterday(last) || calendar.isDateInToday(last)
-    }
-
-    var streakFrozenToday: Bool {
-        guard let freezeDate = lastStreakFreezeDate else { return false }
-        return Calendar.current.isDateInToday(freezeDate)
-    }
-
-    func useStreakFreeze() {
-        guard canUseStreakFreeze else { return }
-        lastStreakFreezeDate = .now
-        streakFreezeUsedThisWeek = true
-        UserDefaults.standard.set(Date.now.timeIntervalSince1970, forKey: streakFreezeKey)
-        lastSessionDate = .now
-        UserDefaults.standard.set(Date.now.timeIntervalSince1970, forKey: lastSessionKey)
-    }
-
-    private func updateStreakFreezeWeekly() {
-        guard let freezeDate = lastStreakFreezeDate else {
-            streakFreezeUsedThisWeek = false
-            return
-        }
-        let calendar = Calendar.current
-        let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: .now))!
-        streakFreezeUsedThisWeek = freezeDate >= startOfWeek
     }
 
     var isStreakBroken: Bool {
@@ -539,17 +358,6 @@ class StorageService {
         } else {
             dailyDrillSeed = storedSeed
         }
-    }
-
-    func syncWidgetData() {
-        guard let shared = UserDefaults(suiteName: widgetSuiteName) else { return }
-        shared.set(streakCount, forKey: "widget_streak")
-        shared.set(skillScore, forKey: "widget_skill_score")
-        shared.set(profile?.name ?? "Player", forKey: "widget_player_name")
-        shared.set(xpPoints, forKey: "widget_xp")
-        shared.set(playerLevel.rawValue, forKey: "widget_player_level")
-        shared.set(completedDrillIDs.count, forKey: "widget_drills_completed")
-        WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func updateStreak() {

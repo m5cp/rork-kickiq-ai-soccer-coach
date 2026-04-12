@@ -4,23 +4,15 @@ import AVFoundation
 
 struct AnalyzeView: View {
     let storage: StorageService
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var aiService = AIAnalysisService()
     @State private var selectedItem: PhotosPickerItem?
     @State private var thumbnailImage: UIImage?
-    @State private var extractedFrames: [UIImage] = []
-    @State private var videoURL: URL?
     @State private var analysisResult: TrainingSession?
     @State private var showResults = false
     @State private var appeared = false
     @State private var pulseAnimation = false
-    @State private var showCamera = false
+    @State private var showCameraUnavailable = false
     @State private var showFilmingGuide = false
-    @State private var showProfile = false
-    @State private var showPaywall = false
-    @State private var store = StoreViewModel.shared
-
-    private var isIPad: Bool { sizeClass == .regular }
 
     var body: some View {
         NavigationStack {
@@ -38,30 +30,13 @@ struct AnalyzeView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showProfile = true
-                    } label: {
-                        profileToolbarIcon
-                    }
-                }
-            }
-            .sheet(isPresented: $showProfile) {
-                ProfileView(storage: storage, calendarService: CalendarService())
-            }
         }
         .onChange(of: selectedItem) { _, newItem in
             guard let newItem else { return }
             Task { await handleVideoSelection(newItem) }
         }
-        .fullScreenCover(isPresented: $showCamera) {
-            CameraRecordView(
-                onVideoRecorded: { recordedURL in
-                    Task { await handleRecordedVideo(recordedURL) }
-                },
-                initialMode: .video
-            )
+        .alert(isPresented: $showCameraUnavailable) {
+            cameraUnavailableAlert
         }
         .sheet(isPresented: $showFilmingGuide) {
             FilmingGuideSheet()
@@ -74,12 +49,12 @@ struct AnalyzeView: View {
 
             VStack(spacing: KickIQTheme.Spacing.sm) {
                 Text("ANALYZE")
-                    .font(.system(isIPad ? .largeTitle : .largeTitle, design: .default, weight: .black).width(.compressed))
+                    .font(.system(.largeTitle, design: .default, weight: .black).width(.compressed))
                     .tracking(3)
                     .foregroundStyle(KickIQTheme.textPrimary)
 
                 Text("Upload a training clip for AI feedback")
-                    .font(isIPad ? .title3 : .subheadline)
+                    .font(.subheadline)
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
             .opacity(appeared ? 1 : 0)
@@ -98,25 +73,13 @@ struct AnalyzeView: View {
                 .background(KickIQTheme.card, in: Capsule())
             }
 
-            if !store.canAnalyze {
-                analysisLimitBanner
-            }
-
             clipRequirements
 
-            if isIPad {
-                HStack(spacing: KickIQTheme.Spacing.lg) {
-                    recordButton
-                    uploadButton
-                }
-                .frame(maxWidth: AdaptiveLayout.iPadMaxContentWidth)
-            } else {
-                VStack(spacing: KickIQTheme.Spacing.md) {
-                    recordButton
-                    uploadButton
-                }
-                .padding(.horizontal, KickIQTheme.Spacing.md)
+            VStack(spacing: KickIQTheme.Spacing.md) {
+                recordButton
+                uploadButton
             }
+            .padding(.horizontal, KickIQTheme.Spacing.md)
 
             Spacer()
             Spacer()
@@ -166,7 +129,7 @@ struct AnalyzeView: View {
 
     private var recordButton: some View {
         Button {
-            showCamera = true
+            showCameraUnavailable = true
         } label: {
             HStack(spacing: KickIQTheme.Spacing.md) {
                 ZStack {
@@ -195,6 +158,14 @@ struct AnalyzeView: View {
             .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
         }
         .accessibilityLabel("Record a training clip using the camera")
+    }
+
+    private var cameraUnavailableAlert: Alert {
+        Alert(
+            title: Text("Camera Not Available"),
+            message: Text("Install this app on your device via the Rork App to use the camera for recording training clips."),
+            dismissButton: .default(Text("OK"))
+        )
     }
 
     private var uploadButton: some View {
@@ -279,72 +250,19 @@ struct AnalyzeView: View {
         }
     }
 
-    private var analysisLimitBanner: some View {
-        Button {
-            showPaywall = true
-        } label: {
-            HStack(spacing: KickIQTheme.Spacing.sm) {
-                Image(systemName: "exclamationmark.circle.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.orange)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Daily analysis limit reached")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
-                    Text("\(store.dailyAnalysisRemaining)/\(store.analysisLimit) analyses remaining today")
-                        .font(.caption)
-                        .foregroundStyle(KickIQTheme.textSecondary)
-                }
-
-                Spacer()
-
-                if !store.isPremium {
-                    Text("Upgrade")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(KickIQTheme.accent, in: Capsule())
-                }
-            }
-            .padding(KickIQTheme.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                    .fill(Color.orange.opacity(0.08))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-                    )
-            )
-        }
-        .padding(.horizontal, KickIQTheme.Spacing.md)
-        .sheet(isPresented: $showPaywall) {
-            PaywallView(store: store, userRole: storage.profile?.userRole ?? .player)
-        }
-    }
-
     private func handleVideoSelection(_ item: PhotosPickerItem) async {
-        guard store.canAnalyze else { return }
-
         if let data = try? await item.loadTransferable(type: Data.self),
            let image = UIImage(data: data) {
             thumbnailImage = image
-            extractedFrames = [image]
-            videoURL = nil
         } else if let movie = try? await item.loadTransferable(type: VideoTransferable.self) {
-            videoURL = movie.url
-            let frames = await AIAnalysisService.extractFrames(from: movie.url, count: 4)
-            extractedFrames = frames
-            thumbnailImage = frames.first
+            thumbnailImage = await generateThumbnail(from: movie.url)
         }
 
-        guard !extractedFrames.isEmpty,
+        guard let thumbnail = thumbnailImage,
               let position = storage.profile?.position,
               let level = storage.profile?.skillLevel else { return }
 
-        store.consumeAnalysis()
-        let result = await aiService.analyzeVideo(frames: extractedFrames, videoURL: videoURL, position: position, skillLevel: level)
+        let result = await aiService.analyzeVideo(thumbnailImage: thumbnail, position: position, skillLevel: level)
 
         if let result {
             analysisResult = result
@@ -353,25 +271,17 @@ struct AnalyzeView: View {
         }
     }
 
-    private func handleRecordedVideo(_ url: URL) async {
-        guard store.canAnalyze else { return }
+    nonisolated private func generateThumbnail(from url: URL) async -> UIImage? {
+        let asset = AVAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 1024, height: 1024)
 
-        videoURL = url
-        let frames = await AIAnalysisService.extractFrames(from: url, count: 4)
-        extractedFrames = frames
-        thumbnailImage = frames.first
-
-        guard !extractedFrames.isEmpty,
-              let position = storage.profile?.position,
-              let level = storage.profile?.skillLevel else { return }
-
-        store.consumeAnalysis()
-        let result = await aiService.analyzeVideo(frames: extractedFrames, videoURL: videoURL, position: position, skillLevel: level)
-
-        if let result {
-            analysisResult = result
-            storage.addSession(result)
-            withAnimation(.spring(response: 0.5)) { showResults = true }
+        do {
+            let (cgImage, _) = try await generator.image(at: .init(seconds: 1, preferredTimescale: 600))
+            return UIImage(cgImage: cgImage)
+        } catch {
+            return nil
         }
     }
 
@@ -380,33 +290,7 @@ struct AnalyzeView: View {
             showResults = false
             analysisResult = nil
             thumbnailImage = nil
-            extractedFrames = []
-            videoURL = nil
             selectedItem = nil
-        }
-    }
-
-    @ViewBuilder
-    private var profileToolbarIcon: some View {
-        if let avatar = storage.profile?.avatar,
-           let data = avatar.imageDataValue,
-           let uiImage = UIImage(data: data) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 30, height: 30)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.4), lineWidth: 1.5))
-        } else {
-            ZStack {
-                Circle()
-                    .fill(KickIQTheme.accent.opacity(0.15))
-                    .frame(width: 30, height: 30)
-                Image(systemName: "person.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(KickIQTheme.accent)
-            }
-            .overlay(Circle().stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1))
         }
     }
 }

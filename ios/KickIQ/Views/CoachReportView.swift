@@ -36,6 +36,7 @@ struct CoachReportView: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Coach Report")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }

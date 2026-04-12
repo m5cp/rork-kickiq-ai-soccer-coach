@@ -52,6 +52,7 @@ struct NotificationPreferencesSheet: View {
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationTitle("Notifications")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
@@ -79,33 +80,21 @@ struct NotificationPreferencesSheet: View {
                 .font(.title2)
                 .foregroundStyle(KickIQTheme.accent)
 
-            Text("Notifications are off")
+            Text("Notifications are disabled")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(KickIQTheme.textPrimary)
 
-            Text("Turn on notifications to get streak reminders, weekly recaps, and monthly check-ins.")
+            Text("Enable notifications in Settings to receive streak reminders and weekly summaries.")
                 .font(.caption)
                 .foregroundStyle(KickIQTheme.textSecondary)
                 .multilineTextAlignment(.center)
 
             Button {
-                Task {
-                    let center = UNUserNotificationCenter.current()
-                    let settings = await center.notificationSettings()
-                    if settings.authorizationStatus == .notDetermined {
-                        let granted = try? await center.requestAuthorization(options: [.alert, .badge, .sound])
-                        notificationsEnabled = granted ?? false
-                        if notificationsEnabled {
-                            scheduleAllEnabled()
-                        }
-                    } else {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            await UIApplication.shared.open(url)
-                        }
-                    }
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
                 }
             } label: {
-                Text("Enable Notifications")
+                Text("Open Settings")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, KickIQTheme.Spacing.lg)
@@ -169,29 +158,15 @@ struct NotificationPreferencesSheet: View {
         UserDefaults.standard.set(monthlyReassessment, forKey: "kickiq_pref_monthly")
 
         let center = UNUserNotificationCenter.current()
-        let service = NotificationService()
 
-        if streakReminders {
-            service.scheduleStreakReminder()
-        } else {
+        if !streakReminders {
             center.removePendingNotificationRequests(withIdentifiers: ["streak_reminder"])
         }
-        if weeklySummary {
-            service.scheduleWeeklySummary()
-        } else {
+        if !weeklySummary {
             center.removePendingNotificationRequests(withIdentifiers: ["weekly_summary", "weekly_summary_custom"])
         }
-        if monthlyReassessment {
-            service.scheduleMonthlyReassessment()
-        } else {
+        if !monthlyReassessment {
             center.removePendingNotificationRequests(withIdentifiers: ["monthly_reassessment"])
         }
-    }
-
-    private func scheduleAllEnabled() {
-        let service = NotificationService()
-        if streakReminders { service.scheduleStreakReminder() }
-        if weeklySummary { service.scheduleWeeklySummary() }
-        if monthlyReassessment { service.scheduleMonthlyReassessment() }
     }
 }

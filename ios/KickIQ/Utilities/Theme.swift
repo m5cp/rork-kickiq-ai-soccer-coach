@@ -1,69 +1,18 @@
 import SwiftUI
 
 enum KickIQTheme {
-    static var accent: Color {
-        ThemeManager.shared.primaryColor
-    }
-
-    static var accentSecondary: Color {
-        ThemeManager.shared.accentColor
-    }
-
-    static var accentGradient: LinearGradient {
-        ThemeManager.shared.primaryGradient
-    }
-
-    static var background: Color {
-        Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)
-                : UIColor.systemBackground
-        })
-    }
-
-    static var card: Color {
-        Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(red: 0.10, green: 0.10, blue: 0.10, alpha: 1)
-                : UIColor.secondarySystemGroupedBackground
-        })
-    }
-
-    static var textPrimary: Color {
-        Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark ? .white : .label
-        })
-    }
-
-    static var textSecondary: Color {
-        Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(white: 0.53, alpha: 1)
-                : UIColor.secondaryLabel
-        })
-    }
-
-    static var surface: Color {
-        Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(white: 0.14, alpha: 1)
-                : UIColor.tertiarySystemGroupedBackground
-        })
-    }
-
-    static var divider: Color {
-        Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(white: 0.18, alpha: 1)
-                : UIColor.separator
-        })
-    }
-
-    static var buttonLabel: Color {
-        Color(UIColor { traits in
-            traits.userInterfaceStyle == .dark ? .black : .white
-        })
-    }
+    static let background = Color(hex: 0x0A0A0A)
+    static let card = Color(hex: 0x1A1A1A)
+    static let accent = Color(hex: 0xFF6D00)
+    static let accentGradient = LinearGradient(
+        colors: [Color(hex: 0xFF6D00), Color(hex: 0xE65100)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    static let textPrimary = Color.white
+    static let textSecondary = Color(hex: 0x888888)
+    static let surface = Color(white: 0.14)
+    static let divider = Color(white: 0.18)
 
     enum Spacing {
         static let xs: CGFloat = 4
@@ -91,13 +40,5 @@ extension Color {
             blue: Double(hex & 0xFF) / 255,
             opacity: opacity
         )
-    }
-
-    var hexUInt: UInt {
-        let components = UIColor(self).cgColor.components ?? [0, 0, 0]
-        let r = components.count > 0 ? components[0] : 0
-        let g = components.count > 1 ? components[1] : 0
-        let b = components.count > 2 ? components[2] : 0
-        return (UInt(r * 255) << 16) | (UInt(g * 255) << 8) | UInt(b * 255)
     }
 }

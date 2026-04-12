@@ -22,15 +22,15 @@ nonisolated enum PlayerPosition: String, Codable, CaseIterable, Sendable, Identi
     var skills: [SkillCategory] {
         switch self {
         case .goalkeeper:
-            [.positioning, .handling, .distribution, .reflexes, .communication, .bodyPosition]
+            [.positioning, .handling, .distribution, .reflexes, .communication]
         case .defender:
-            [.firstTouch, .bodyPosition, .defensiveFootwork, .passing, .ballControl, .acceleration, .scanning, .weakFoot]
+            [.firstTouch, .bodyPosition, .ballControl, .shooting, .movement]
         case .midfielder:
-            [.firstTouch, .passing, .ballControl, .dribbling, .scanning, .bodyPosition, .changeOfDirection, .weakFoot]
+            [.firstTouch, .bodyPosition, .ballControl, .shooting, .movement]
         case .winger:
-            [.firstTouch, .dribbling, .acceleration, .changeOfDirection, .passing, .finishing, .weakFoot, .scanning]
+            [.firstTouch, .bodyPosition, .ballControl, .shooting, .movement]
         case .striker:
-            [.firstTouch, .finishing, .bodyPosition, .dribbling, .movement, .weakFoot, .shooting, .scanning]
+            [.firstTouch, .bodyPosition, .ballControl, .shooting, .movement]
         }
     }
 }
@@ -93,18 +93,6 @@ nonisolated enum SkillCategory: String, Codable, CaseIterable, Sendable, Identif
     case distribution = "Distribution"
     case reflexes = "Reflexes"
     case communication = "Communication"
-    case passing = "Passing"
-    case dribbling = "Dribbling"
-    case finishing = "Finishing"
-    case scanning = "Scanning & Awareness"
-    case changeOfDirection = "Change of Direction"
-    case acceleration = "Acceleration & Deceleration"
-    case defensiveFootwork = "Defensive Footwork"
-    case weakFoot = "Weak Foot Usage"
-    case turning = "Turning"
-    case striking = "Striking"
-    case receiving = "Receiving"
-    case juggling = "Juggling"
 
     var id: String { rawValue }
 
@@ -120,18 +108,6 @@ nonisolated enum SkillCategory: String, Codable, CaseIterable, Sendable, Identif
         case .distribution: "arrow.up.forward"
         case .reflexes: "bolt.fill"
         case .communication: "megaphone.fill"
-        case .passing: "arrow.right.arrow.left"
-        case .dribbling: "figure.soccer"
-        case .finishing: "soccerball"
-        case .scanning: "eye.fill"
-        case .changeOfDirection: "arrow.triangle.turn.up.right.diamond.fill"
-        case .acceleration: "gauge.with.dots.needle.67percent"
-        case .defensiveFootwork: "shield.lefthalf.filled"
-        case .weakFoot: "shoe.fill"
-        case .turning: "arrow.uturn.right"
-        case .striking: "shoe.2.fill"
-        case .receiving: "arrow.down.to.line"
-        case .juggling: "circle.grid.3x3"
         }
     }
 }
@@ -151,30 +127,6 @@ nonisolated enum ProfileAvatar: Codable, Sendable, Equatable {
     }
 }
 
-nonisolated enum UserRole: String, Codable, CaseIterable, Sendable, Identifiable {
-    case player = "Player"
-    case coach = "Coach"
-    case parent = "Parent"
-
-    var id: String { rawValue }
-
-    var icon: String {
-        switch self {
-        case .player: "figure.soccer"
-        case .coach: "whistle.fill"
-        case .parent: "person.2.fill"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .player: "I train and want to improve my skills"
-        case .coach: "I manage a team and assign drills"
-        case .parent: "I support my child's training"
-        }
-    }
-}
-
 nonisolated struct PlayerProfile: Codable, Sendable {
     var name: String
     var position: PlayerPosition
@@ -183,7 +135,6 @@ nonisolated struct PlayerProfile: Codable, Sendable {
     var weakness: WeaknessArea
     var createdAt: Date
     var avatar: ProfileAvatar?
-    var userRole: UserRole
 
     init(
         name: String = "",
@@ -192,8 +143,7 @@ nonisolated struct PlayerProfile: Codable, Sendable {
         skillLevel: SkillLevel = .beginner,
         weakness: WeaknessArea = .firstTouch,
         createdAt: Date = .now,
-        avatar: ProfileAvatar? = nil,
-        userRole: UserRole = .player
+        avatar: ProfileAvatar? = nil
     ) {
         self.name = name
         self.position = position
@@ -202,6 +152,5 @@ nonisolated struct PlayerProfile: Codable, Sendable {
         self.weakness = weakness
         self.createdAt = createdAt
         self.avatar = avatar
-        self.userRole = userRole
     }
 }
