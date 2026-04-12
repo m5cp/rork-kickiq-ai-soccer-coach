@@ -74,225 +74,22 @@ class AIChatService {
     }
 
     private func callAI(storage: StorageService) async throws -> String {
-        let toolkitURL = Config.EXPO_PUBLIC_TOOLKIT_URL
-        guard !toolkitURL.isEmpty else {
-            throw ChatError.configMissing(detail: "TOOLKIT_URL is empty")
-        }
-
-        let baseURL = toolkitURL.hasSuffix("/") ? String(toolkitURL.dropLast()) : toolkitURL
-        guard let url = URL(string: "\(baseURL)/agent/chat") else {
-            throw ChatError.configMissing(detail: "Invalid URL: \(baseURL)/agent/chat")
-        }
-
         let systemContext = buildSystemContext(storage: storage)
 
-        var apiMessages: [[String: Any]] = [
-            ["role": "system", "content": systemContext]
-        ]
-
-        for msg in messages where !msg.isError {
-            apiMessages.append([
-                "role": msg.role.rawValue,
-                "content": msg.content
-            ])
+        let chatMessages = messages.filter { !$0.isError }.map { msg in
+            (role: msg.role.rawValue, content: msg.content)
         }
 
-        let body: [String: Any] = [
-            "messages": apiMessages
-        ]
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let secretKey = Config.EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY
-        if !secretKey.isEmpty {
-            request.setValue(secretKey, forHTTPHeaderField: "Authorization")
+        do {
+            return try await GeminiService.generateContent(
+                systemPrompt: systemContext,
+                messages: chatMessages,
+                temperature: 0.7,
+                maxTokens: 2048
+            )
+        } catch let error as GeminiError {
+            throw ChatError.geminiError(error)
         }
-        let appKey = ConfigHelper.value(forKey: "EXPO_PUBLIC_RORK_APP_KEY")
-        if !appKey.isEmpty {
-            request.setValue(appKey, forHTTPHeaderField: "x-app-key")
-        }
-        let projectId = Config.EXPO_PUBLIC_PROJECT_ID
-        if !projectId.isEmpty {
-            request.setValue(projectId, forHTTPHeaderField: "x-project-id")
-        }
-        let teamId = Config.EXPO_PUBLIC_TEAM_ID
-        if !teamId.isEmpty {
-            request.setValue(teamId, forHTTPHeaderField: "x-team-id")
-        }
-        request.httpBody = jsonData
-        request.timeoutInterval = 60
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw ChatError.networkError
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            let errorBody = String(data: data, encoding: .utf8) ?? "No response body"
-            let hasAuth = !secretKey.isEmpty
-            let hasAppKey = !appKey.isEmpty
-            let hasProject = !projectId.isEmpty
-            print("[KickIQ] AI error \(httpResponse.statusCode) | auth:\(hasAuth) appKey:\(hasAppKey) proj:\(hasProject) | \(errorBody.prefix(300))")
-            throw ChatError.httpError(statusCode: httpResponse.statusCode, body: errorBody)
-        }
-
-        let responseText = String(data: data, encoding: .utf8) ?? ""
-
-        if responseText.isEmpty {
-            throw ChatError.emptyResponse
-        }
-
-        let cleaned = extractTextContent(from: responseText)
-        if cleaned.isEmpty {
-            print("[KickIQ] AI Chat: could not parse response: \(responseText.prefix(500))")
-            throw ChatError.emptyResponse
-        }
-
-        return cleaned
-    }
-
-    private func extractTextContent(from response: String) -> String {
-        let v4Text = parseVercelV4Stream(response)
-        if !v4Text.isEmpty {
-            return v4Text
-        }
-
-        if response.contains("data: ") {
-            let sseText = parseSSEResponse(response)
-            if !sseText.isEmpty {
-                return sseText
-            }
-        }
-
-        if let jsonData = response.data(using: .utf8),
-           let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
-            if let text = json["text"] as? String {
-                return text
-            }
-            if let content = json["content"] as? String {
-                return content
-            }
-            if let message = json["message"] as? String {
-                return message
-            }
-            if let choices = json["choices"] as? [[String: Any]],
-               let first = choices.first,
-               let msg = first["message"] as? [String: Any],
-               let content = msg["content"] as? String {
-                return content
-            }
-            if let result = json["result"] as? String {
-                return result
-            }
-            if let messages = json["messages"] as? [[String: Any]],
-               let last = messages.last(where: { ($0["role"] as? String) == "assistant" }) {
-                if let content = last["content"] as? String {
-                    return content
-                }
-                if let parts = last["content"] as? [[String: Any]] {
-                    let textParts = parts.compactMap { part -> String? in
-                        guard (part["type"] as? String) == "text" else { return nil }
-                        return part["text"] as? String
-                    }
-                    if !textParts.isEmpty {
-                        return textParts.joined()
-                    }
-                }
-                if let parts = last["parts"] as? [[String: Any]] {
-                    let textParts = parts.compactMap { part -> String? in
-                        guard (part["type"] as? String) == "text" else { return nil }
-                        return part["text"] as? String
-                    }
-                    if !textParts.isEmpty {
-                        return textParts.joined()
-                    }
-                }
-            }
-        }
-        let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.hasPrefix("{") || trimmed.hasPrefix("[") {
-            return ""
-        }
-        return trimmed
-    }
-
-    private func parseVercelV4Stream(_ response: String) -> String {
-        var collectedText = ""
-        let lines = response.components(separatedBy: "\n")
-        var hasV4Lines = false
-
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { continue }
-
-            if trimmed.hasPrefix("0:") {
-                hasV4Lines = true
-                let payload = String(trimmed.dropFirst(2))
-                if let data = payload.data(using: .utf8),
-                   let text = try? JSONSerialization.jsonObject(with: data) as? String {
-                    collectedText += text
-                }
-            } else if trimmed.hasPrefix("f:") || trimmed.hasPrefix("d:") || trimmed.hasPrefix("e:") {
-                hasV4Lines = true
-            }
-        }
-
-        return hasV4Lines ? collectedText.trimmingCharacters(in: .whitespacesAndNewlines) : ""
-    }
-
-    private func parseSSEResponse(_ response: String) -> String {
-        var collectedText = ""
-        let lines = response.components(separatedBy: "\n")
-
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard trimmed.hasPrefix("data: ") else { continue }
-
-            let payload = String(trimmed.dropFirst(6))
-            if payload == "[DONE]" { break }
-
-            guard let data = payload.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                continue
-            }
-
-            if let type = json["type"] as? String {
-                if type == "text-delta" {
-                    if let delta = json["delta"] as? String {
-                        collectedText += delta
-                    }
-                } else if type == "text" {
-                    if let textVal = json["text"] as? String {
-                        collectedText += textVal
-                    }
-                } else if type == "content_block_delta" {
-                    if let delta = json["delta"] as? [String: Any],
-                       let text = delta["text"] as? String {
-                        collectedText += text
-                    }
-                }
-                continue
-            }
-
-            if let text = json["text"] as? String {
-                collectedText += text
-            } else if let delta = json["delta"] as? [String: Any],
-                      let content = delta["content"] as? String {
-                collectedText += content
-            } else if let choices = json["choices"] as? [[String: Any]],
-                      let first = choices.first,
-                      let delta = first["delta"] as? [String: Any],
-                      let content = delta["content"] as? String {
-                collectedText += content
-            } else if let content = json["content"] as? String {
-                collectedText += content
-            }
-        }
-
-        return collectedText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func buildSystemContext(storage: StorageService) -> String {
@@ -354,6 +151,7 @@ nonisolated enum ChatError: Error, LocalizedError, Sendable {
     case networkError
     case httpError(statusCode: Int, body: String)
     case emptyResponse
+    case geminiError(GeminiError)
 
     var errorDescription: String? {
         switch self {
@@ -361,6 +159,7 @@ nonisolated enum ChatError: Error, LocalizedError, Sendable {
         case .networkError: "Could not connect to the server."
         case .httpError(let code, _): "Server error (\(code))."
         case .emptyResponse: "Received an empty response."
+        case .geminiError(let err): err.errorDescription
         }
     }
 
@@ -374,6 +173,8 @@ nonisolated enum ChatError: Error, LocalizedError, Sendable {
             "Server error (\(code)): \(body.prefix(120)). Token refunded."
         case .emptyResponse:
             "Got an empty response — your token has been refunded. Please try again."
+        case .geminiError(let err):
+            err.userMessage
         }
     }
 }

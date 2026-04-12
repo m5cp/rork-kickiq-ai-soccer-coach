@@ -75,18 +75,8 @@ class AIAnalysisService {
             return nil
         }
 
-        let base64Frames = framesToSend.compactMap { frame -> String? in
-            guard let data = frame.jpegData(compressionQuality: 0.5) else { return nil }
-            return data.base64EncodedString()
-        }
-
-        guard !base64Frames.isEmpty else {
-            errorMessage = "Failed to process video frames"
-            return nil
-        }
-
         let skillNames = position.skills.map { $0.rawValue }.joined(separator: ", ")
-        let frameCount = base64Frames.count
+        let frameCount = framesToSend.count
 
         let prompt = """
         You are an elite soccer performance analyst reviewing \(frameCount) frame\(frameCount == 1 ? "" : "s") from a training clip. The player's position is \(position.rawValue) and skill level is \(skillLevel.rawValue).
@@ -163,72 +153,23 @@ class AIAnalysisService {
             analysisProgress = 0.15
             statusMessage = analyzeMessages[1]
 
-            let toolkitURL = Config.EXPO_PUBLIC_TOOLKIT_URL
-            guard !toolkitURL.isEmpty else {
-                errorMessage = "API not configured"
-                return nil
-            }
-
-            let url = URL(string: "\(toolkitURL)/agent/chat")!
-
-            var contentParts: [[String: Any]] = [
-                ["type": "text", "text": prompt]
-            ]
-
-            for (index, base64) in base64Frames.enumerated() {
-                contentParts.append([
-                    "type": "image",
-                    "image": "data:image/jpeg;base64,\(base64)"
-                ])
-                if index == 0 {
-                    analysisProgress = 0.25
-                    statusMessage = analyzeMessages[2]
-                }
-            }
-
-            let messages: [[String: Any]] = [
-                ["role": "user", "content": contentParts]
-            ]
-
-            let body: [String: Any] = ["messages": messages]
-            let jsonData = try JSONSerialization.data(withJSONObject: body)
+            analysisProgress = 0.25
+            statusMessage = analyzeMessages[2]
 
             analysisProgress = 0.4
             statusMessage = analyzeMessages[3]
 
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            let secretKey = Config.EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY
-            if !secretKey.isEmpty {
-                request.setValue(secretKey, forHTTPHeaderField: "Authorization")
-            }
-            let appKey = ConfigHelper.value(forKey: "EXPO_PUBLIC_RORK_APP_KEY")
-            if !appKey.isEmpty {
-                request.setValue(appKey, forHTTPHeaderField: "x-app-key")
-            }
-            let projectId = Config.EXPO_PUBLIC_PROJECT_ID
-            if !projectId.isEmpty {
-                request.setValue(projectId, forHTTPHeaderField: "x-project-id")
-            }
-            let teamId = Config.EXPO_PUBLIC_TEAM_ID
-            if !teamId.isEmpty {
-                request.setValue(teamId, forHTTPHeaderField: "x-team-id")
-            }
-            request.httpBody = jsonData
-            request.timeoutInterval = 90
-
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                errorMessage = "Analysis failed. Please try again."
-                return nil
-            }
+            let responseText = try await GeminiService.generateContentWithImages(
+                systemPrompt: nil,
+                prompt: prompt,
+                images: framesToSend,
+                temperature: 0.4,
+                maxTokens: 8192
+            )
 
             analysisProgress = 0.7
             statusMessage = analyzeMessages[4]
 
-            let responseText = String(data: data, encoding: .utf8) ?? ""
             let jsonString = extractJSON(from: responseText)
 
             guard let jsonResponseData = jsonString.data(using: .utf8) else {
@@ -352,83 +293,11 @@ class AIAnalysisService {
     }
 
     private func extractJSON(from text: String) -> String {
-        var source = text
-
-        if source.contains("data: ") {
-            source = parseSSEText(source)
+        if let start = text.firstIndex(of: "{"),
+           let end = text.lastIndex(of: "}") {
+            return String(text[start...end])
         }
-
-        if let start = source.firstIndex(of: "{"),
-           let end = source.lastIndex(of: "}") {
-            return String(source[start...end])
-        }
-        return source
-    }
-
-    private func parseSSEText(_ response: String) -> String {
-        let v4 = parseVercelV4Stream(response)
-        if !v4.isEmpty { return v4 }
-
-        var collected = ""
-        let lines = response.components(separatedBy: "\n")
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard trimmed.hasPrefix("data: ") else { continue }
-            let payload = String(trimmed.dropFirst(6))
-            if payload == "[DONE]" { break }
-            guard let data = payload.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                continue
-            }
-            if let type = json["type"] as? String {
-                if type == "text-delta", let delta = json["delta"] as? String {
-                    collected += delta
-                } else if type == "text", let textVal = json["text"] as? String {
-                    collected += textVal
-                } else if type == "content_block_delta",
-                          let delta = json["delta"] as? [String: Any],
-                          let text = delta["text"] as? String {
-                    collected += text
-                }
-                continue
-            }
-            if let text = json["text"] as? String {
-                collected += text
-            } else if let delta = json["delta"] as? [String: Any],
-                      let content = delta["content"] as? String {
-                collected += content
-            } else if let choices = json["choices"] as? [[String: Any]],
-                      let first = choices.first,
-                      let d = first["delta"] as? [String: Any],
-                      let content = d["content"] as? String {
-                collected += content
-            } else if let content = json["content"] as? String {
-                collected += content
-            }
-        }
-        return collected.isEmpty ? response : collected
-    }
-
-    private func parseVercelV4Stream(_ response: String) -> String {
-        var collectedText = ""
-        let lines = response.components(separatedBy: "\n")
-        var hasV4Lines = false
-
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { continue }
-            if trimmed.hasPrefix("0:") {
-                hasV4Lines = true
-                let payload = String(trimmed.dropFirst(2))
-                if let data = payload.data(using: .utf8),
-                   let text = try? JSONSerialization.jsonObject(with: data) as? String {
-                    collectedText += text
-                }
-            } else if trimmed.hasPrefix("f:") || trimmed.hasPrefix("d:") || trimmed.hasPrefix("e:") {
-                hasV4Lines = true
-            }
-        }
-        return hasV4Lines ? collectedText.trimmingCharacters(in: .whitespacesAndNewlines) : ""
+        return text
     }
 
     private func generateFallbackScores(for position: PlayerPosition) -> [SkillScore] {
