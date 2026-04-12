@@ -94,8 +94,8 @@ struct ContentView: View {
                 HomeView(storage: storage, selectedTab: $selectedTab)
             }
 
-            Tab("Analyze", systemImage: "video.fill", value: 1) {
-                AnalyzeView(storage: storage)
+            Tab("Benchmark", systemImage: "chart.bar.doc.horizontal.fill", value: 1) {
+                BenchmarkView(storage: storage)
             }
 
             Tab("Drills", systemImage: "figure.soccer", value: 2) {

@@ -4,7 +4,7 @@ import UserNotifications
 nonisolated enum DeepLink: String, Sendable {
     case home
     case coach
-    case analyze
+    case benchmark
     case drills
     case progress
     case profile
@@ -15,7 +15,7 @@ nonisolated enum DeepLink: String, Sendable {
         switch self {
         case .home: 0
         case .coach: 0
-        case .analyze: 1
+        case .benchmark: 1
         case .drills: 2
         case .progress: 3
         case .profile: 4
@@ -132,7 +132,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         center.removePendingNotificationRequests(withIdentifiers: ["weekly_summary_custom"])
 
         let content = UNMutableNotificationContent()
-        content.title = "Your Weekly KickIQAICoach Recap"
+        content.title = "Your Weekly KickIQ Recap"
         let scoreText = scoreChange >= 0 ? "up \(scoreChange)" : "down \(abs(scoreChange))"
         content.body = "This week: \(drillsCompleted) drills completed, skill score \(scoreText) points. Keep pushing!"
         content.sound = .default
@@ -144,6 +144,64 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
         let request = UNNotificationRequest(identifier: "weekly_summary_custom", content: content, trigger: trigger)
+        center.add(request)
+    }
+
+    func scheduleTrainingReminder(planName: String, dayLabel: String, hour: Int = 17) {
+        let center = UNUserNotificationCenter.current()
+        let id = "training_reminder_\(dayLabel)"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        let content = UNMutableNotificationContent()
+        content.title = "Time to Train"
+        content.body = "Your \(planName) session is scheduled today. You've got this — let's build on your progress!"
+        content.sound = .default
+        content.userInfo = ["deepLink": "drills"]
+
+        var dateComponents = DateComponents()
+        dateComponents.hour = hour
+        dateComponents.minute = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        center.add(request)
+    }
+
+    func scheduleProgressCompliment(playerName: String, improvement: String) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ["progress_compliment"])
+
+        let compliments = [
+            "\(playerName), your \(improvement) is looking sharp! Keep it up.",
+            "Nice work, \(playerName)! Your \(improvement) scores are climbing.",
+            "\(playerName), you're putting in the work and it shows. \(improvement) is improving!",
+            "Great progress on \(improvement), \(playerName)! Stay consistent."
+        ]
+        let message = compliments.randomElement() ?? compliments[0]
+
+        let content = UNMutableNotificationContent()
+        content.title = "Coach Says: Great Work!"
+        content.body = message
+        content.sound = .default
+        content.userInfo = ["deepLink": "progress"]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3600, repeats: false)
+        let request = UNNotificationRequest(identifier: "progress_compliment", content: content, trigger: trigger)
+        center.add(request)
+    }
+
+    func scheduleBenchmarkReminder() {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ["benchmark_reminder"])
+
+        let content = UNMutableNotificationContent()
+        content.title = "Time to Retest"
+        content.body = "It's been a while since your last benchmark. Retest to see your improvement!"
+        content.sound = .default
+        content.userInfo = ["deepLink": "benchmark"]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 14 * 24 * 3600, repeats: true)
+        let request = UNNotificationRequest(identifier: "benchmark_reminder", content: content, trigger: trigger)
         center.add(request)
     }
 }

@@ -17,21 +17,28 @@ struct ProgressTabView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: KickIQAICoachTheme.Spacing.md + 4) {
-                    if storage.sessions.isEmpty {
+                    if storage.sessions.isEmpty && storage.benchmarkResults.isEmpty {
                         emptyState
                     } else {
                         levelOverviewCard
-                        personalRecordsCard
-                        scoreOverTimeCard
-                        if storage.sessions.count >= 2 {
-                            compareSessionsButton
+                        if !storage.benchmarkResults.isEmpty {
+                            benchmarkProgressCard
                         }
-                        improvementTrendCard
-                        skillBreakdownCard
+                        personalRecordsCard
+                        if !storage.sessions.isEmpty {
+                            scoreOverTimeCard
+                            if storage.sessions.count >= 2 {
+                                compareSessionsButton
+                            }
+                            improvementTrendCard
+                            skillBreakdownCard
+                        }
                         trainingVolumeCard
                         streakHeatmapCard
                         badgesSection
-                        sessionHistoryList
+                        if !storage.sessions.isEmpty {
+                            sessionHistoryList
+                        }
                         shareProgressButton
                     }
                 }
@@ -158,6 +165,90 @@ struct ProgressTabView: View {
         .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
+    }
+
+    private var benchmarkProgressCard: some View {
+        let results = storage.benchmarkResults
+        let rank = storage.benchmarkPlayerRank
+        let overall = storage.benchmarkOverallScore
+
+        return VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+            HStack {
+                Text("BENCHMARK SCORES")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Image(systemName: rank.icon)
+                        .font(.system(size: 11))
+                    Text(rank.rawValue)
+                        .font(.caption.weight(.black))
+                }
+                .foregroundStyle(KickIQAICoachTheme.accent)
+            }
+
+            HStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .stroke(KickIQAICoachTheme.divider, lineWidth: 5)
+                        .frame(width: 56, height: 56)
+                    Circle()
+                        .trim(from: 0, to: overall / 100.0)
+                        .stroke(KickIQAICoachTheme.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .frame(width: 56, height: 56)
+                        .rotationEffect(.degrees(-90))
+                    Text("\(Int(overall))")
+                        .font(.system(size: 16, weight: .black))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(BenchmarkCategory.allCases) { cat in
+                        let catResults = results.filter { $0.category == cat && $0.latestScore != nil }
+                        if !catResults.isEmpty {
+                            let improving = catResults.filter { $0.trend == .improving }.count
+                            let declining = catResults.filter { $0.trend == .declining }.count
+                            HStack(spacing: 6) {
+                                Image(systemName: cat.icon)
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(KickIQAICoachTheme.accent)
+                                    .frame(width: 14)
+                                Text(cat.rawValue)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                                Spacer()
+                                if improving > 0 {
+                                    HStack(spacing: 2) {
+                                        Image(systemName: "arrow.up")
+                                            .font(.system(size: 8, weight: .bold))
+                                        Text("\(improving)")
+                                            .font(.system(size: 9, weight: .bold))
+                                    }
+                                    .foregroundStyle(.green)
+                                }
+                                if declining > 0 {
+                                    HStack(spacing: 2) {
+                                        Image(systemName: "arrow.down")
+                                            .font(.system(size: 8, weight: .bold))
+                                        Text("\(declining)")
+                                            .font(.system(size: 9, weight: .bold))
+                                    }
+                                    .foregroundStyle(.orange)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(KickIQAICoachTheme.Spacing.md)
+        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.02), value: appeared)
     }
 
     private var personalRecordsCard: some View {

@@ -49,9 +49,9 @@ struct HomeView: View {
                         }
                     }
 
-                    sectionBlock(title: "TOOLS", icon: "wrench.and.screwdriver.fill") {
+                    sectionBlock(title: "BENCHMARK", icon: "chart.bar.doc.horizontal.fill") {
                         VStack(spacing: KickIQAICoachTheme.Spacing.sm + 4) {
-                            analyzeCTA
+                            benchmarkCTA
                             if !storage.favoriteDrillIDs.isEmpty {
                                 favoriteDrillsPreview
                             }
@@ -64,9 +64,9 @@ struct HomeView: View {
                         }
                     }
 
-                    if let session = storage.latestSession {
-                        sectionBlock(title: "RECENT", icon: "clock.arrow.circlepath") {
-                            recentAnalysisCard(session)
+                    if !storage.benchmarkResults.isEmpty {
+                        sectionBlock(title: "FOCUS AREAS", icon: "target") {
+                            benchmarkFocusCard
                         }
                     }
                 }
@@ -586,14 +586,14 @@ struct HomeView: View {
         .animation(.spring(response: 0.5).delay(0.08), value: appeared)
     }
 
-    private var analyzeCTA: some View {
+    private var benchmarkCTA: some View {
         Button {
-            selectedTab = 2
+            selectedTab = 1
         } label: {
             HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
-                Image(systemName: "video.fill")
+                Image(systemName: "chart.bar.doc.horizontal.fill")
                     .font(.title3)
-                Text("Analyze a Clip")
+                Text(storage.benchmarkResults.isEmpty ? "Start Benchmark" : "Retest Skills")
                     .font(.headline.weight(.bold))
             }
             .foregroundStyle(KickIQAICoachTheme.accent)
@@ -612,6 +612,54 @@ struct HomeView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.15), value: appeared)
+    }
+
+    private var benchmarkFocusCard: some View {
+        let weak = storage.benchmarkWeakestCategories
+        let rank = storage.benchmarkPlayerRank
+
+        return VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: rank.icon)
+                        .font(.subheadline)
+                    Text(rank.rawValue.uppercased())
+                        .font(.caption.weight(.black))
+                        .tracking(1)
+                }
+                .foregroundStyle(KickIQAICoachTheme.accent)
+
+                Spacer()
+
+                Text("\(Int(storage.benchmarkOverallScore))%")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+            }
+
+            if !weak.isEmpty {
+                Text("Priority drill areas:")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+
+                HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                    ForEach(weak.prefix(3)) { cat in
+                        HStack(spacing: 4) {
+                            Image(systemName: cat.icon)
+                                .font(.system(size: 10))
+                            Text(cat.rawValue)
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(.orange.opacity(0.12), in: Capsule())
+                    }
+                }
+            }
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.25), value: appeared)
     }
 
     private var quickStatsRow: some View {
@@ -725,53 +773,7 @@ struct HomeView: View {
         }
     }
 
-    private func recentAnalysisCard(_ session: TrainingSession) -> some View {
-        VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
-            HStack {
-                Text("LATEST SESSION")
-                    .font(.caption.weight(.bold))
-                    .tracking(1)
-                    .foregroundStyle(KickIQAICoachTheme.accent)
-                Spacer()
-                Text(session.date, style: .relative)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.6))
-            }
 
-            HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
-                ForEach(session.skillScores.prefix(3)) { score in
-                    VStack(spacing: 6) {
-                        ZStack {
-                            Circle()
-                                .stroke(KickIQAICoachTheme.divider, lineWidth: 3)
-                                .frame(width: 40, height: 40)
-                            Circle()
-                                .trim(from: 0, to: score.percentage)
-                                .stroke(KickIQAICoachTheme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                                .frame(width: 40, height: 40)
-                                .rotationEffect(.degrees(-90))
-                            Text("\(score.score)")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                        }
-                        Text(score.category.rawValue)
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-
-            Text(session.feedback)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                .lineLimit(2)
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.25), value: appeared)
-    }
 
     private func checkReviewPrompt() {
         guard storage.shouldPromptReview else { return }

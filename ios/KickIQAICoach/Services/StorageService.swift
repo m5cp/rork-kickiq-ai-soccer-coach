@@ -28,6 +28,7 @@ class StorageService {
     var drillCompletionHistory: [DrillCompletion] = []
     var skillsPlan: GeneratedPlan?
     var conditioningPlan: GeneratedPlan?
+    var benchmarkResults: [BenchmarkResult] = []
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -52,6 +53,7 @@ class StorageService {
     private let drillCompletionHistoryKey = "kickiq_drill_completion_history"
     private let skillsPlanKey = "kickiq_skills_plan"
     private let conditioningPlanKey = "kickiq_conditioning_plan"
+    private let benchmarkResultsKey = "kickiq_benchmark_results"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -128,6 +130,10 @@ class StorageService {
         if let data = UserDefaults.standard.data(forKey: conditioningPlanKey),
            let decoded = try? JSONDecoder().decode(GeneratedPlan.self, from: data) {
             conditioningPlan = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: benchmarkResultsKey),
+           let decoded = try? JSONDecoder().decode([BenchmarkResult].self, from: data) {
+            benchmarkResults = decoded
         }
 
         updateDailyDrillSeed()
@@ -321,7 +327,7 @@ class StorageService {
                        reviewCountKey, sessionDatesKey, lastStreakBrokenKey, lastReassessmentKey,
                        dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey,
                        favoriteDrillsKey, personalRecordsKey, drillCompletionHistoryKey,
-                       skillsPlanKey, conditioningPlanKey,
+                       skillsPlanKey, conditioningPlanKey, benchmarkResultsKey,
                        "kickiq_drill_day",
                        "kickiq_pref_streak", "kickiq_pref_weekly", "kickiq_pref_monthly"]
         allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
@@ -349,6 +355,7 @@ class StorageService {
         drillCompletionHistory = []
         skillsPlan = nil
         conditioningPlan = nil
+        benchmarkResults = []
 
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
@@ -434,6 +441,40 @@ class StorageService {
         }
         let sorted = latest.skillScores.sorted { $0.score < $1.score }
         return Array(sorted.prefix(2).map(\.category))
+    }
+
+    func recordBenchmarkScore(drillID: String, category: BenchmarkCategory, drillName: String, score: Double) {
+        let attempt = BenchmarkAttempt(benchmarkDrillID: drillID, score: score)
+        if let index = benchmarkResults.firstIndex(where: { $0.benchmarkDrillID == drillID }) {
+            benchmarkResults[index].attempts.append(attempt)
+        } else {
+            let result = BenchmarkResult(benchmarkDrillID: drillID, category: category, attempts: [attempt], drillName: drillName)
+            benchmarkResults.append(result)
+        }
+        if let data = try? JSONEncoder().encode(benchmarkResults) {
+            UserDefaults.standard.set(data, forKey: benchmarkResultsKey)
+        }
+        xpPoints += 15
+        UserDefaults.standard.set(xpPoints, forKey: xpKey)
+        recordSessionDate()
+        WidgetDataService.updateWidgetData(storage: self)
+    }
+
+    var benchmarkOverallScore: Double {
+        guard !benchmarkResults.isEmpty else { return 0 }
+        let service = BenchmarkService()
+        service.loadDrills(for: profile?.ageRange ?? .sixteen18)
+        return service.overallScore(results: benchmarkResults)
+    }
+
+    var benchmarkPlayerRank: BenchmarkPlayerRank {
+        BenchmarkPlayerRank.rank(for: benchmarkOverallScore)
+    }
+
+    var benchmarkWeakestCategories: [BenchmarkCategory] {
+        let service = BenchmarkService()
+        service.loadDrills(for: profile?.ageRange ?? .sixteen18)
+        return service.weakestCategories(results: benchmarkResults)
     }
 
     func hasSessionOnDate(_ date: Date) -> Bool {

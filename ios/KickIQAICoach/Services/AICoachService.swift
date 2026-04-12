@@ -88,10 +88,13 @@ class AICoachService {
         "default": "Great question! While I need internet to give you a fully personalized answer, here's a universal tip: The best players practice with purpose every single day. Even 15 focused minutes beats 2 hours of unfocused kicking. Set a specific skill goal for each session."
     ]
 
-    init(playerName: String = "Player", position: String = "Midfielder", skillLevel: String = "Intermediate", weakness: String = "First Touch") {
+    private var benchmarkContext: String = ""
+
+    init(playerName: String = "Player", position: String = "Midfielder", skillLevel: String = "Intermediate", weakness: String = "First Touch", benchmarkSummary: String = "") {
         self.playerName = playerName
         self.position = position
         self.weakness = weakness
+        self.benchmarkContext = benchmarkSummary
         self.systemPrompt = """
         You are KickIQ Coach, an elite AI soccer coaching assistant. You are knowledgeable, motivating, and direct — like a top-tier youth academy coach.
 
@@ -100,6 +103,7 @@ class AICoachService {
         - Position: \(position)
         - Skill Level: \(skillLevel)
         - Focus Area: \(weakness)
+        \(benchmarkSummary.isEmpty ? "" : "\nBenchmark Results:\n\(benchmarkSummary)\n\nUse the benchmark results to prioritize training advice. Focus on the weakest categories first. Celebrate improvements when you see them.")
 
         Guidelines:
         - Give specific, actionable soccer coaching advice
@@ -111,6 +115,9 @@ class AICoachService {
         - If asked about non-soccer topics, gently redirect to training
         - Address the player by name occasionally
         - Adapt advice to their position and skill level
+        - Compliment progress and improvements. Be positive and motivating.
+        - When the player does well on benchmarks, celebrate with them
+        - When areas need work, be constructive and suggest specific drills
         """
         hasShownOnboarding = UserDefaults.standard.bool(forKey: Self.onboardingKey)
         loadCachedMessages()
@@ -121,9 +128,10 @@ class AICoachService {
         hasShownOnboarding = true
         UserDefaults.standard.set(true, forKey: Self.onboardingKey)
 
+        let benchmarkNote = benchmarkContext.isEmpty ? "" : "\n\nI can see your benchmark results — ask me what to work on and I'll prioritize based on your scores."
         let greeting = CoachMessage(
             role: .coach,
-            content: "Hey \(playerName)! I'm your KickIQ AI Coach. I already know you play \(position) and want to work on \(weakness) — so I'm ready to help.\n\nYou can ask me anything: drill plans, technique tips, game-day advice, or how to improve a specific skill. I'll tailor everything to your level and position.\n\nTry asking something like \"Give me a 20-minute session for my \(weakness.lowercased())\" to get started!"
+            content: "Hey \(playerName)! I'm your KickIQ AI Coach. I already know you play \(position) and want to work on \(weakness) — so I'm ready to help.\n\nYou can ask me anything: drill plans, technique tips, game-day advice, or how to improve a specific skill. I'll tailor everything to your level and position.\(benchmarkNote)\n\nTry asking something like \"Give me a 20-minute session for my \(weakness.lowercased())\" to get started!"
         )
         messages.append(greeting)
     }

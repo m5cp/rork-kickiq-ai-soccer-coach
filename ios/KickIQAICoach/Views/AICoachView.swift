@@ -17,11 +17,20 @@ struct AICoachView: View {
     init(storage: StorageService) {
         self.storage = storage
         let profile = storage.profile
+        var benchmarkSummary = ""
+        if !storage.benchmarkResults.isEmpty {
+            let lines = storage.benchmarkResults.compactMap { result -> String? in
+                guard let latest = result.latestScore else { return nil }
+                return "- \(result.drillName) (\(result.category.rawValue)): \(BenchmarkView.formatScore(latest)) — \(result.trend.label)"
+            }
+            benchmarkSummary = lines.joined(separator: "\n")
+        }
         _coachService = State(initialValue: AICoachService(
             playerName: profile?.name ?? "Player",
             position: profile?.position.rawValue ?? "Midfielder",
             skillLevel: profile?.skillLevel.rawValue ?? "Intermediate",
-            weakness: profile?.weakness.rawValue ?? "First Touch"
+            weakness: profile?.weakness.rawValue ?? "First Touch",
+            benchmarkSummary: benchmarkSummary
         ))
     }
 
