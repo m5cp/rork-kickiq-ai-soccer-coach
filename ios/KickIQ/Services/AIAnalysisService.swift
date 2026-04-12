@@ -159,7 +159,7 @@ class AIAnalysisService {
             analysisProgress = 0.4
             statusMessage = analyzeMessages[3]
 
-            let responseText = try await AzureAIService.generateContentWithImages(
+            let responseText = try await GeminiService.generateContentWithImages(
                 systemPrompt: nil,
                 prompt: prompt,
                 images: framesToSend,

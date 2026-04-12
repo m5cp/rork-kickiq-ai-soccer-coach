@@ -81,14 +81,14 @@ class AIChatService {
         }
 
         do {
-            return try await AzureAIService.generateContent(
+            return try await GeminiService.generateContent(
                 systemPrompt: systemContext,
                 messages: chatMessages,
                 temperature: 0.7,
                 maxTokens: 2048
             )
-        } catch let error as AzureAIError {
-            throw ChatError.aiError(error)
+        } catch let error as GeminiError {
+            throw ChatError.geminiError(error)
         }
     }
 
@@ -151,7 +151,7 @@ nonisolated enum ChatError: Error, LocalizedError, Sendable {
     case networkError
     case httpError(statusCode: Int, body: String)
     case emptyResponse
-    case aiError(AzureAIError)
+    case geminiError(GeminiError)
 
     var errorDescription: String? {
         switch self {
@@ -159,7 +159,7 @@ nonisolated enum ChatError: Error, LocalizedError, Sendable {
         case .networkError: "Could not connect to the server."
         case .httpError(let code, _): "Server error (\(code))."
         case .emptyResponse: "Received an empty response."
-        case .aiError(let err): err.errorDescription
+        case .geminiError(let err): err.errorDescription
         }
     }
 
@@ -173,7 +173,7 @@ nonisolated enum ChatError: Error, LocalizedError, Sendable {
             "Server error (\(code)): \(body.prefix(120)). Token refunded."
         case .emptyResponse:
             "Got an empty response — your token has been refunded. Please try again."
-        case .aiError(let err):
+        case .geminiError(let err):
             err.userMessage
         }
     }
