@@ -3,20 +3,24 @@ import SwiftUI
 struct DrillsView: View {
     let storage: StorageService
     @State private var drillsService = DrillsService()
+    @State private var conditioningService = ConditioningDrillsService()
     @State private var appeared = false
     @State private var selectedDrill: Drill?
     @State private var completedTrigger = 0
     @State private var expandedCategories: Set<String> = []
+    @State private var selectedCategory: DrillCategory = .skills
+    @State private var showQRSheet = false
+    @State private var qrDrill: Drill?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: KickIQTheme.Spacing.md) {
-                    if drillsService.allDrills.isEmpty {
-                        emptyState
+                    categoryPicker
+                    if selectedCategory == .skills {
+                        skillsDrillsContent
                     } else {
-                        headerInfo
-                        categorySections
+                        conditioningDrillsContent
                     }
                 }
                 .padding(.horizontal, KickIQTheme.Spacing.md)
@@ -30,12 +34,184 @@ struct DrillsView: View {
             .sheet(item: $selectedDrill) { drill in
                 DrillDetailSheet(drill: drill, storage: storage, drillsService: drillsService, completedTrigger: $completedTrigger)
             }
+            .sheet(isPresented: $showQRSheet) {
+                if let drill = qrDrill {
+                    QRDrillShareSheet(drill: drill)
+                }
+            }
         }
         .onAppear {
             loadDrills()
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
         }
         .sensoryFeedback(.success, trigger: completedTrigger)
+    }
+
+    private var categoryPicker: some View {
+        HStack(spacing: KickIQTheme.Spacing.sm) {
+            ForEach(DrillCategory.allCases) { cat in
+                Button {
+                    withAnimation(.spring(response: 0.3)) {
+                        selectedCategory = cat
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: cat.icon)
+                            .font(.system(size: 13))
+                        Text(cat.rawValue)
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .foregroundStyle(selectedCategory == cat ? .black : KickIQTheme.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(selectedCategory == cat ? KickIQTheme.accent : KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+                }
+            }
+        }
+        .sensoryFeedback(.selection, trigger: selectedCategory)
+        .opacity(appeared ? 1 : 0)
+    }
+
+    private var skillsDrillsContent: some View {
+        VStack(spacing: KickIQTheme.Spacing.md) {
+            if drillsService.allDrills.isEmpty {
+                emptyState
+            } else {
+                headerInfo
+                skillCategorySections
+            }
+        }
+    }
+
+    private var conditioningDrillsContent: some View {
+        VStack(spacing: KickIQTheme.Spacing.md) {
+            if conditioningService.conditioningDrills.isEmpty {
+                emptyState
+            } else {
+                conditioningHeaderInfo
+                conditioningCategorySections
+            }
+        }
+    }
+
+    private var conditioningHeaderInfo: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                Image(systemName: "heart.circle.fill")
+                    .foregroundStyle(KickIQTheme.accent)
+                Text("Build your athletic foundation")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+
+            ScrollView(.horizontal) {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    ForEach(ConditioningFocus.allCases) { focus in
+                        HStack(spacing: 4) {
+                            Image(systemName: focus.icon)
+                                .font(.system(size: 10))
+                            Text(focus.rawValue)
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(KickIQTheme.accent)
+                        .padding(.horizontal, KickIQTheme.Spacing.sm + 4)
+                        .padding(.vertical, 6)
+                        .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
+                    }
+                }
+            }
+            .contentMargins(.horizontal, 0)
+            .scrollIndicators(.hidden)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(appeared ? 1 : 0)
+    }
+
+    private var conditioningCategorySections: some View {
+        let groups = conditioningService.drillsByFocus()
+
+        return LazyVStack(spacing: KickIQTheme.Spacing.md + 4) {
+            ForEach(Array(groups.enumerated()), id: \.element.focus) { sectionIndex, group in
+                VStack(spacing: 0) {
+                    conditioningCategoryHeader(group.focus, count: group.drills.count, isExpanded: expandedCategories.contains(group.focus.rawValue))
+                        .onAppear {
+                            if sectionIndex < 3 {
+                                expandedCategories.insert(group.focus.rawValue)
+                            }
+                        }
+
+                    if expandedCategories.contains(group.focus.rawValue) {
+                        VStack(spacing: KickIQTheme.Spacing.sm) {
+                            ForEach(Array(group.drills.enumerated()), id: \.element.id) { drillIndex, drill in
+                                Button {
+                                    selectedDrill = drill
+                                } label: {
+                                    drillCard(drill)
+                                }
+                                .contextMenu {
+                                    Button {
+                                        qrDrill = drill
+                                        showQRSheet = true
+                                    } label: {
+                                        Label("Share QR Code", systemImage: "qrcode")
+                                    }
+                                }
+                                .opacity(appeared ? 1 : 0)
+                                .offset(y: appeared ? 0 : 10)
+                                .animation(.spring(response: 0.35).delay(Double(drillIndex) * 0.04), value: appeared)
+                            }
+                        }
+                        .padding(.top, KickIQTheme.Spacing.sm)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 15)
+                .animation(.spring(response: 0.4).delay(Double(sectionIndex) * 0.06), value: appeared)
+            }
+        }
+    }
+
+    private func conditioningCategoryHeader(_ focus: ConditioningFocus, count: Int, isExpanded: Bool) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                if expandedCategories.contains(focus.rawValue) {
+                    expandedCategories.remove(focus.rawValue)
+                } else {
+                    expandedCategories.insert(focus.rawValue)
+                }
+            }
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.sm + 2) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.sm)
+                        .fill(KickIQTheme.accent.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: focus.icon)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(focus.rawValue)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("\(count) exercise\(count == 1 ? "" : "s")")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        }
+        .sensoryFeedback(.selection, trigger: isExpanded)
     }
 
     private var headerInfo: some View {
@@ -89,7 +265,7 @@ struct DrillsView: View {
         }
     }
 
-    private var categorySections: some View {
+    private var skillCategorySections: some View {
         LazyVStack(spacing: KickIQTheme.Spacing.md + 4) {
             ForEach(Array(groupedDrills.enumerated()), id: \.element.category) { sectionIndex, group in
                 VStack(spacing: 0) {
@@ -107,6 +283,14 @@ struct DrillsView: View {
                                     selectedDrill = drill
                                 } label: {
                                     drillCard(drill)
+                                }
+                                .contextMenu {
+                                    Button {
+                                        qrDrill = drill
+                                        showQRSheet = true
+                                    } label: {
+                                        Label("Share QR Code", systemImage: "qrcode")
+                                    }
                                 }
                                 .opacity(appeared ? 1 : 0)
                                 .offset(y: appeared ? 0 : 10)
@@ -240,6 +424,75 @@ struct DrillsView: View {
     private func loadDrills() {
         guard let profile = storage.profile else { return }
         drillsService.loadDrills(for: profile.position, weakness: profile.weakness, skillLevel: profile.skillLevel)
+        conditioningService.loadDrills(for: profile.skillLevel)
+    }
+}
+
+struct QRDrillShareSheet: View {
+    let drill: Drill
+    @Environment(\.dismiss) private var dismiss
+    @State private var qrImage: UIImage?
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: KickIQTheme.Spacing.lg) {
+                Text("Share Drill")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
+
+                Text(drill.name)
+                    .font(.headline)
+                    .foregroundStyle(KickIQTheme.accent)
+
+                if let qrImage {
+                    Image(uiImage: qrImage)
+                        .interpolation(.none)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 200, height: 200)
+                        .background(Color.white, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+                        .padding(KickIQTheme.Spacing.md)
+                } else {
+                    ProgressView()
+                        .frame(width: 200, height: 200)
+                }
+
+                Text("Scan this QR code to view the drill details")
+                    .font(.caption)
+                    .foregroundStyle(KickIQTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+
+                if let qrImage {
+                    ShareLink(item: Image(uiImage: qrImage), preview: SharePreview("KickIQ Drill: \(drill.name)", image: Image(uiImage: qrImage))) {
+                        HStack(spacing: KickIQTheme.Spacing.sm) {
+                            Image(systemName: "square.and.arrow.up")
+                            Text("Share QR Code")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, KickIQTheme.Spacing.md)
+                        .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                    }
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
+                }
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(KickIQTheme.background.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(KickIQTheme.background)
+        .onAppear {
+            let payload = QRSharingService.drillPayload(drill)
+            qrImage = QRSharingService.generateQRCode(from: payload)
+        }
     }
 }
 
@@ -250,6 +503,7 @@ struct DrillDetailSheet: View {
     @Binding var completedTrigger: Int
     @Environment(\.dismiss) private var dismiss
     @State private var showTimer = false
+    @State private var showQR = false
 
     private var isCompleted: Bool {
         storage.completedDrillIDs.contains(drill.id)
@@ -333,22 +587,38 @@ struct DrillDetailSheet: View {
                         }
                     }
 
-                    Button {
-                        showTimer = true
-                    } label: {
-                        HStack(spacing: KickIQTheme.Spacing.sm) {
-                            Image(systemName: "timer")
-                            Text("Start Drill Timer")
+                    HStack(spacing: KickIQTheme.Spacing.sm) {
+                        Button {
+                            showTimer = true
+                        } label: {
+                            HStack(spacing: KickIQTheme.Spacing.sm) {
+                                Image(systemName: "timer")
+                                Text("Start Timer")
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(KickIQTheme.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, KickIQTheme.Spacing.md)
+                            .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                                    .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
+                            )
                         }
-                        .font(.headline)
-                        .foregroundStyle(KickIQTheme.accent)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, KickIQTheme.Spacing.md)
-                        .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                                .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
-                        )
+
+                        Button {
+                            showQR = true
+                        } label: {
+                            Image(systemName: "qrcode")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(KickIQTheme.accent)
+                                .frame(width: 52, height: 52)
+                                .background(KickIQTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                                        .stroke(KickIQTheme.accent.opacity(0.3), lineWidth: 1)
+                                )
+                        }
                     }
 
                     Button {
@@ -386,6 +656,9 @@ struct DrillDetailSheet: View {
         .presentationBackground(KickIQTheme.background)
         .sheet(isPresented: $showTimer) {
             DrillTimerView(drill: drill)
+        }
+        .sheet(isPresented: $showQR) {
+            QRDrillShareSheet(drill: drill)
         }
     }
 

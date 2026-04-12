@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var storage = StorageService()
     @State private var notificationService = NotificationService()
+    @State private var themeManager = KickIQTheme.shared
     @State private var selectedTab: Int = 0
     @State private var celebratingBadge: MilestoneBadge?
     @State private var previousBadgeCount: Int = 0
@@ -31,7 +32,7 @@ struct ContentView: View {
                 .zIndex(100)
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(themeManager.appearanceMode.colorScheme)
         .onChange(of: storage.earnedBadges.count) { oldValue, newValue in
             guard newValue > oldValue, oldValue > 0 else {
                 previousBadgeCount = newValue

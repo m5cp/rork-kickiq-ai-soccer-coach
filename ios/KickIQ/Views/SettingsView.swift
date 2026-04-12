@@ -6,14 +6,26 @@ struct SettingsView: View {
     @State private var showDeleteAlert = false
     @State private var showNotificationSettings = false
     @State private var appeared = false
+    @State private var calendarService = CalendarService()
+    @State private var showCalendarSuccess = false
+    @State private var calendarEventsAdded = 0
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: KickIQTheme.Spacing.md) {
+                    sectionHeader("APPEARANCE")
+                    appearanceModeSection
+                    teamColorSection
+
                     sectionHeader("PREFERENCES")
                     settingsRow(icon: "bell.fill", title: "Notification Preferences") {
                         showNotificationSettings = true
+                    }
+
+                    sectionHeader("CALENDAR")
+                    settingsRow(icon: "calendar.badge.plus", title: "Sync Training Plan to Calendar") {
+                        Task { await syncCalendar() }
                     }
 
                     sectionHeader("DATA")
@@ -26,7 +38,7 @@ struct SettingsView: View {
                     }
 
                     VStack(spacing: 2) {
-                        Text("KickIQ v1.0")
+                        Text("KickIQ v2.0")
                             .font(.caption)
                             .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
                         Text("AI-Powered Soccer Coaching")
@@ -59,6 +71,11 @@ struct SettingsView: View {
             } message: {
                 Text("This will permanently delete your profile and all session data. This action cannot be undone.")
             }
+            .alert("Calendar Synced", isPresented: $showCalendarSuccess) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("\(calendarEventsAdded) training session\(calendarEventsAdded == 1 ? "" : "s") added to your calendar with reminders.")
+            }
             .sheet(isPresented: $showNotificationSettings) {
                 NotificationPreferencesSheet()
             }
@@ -69,6 +86,88 @@ struct SettingsView: View {
         .onAppear {
             withAnimation(.easeOut(duration: 0.4)) { appeared = true }
         }
+    }
+
+    private var appearanceModeSection: some View {
+        HStack(spacing: KickIQTheme.Spacing.sm) {
+            ForEach(AppearanceMode.allCases) { mode in
+                Button {
+                    withAnimation(.spring(response: 0.3)) {
+                        KickIQTheme.shared.setAppearanceMode(mode)
+                    }
+                } label: {
+                    VStack(spacing: 6) {
+                        Image(systemName: mode.icon)
+                            .font(.title3)
+                            .foregroundStyle(KickIQTheme.shared.appearanceMode == mode ? KickIQTheme.accent : KickIQTheme.textSecondary)
+                        Text(mode.rawValue)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(KickIQTheme.shared.appearanceMode == mode ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
+                            .fill(KickIQTheme.shared.appearanceMode == mode ? KickIQTheme.accent.opacity(0.15) : KickIQTheme.card)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
+                                    .stroke(KickIQTheme.shared.appearanceMode == mode ? KickIQTheme.accent : Color.clear, lineWidth: 1.5)
+                            )
+                    )
+                }
+            }
+        }
+        .sensoryFeedback(.selection, trigger: KickIQTheme.shared.appearanceMode)
+    }
+
+    private var teamColorSection: some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            Text("TEAM COLORS")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 70), spacing: KickIQTheme.Spacing.sm)], spacing: KickIQTheme.Spacing.sm) {
+                ForEach(TeamColor.allPresets, id: \.name) { color in
+                    let isSelected = KickIQTheme.shared.teamColor == color
+                    Button {
+                        withAnimation(.spring(response: 0.3)) {
+                            KickIQTheme.shared.setTeamColor(color)
+                        }
+                    } label: {
+                        VStack(spacing: 6) {
+                            Circle()
+                                .fill(Color(hex: color.primary))
+                                .frame(width: 32, height: 32)
+                                .overlay {
+                                    if isSelected {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+
+                            Text(color.name)
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(isSelected ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, KickIQTheme.Spacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: KickIQTheme.Radius.sm)
+                                .fill(isSelected ? Color(hex: color.primary).opacity(0.15) : KickIQTheme.surface)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.sm)
+                                        .stroke(isSelected ? Color(hex: color.primary) : Color.clear, lineWidth: 1.5)
+                                )
+                        )
+                    }
+                }
+            }
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
     }
 
     private func sectionHeader(_ title: String) -> some View {
@@ -101,5 +200,14 @@ struct SettingsView: View {
             .padding(KickIQTheme.Spacing.md)
             .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.md))
         }
+    }
+
+    private func syncCalendar() async {
+        await calendarService.requestAccess()
+        guard calendarService.isAuthorized else { return }
+        guard let plan = storage.trainingPlan else { return }
+        let count = await calendarService.addTrainingPlanToCalendar(plan: plan)
+        calendarEventsAdded = count
+        showCalendarSuccess = true
     }
 }

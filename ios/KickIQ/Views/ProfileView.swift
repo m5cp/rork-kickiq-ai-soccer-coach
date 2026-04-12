@@ -294,7 +294,7 @@ struct ProfileView: View {
 
     private var appFooter: some View {
         VStack(spacing: 2) {
-            Text("KickIQ v1.0")
+            Text("KickIQ v2.0")
                 .font(.caption)
                 .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
             Text("AI-Powered Soccer Coaching")

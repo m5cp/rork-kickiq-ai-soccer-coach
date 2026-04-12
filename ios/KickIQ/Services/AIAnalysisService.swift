@@ -64,17 +64,22 @@ class AIAnalysisService {
         let prompt = """
         You are an expert soccer coach analyzing a training video frame. The player's position is \(position.rawValue) and their skill level is \(skillLevel.rawValue).
 
-        Analyze this training frame and provide detailed coaching feedback. Rate each of these position-specific skills on a scale of 1-10: \(skillNames).
+        Analyze this training frame and provide detailed, observation-based coaching feedback. Rate each of these position-specific skills on a scale of 1-10: \(skillNames).
+
+        Your feedback must be specific to what you observe — reference body angles, foot positioning, balance, movement timing, and technique details. Avoid generic praise.
 
         Respond ONLY with valid JSON in this exact format:
         {
-            "skills": [{"skill": "Skill Name", "score": 7, "feedback": "One line feedback", "tip": "One actionable tip"}],
-            "feedback": "Detailed coaching feedback paragraph here...",
-            "drills": [{"name": "Drill Name", "description": "How to do the drill", "duration": "15 min", "difficulty": "Intermediate", "targetSkill": "Skill Name", "coachingCues": ["Cue 1", "Cue 2"], "reps": "3x10"}],
+            "skills": [{"skill": "Skill Name", "score": 7, "feedback": "Specific observation about this skill", "tip": "One actionable coaching point to improve"}],
+            "strengths": ["Specific strength 1", "Specific strength 2"],
+            "weaknesses": ["Specific weakness 1", "Specific weakness 2"],
+            "coachingPoints": ["Priority coaching point 1", "Priority coaching point 2", "Priority coaching point 3"],
+            "feedback": "Detailed coaching feedback paragraph with specific observations about technique, body position, and movement quality...",
+            "drills": [{"name": "Drill Name", "description": "Step-by-step how to perform the drill with proper form", "duration": "15 min", "difficulty": "Intermediate", "targetSkill": "Skill Name", "coachingCues": ["Cue 1", "Cue 2", "Cue 3"], "reps": "3x10"}],
             "topImprovement": "The skill area that needs most improvement"
         }
 
-        Provide 3-5 drills targeting the weakest skills. Be encouraging but specific about areas to improve.
+        Provide 3-5 drills targeting the weakest skills. Each drill must include clear coaching cues and rep schemes. Be encouraging but direct about areas needing work.
         """
 
         do {
