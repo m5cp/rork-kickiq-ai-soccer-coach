@@ -1,5 +1,11 @@
 import SwiftUI
 
+private enum AppPhase: Equatable {
+    case welcome
+    case onboarding
+    case main
+}
+
 struct ContentView: View {
     @State private var storage = StorageService()
     @State private var notificationService = NotificationService()
@@ -7,17 +13,24 @@ struct ContentView: View {
     @State private var selectedTab: Int = 0
     @State private var celebratingBadge: MilestoneBadge?
     @State private var previousBadgeCount: Int = 0
+    @State private var appPhase: AppPhase = .welcome
 
     var body: some View {
         ZStack {
             Group {
-                if storage.hasCompletedOnboarding {
-                    mainTabView
-                } else {
+                switch appPhase {
+                case .welcome:
+                    WelcomeView()
+                        .transition(.opacity)
+                case .onboarding:
                     OnboardingView(storage: storage)
+                        .transition(.opacity)
+                case .main:
+                    mainTabView
+                        .transition(.opacity)
                 }
             }
-            .animation(.spring(response: 0.5), value: storage.hasCompletedOnboarding)
+            .animation(.easeInOut(duration: 0.8), value: appPhase)
 
             if let badge = celebratingBadge {
                 MilestoneCelebrationView(
@@ -50,9 +63,17 @@ struct ContentView: View {
         .task {
             previousBadgeCount = storage.earnedBadges.count
             storage.markMilestonesShown(storage.earnedBadges)
+
+            try? await Task.sleep(for: .seconds(2.5))
+            withAnimation(.easeInOut(duration: 0.8)) {
+                appPhase = storage.hasCompletedOnboarding ? .main : .onboarding
+            }
         }
         .onChange(of: storage.hasCompletedOnboarding) { _, completed in
             guard completed else { return }
+            withAnimation(.easeInOut(duration: 0.6)) {
+                appPhase = .main
+            }
             Task {
                 await notificationService.requestPermission()
                 notificationService.scheduleStreakReminder()
