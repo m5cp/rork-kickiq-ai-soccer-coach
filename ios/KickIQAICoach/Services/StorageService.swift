@@ -26,6 +26,8 @@ class StorageService {
     var favoriteDrillIDs: Set<String> = []
     var personalRecords: [PersonalRecord] = []
     var drillCompletionHistory: [DrillCompletion] = []
+    var skillsPlan: GeneratedPlan?
+    var conditioningPlan: GeneratedPlan?
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -48,6 +50,8 @@ class StorageService {
     private let favoriteDrillsKey = "kickiq_favorite_drills"
     private let personalRecordsKey = "kickiq_personal_records"
     private let drillCompletionHistoryKey = "kickiq_drill_completion_history"
+    private let skillsPlanKey = "kickiq_skills_plan"
+    private let conditioningPlanKey = "kickiq_conditioning_plan"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -117,6 +121,14 @@ class StorageService {
            let decoded = try? JSONDecoder().decode([DrillCompletion].self, from: data) {
             drillCompletionHistory = decoded
         }
+        if let data = UserDefaults.standard.data(forKey: skillsPlanKey),
+           let decoded = try? JSONDecoder().decode(GeneratedPlan.self, from: data) {
+            skillsPlan = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: conditioningPlanKey),
+           let decoded = try? JSONDecoder().decode(GeneratedPlan.self, from: data) {
+            conditioningPlan = decoded
+        }
 
         updateDailyDrillSeed()
         updateStreak()
@@ -179,6 +191,36 @@ class StorageService {
         trainingPlan = plan
         if let data = try? JSONEncoder().encode(plan) {
             UserDefaults.standard.set(data, forKey: trainingPlanKey)
+        }
+    }
+
+    func saveGeneratedPlan(_ plan: GeneratedPlan) {
+        switch plan.config.planType {
+        case .skills:
+            skillsPlan = plan
+            if let data = try? JSONEncoder().encode(plan) {
+                UserDefaults.standard.set(data, forKey: skillsPlanKey)
+            }
+        case .conditioning:
+            conditioningPlan = plan
+            if let data = try? JSONEncoder().encode(plan) {
+                UserDefaults.standard.set(data, forKey: conditioningPlanKey)
+            }
+        }
+    }
+
+    func markPlanSynced(_ planType: GeneratedPlanType) {
+        switch planType {
+        case .skills:
+            skillsPlan?.isSynced = true
+            if let data = try? JSONEncoder().encode(skillsPlan) {
+                UserDefaults.standard.set(data, forKey: skillsPlanKey)
+            }
+        case .conditioning:
+            conditioningPlan?.isSynced = true
+            if let data = try? JSONEncoder().encode(conditioningPlan) {
+                UserDefaults.standard.set(data, forKey: conditioningPlanKey)
+            }
         }
     }
 
@@ -277,6 +319,7 @@ class StorageService {
                        reviewCountKey, sessionDatesKey, lastStreakBrokenKey, lastReassessmentKey,
                        dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey,
                        favoriteDrillsKey, personalRecordsKey, drillCompletionHistoryKey,
+                       skillsPlanKey, conditioningPlanKey,
                        "kickiq_drill_day",
                        "kickiq_pref_streak", "kickiq_pref_weekly", "kickiq_pref_monthly"]
         allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
@@ -302,6 +345,8 @@ class StorageService {
         favoriteDrillIDs = []
         personalRecords = []
         drillCompletionHistory = []
+        skillsPlan = nil
+        conditioningPlan = nil
 
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }

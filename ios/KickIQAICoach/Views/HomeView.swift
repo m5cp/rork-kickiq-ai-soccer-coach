@@ -26,14 +26,13 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: KickIQAICoachTheme.Spacing.md + 4) {
                     headerSection
+                    trainingCategoryCards
                     playerLevelCard
                     skillScoreCard
                     weeklyGoalCard
                     streakCard
                     quickStatsRow
                     analyzeCTA
-                    trainingPlanCTA
-                    todaysDrillCard
                     if !storage.favoriteDrillIDs.isEmpty {
                         favoriteDrillsPreview
                     }
@@ -68,6 +67,16 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showTrainingPlan) {
                 TrainingPlanView(storage: storage)
+            }
+            .navigationDestination(for: String.self) { destination in
+                switch destination {
+                case "skills":
+                    SkillsDrillsView(storage: storage)
+                case "conditioning":
+                    ConditioningDrillsView(storage: storage)
+                default:
+                    EmptyView()
+                }
             }
         }
         .onAppear {
@@ -319,41 +328,109 @@ struct HomeView: View {
         .animation(.spring(response: 0.5).delay(0.08), value: appeared)
     }
 
-    private var trainingPlanCTA: some View {
-        Button {
-            showTrainingPlan = true
-        } label: {
-            HStack(spacing: KickIQAICoachTheme.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(KickIQAICoachTheme.accent.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "calendar.badge.clock")
-                        .font(.title3)
-                        .foregroundStyle(KickIQAICoachTheme.accent)
+    private var trainingCategoryCards: some View {
+        HStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+            NavigationLink(value: "skills") {
+                VStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                    ZStack {
+                        Circle()
+                            .fill(KickIQAICoachTheme.accent.opacity(0.2))
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "figure.soccer")
+                            .font(.system(size: 26))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                    }
+
+                    VStack(spacing: 4) {
+                        Text("SKILLS")
+                            .font(.subheadline.weight(.black))
+                            .tracking(1)
+                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
+
+                        Text("Drills & Plans")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    }
+
+                    if storage.skillsPlan != nil {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.green)
+                            Text("Active Plan")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.green)
+                        }
+                    } else {
+                        Text("Tap to explore")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(KickIQAICoachTheme.accent.opacity(0.7))
+                    }
                 }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(storage.trainingPlan != nil ? "Your Training Plan" : "Get a Training Plan")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                    Text(storage.trainingPlan != nil ? "View your personalized weekly schedule" : "AI-generated plan based on your weaknesses")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, KickIQAICoachTheme.Spacing.lg)
+                .background(
+                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                        .fill(KickIQAICoachTheme.card)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                                .stroke(KickIQAICoachTheme.accent.opacity(0.25), lineWidth: 1.5)
+                        )
+                )
             }
-            .padding(KickIQAICoachTheme.Spacing.md)
-            .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+
+            NavigationLink(value: "conditioning") {
+                VStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                    ZStack {
+                        Circle()
+                            .fill(KickIQAICoachTheme.accent.opacity(0.2))
+                            .frame(width: 56, height: 56)
+                        Image(systemName: "heart.circle.fill")
+                            .font(.system(size: 26))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                    }
+
+                    VStack(spacing: 4) {
+                        Text("CONDITIONING")
+                            .font(.subheadline.weight(.black))
+                            .tracking(1)
+                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
+
+                        Text("Fitness & Plans")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    }
+
+                    if storage.conditioningPlan != nil {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.green)
+                            Text("Active Plan")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.green)
+                        }
+                    } else {
+                        Text("Tap to explore")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(KickIQAICoachTheme.accent.opacity(0.7))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, KickIQAICoachTheme.Spacing.lg)
+                .background(
+                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                        .fill(KickIQAICoachTheme.card)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
+                                .stroke(KickIQAICoachTheme.accent.opacity(0.25), lineWidth: 1.5)
+                        )
+                )
+            }
         }
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.17), value: appeared)
+        .animation(.spring(response: 0.5).delay(0.03), value: appeared)
     }
 
     private var analyzeCTA: some View {
@@ -375,63 +452,6 @@ struct HomeView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.15), value: appeared)
-    }
-
-    private var todaysDrillCard: some View {
-        let weakSkills = storage.weakestSkills
-        let drillIndex = storage.todaysDrillIndex
-        let skillIndex = weakSkills.isEmpty ? 0 : drillIndex % weakSkills.count
-        let weakSkill = weakSkills.isEmpty ? SkillCategory.ballControl : weakSkills[skillIndex]
-
-        let drillNames: [String] = [
-            "Quick Feet Circuit", "Touch & Turn Drill", "Cone Slalom Sprint",
-            "Wall Pass Combos", "Reaction Ball Challenge", "Shadow Play Session",
-            "1v1 Box Drill"
-        ]
-        let todaysDrillName = drillNames[drillIndex % drillNames.count]
-
-        return VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .font(.caption)
-                    Text("TODAY'S DRILL")
-                        .font(.caption.weight(.bold))
-                        .tracking(1)
-                }
-                .foregroundStyle(KickIQAICoachTheme.accent)
-                Spacer()
-                Image(systemName: weakSkill.icon)
-                    .font(.caption)
-                    .foregroundStyle(KickIQAICoachTheme.accent)
-            }
-
-            Text(todaysDrillName)
-                .font(.headline)
-                .foregroundStyle(KickIQAICoachTheme.textPrimary)
-
-            Text("Focus: \(weakSkill.rawValue) — tailored to your weakest area. Resets daily.")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                .lineLimit(2)
-
-            Button {
-                selectedTab = 2
-            } label: {
-                Text("Start Drill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(KickIQAICoachTheme.accent)
-                    .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
-                    .padding(.vertical, KickIQAICoachTheme.Spacing.sm)
-                    .background(KickIQAICoachTheme.accent.opacity(0.15), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
-            }
-            .padding(.top, KickIQAICoachTheme.Spacing.xs)
-        }
-        .padding(KickIQAICoachTheme.Spacing.md)
-        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.2), value: appeared)
     }
 
     private var quickStatsRow: some View {
