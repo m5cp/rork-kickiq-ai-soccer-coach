@@ -1,15 +1,23 @@
 import AVFoundation
 import UIKit
 
+nonisolated enum CameraMode: Sendable {
+    case video
+    case photo
+}
+
 @Observable
 @MainActor
 class CameraRecordingService: NSObject {
     let captureSession = AVCaptureSession()
     var isRecording = false
     var errorMessage: String?
+    var lastCapturedPhoto: UIImage?
 
     private var movieOutput = AVCaptureMovieFileOutput()
+    private var photoOutput = AVCapturePhotoOutput()
     private var recordingCompletion: ((URL?) -> Void)?
+    private var photoCompletion: ((UIImage?) -> Void)?
     private var isSessionConfigured = false
 
     func setupSession() async {
@@ -50,12 +58,14 @@ class CameraRecordingService: NSObject {
             captureSession.addInput(audioInput)
         }
 
-        guard captureSession.canAddOutput(movieOutput) else {
-            errorMessage = "Could not configure video recording"
-            captureSession.commitConfiguration()
-            return
+        if captureSession.canAddOutput(movieOutput) {
+            captureSession.addOutput(movieOutput)
         }
-        captureSession.addOutput(movieOutput)
+
+        if captureSession.canAddOutput(photoOutput) {
+            captureSession.addOutput(photoOutput)
+            photoOutput.isHighResolutionCaptureEnabled = true
+        }
 
         if let connection = movieOutput.connection(with: .video) {
             if connection.isVideoStabilizationSupported {
@@ -69,6 +79,16 @@ class CameraRecordingService: NSObject {
         Task.detached { [captureSession] in
             captureSession.startRunning()
         }
+    }
+
+    func capturePhoto(completion: @escaping (UIImage?) -> Void) {
+        guard isSessionConfigured else {
+            completion(nil)
+            return
+        }
+        photoCompletion = completion
+        let settings = AVCapturePhotoSettings()
+        photoOutput.capturePhoto(with: settings, delegate: self)
     }
 
     func startRecording() {
@@ -111,6 +131,24 @@ extension CameraRecordingService: AVCaptureFileOutputRecordingDelegate {
                 recordingCompletion?(outputFileURL)
             }
             recordingCompletion = nil
+        }
+    }
+}
+
+extension CameraRecordingService: AVCapturePhotoCaptureDelegate {
+    nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        Task { @MainActor in
+            if let error {
+                errorMessage = "Photo capture failed: \(error.localizedDescription)"
+                photoCompletion?(nil)
+            } else if let data = photo.fileDataRepresentation(),
+                      let image = UIImage(data: data) {
+                lastCapturedPhoto = image
+                photoCompletion?(image)
+            } else {
+                photoCompletion?(nil)
+            }
+            photoCompletion = nil
         }
     }
 }

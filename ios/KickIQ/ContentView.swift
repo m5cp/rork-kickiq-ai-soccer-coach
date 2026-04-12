@@ -3,8 +3,9 @@ import SwiftUI
 enum AppTab: Int, CaseIterable, Identifiable {
     case home = 0
     case analyze = 1
-    case drills = 2
-    case progress = 3
+    case media = 2
+    case drills = 3
+    case progress = 4
 
     var id: Int { rawValue }
 
@@ -12,6 +13,7 @@ enum AppTab: Int, CaseIterable, Identifiable {
         switch self {
         case .home: "Home"
         case .analyze: "Analyze"
+        case .media: "Media"
         case .drills: "Drills"
         case .progress: "Progress"
         }
@@ -21,6 +23,7 @@ enum AppTab: Int, CaseIterable, Identifiable {
         switch self {
         case .home: "house.fill"
         case .analyze: "video.fill"
+        case .media: "photo.on.rectangle.angled"
         case .drills: "figure.soccer"
         case .progress: "chart.line.uptrend.xyaxis"
         }
@@ -97,11 +100,15 @@ struct ContentView: View {
                 AnalyzeView(storage: storage)
             }
 
-            Tab("Drills", systemImage: "figure.soccer", value: 2) {
+            Tab("Media", systemImage: "photo.on.rectangle.angled", value: 2) {
+                MediaGalleryView(storage: storage)
+            }
+
+            Tab("Drills", systemImage: "figure.soccer", value: 3) {
                 DrillsView(storage: storage)
             }
 
-            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 3) {
+            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 4) {
                 ProgressTabView(storage: storage)
             }
         }
@@ -215,8 +222,10 @@ struct ContentView: View {
         case 1:
             AnalyzeView(storage: storage)
         case 2:
-            DrillsView(storage: storage)
+            MediaGalleryView(storage: storage)
         case 3:
+            DrillsView(storage: storage)
+        case 4:
             ProgressTabView(storage: storage)
         default:
             HomeView(storage: storage, calendarService: calendarService, selectedTab: $selectedTab)

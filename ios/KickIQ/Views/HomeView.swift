@@ -424,7 +424,7 @@ struct HomeView: View {
     private var startSessionCTA: some View {
         Button {
             if storage.smartTrainingPlan?.todaysPlan != nil {
-                selectedTab = 2
+                selectedTab = 3
             } else {
                 selectedTab = 1
             }
@@ -485,7 +485,7 @@ struct HomeView: View {
 
     private var trainingPlanCTA: some View {
         Button {
-            selectedTab = 2
+            selectedTab = 3
         } label: {
             Group {
                 if let plan = storage.smartTrainingPlan, let today = plan.todaysPlan {
@@ -723,7 +723,7 @@ struct HomeView: View {
                         .lineLimit(2)
 
                     Button {
-                        selectedTab = 2
+                        selectedTab = 3
                     } label: {
                         Text("Start Drill")
                             .font(.subheadline.weight(.semibold))

@@ -2,11 +2,18 @@ import SwiftUI
 import AVFoundation
 
 struct CameraRecordView: View {
-    let onVideoRecorded: (URL) -> Void
+    var onVideoRecorded: ((URL) -> Void)?
+    var onPhotoCaptured: ((UIImage) -> Void)?
+    var initialMode: CameraMode = .video
+
     @Environment(\.dismiss) private var dismiss
     @State private var cameraService = CameraRecordingService()
     @State private var recordingTime: TimeInterval = 0
     @State private var timer: Timer?
+    @State private var currentMode: CameraMode = .video
+    @State private var flashAnimation = false
+    @State private var capturedPreview: UIImage?
+    @State private var showCapturedPreview = false
 
     var body: some View {
         NavigationStack {
@@ -23,6 +30,17 @@ struct CameraRecordView: View {
                         cameraUnavailablePlaceholder
                     }
                     #endif
+                }
+
+                if flashAnimation {
+                    Color.white.ignoresSafeArea()
+                        .opacity(flashAnimation ? 0.6 : 0)
+                        .allowsHitTesting(false)
+                }
+
+                if showCapturedPreview, let preview = capturedPreview {
+                    photoPreviewOverlay(preview)
+                        .transition(.opacity)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -41,6 +59,7 @@ struct CameraRecordView: View {
             }
             .toolbarBackground(.hidden, for: .navigationBar)
         }
+        .onAppear { currentMode = initialMode }
         .onDisappear {
             stopRecordingIfNeeded()
             cameraService.stopSession()
@@ -61,8 +80,11 @@ struct CameraRecordView: View {
 
                 Spacer()
 
-                controlsBar
-                    .padding(.bottom, 40)
+                VStack(spacing: 20) {
+                    modePicker
+                    controlsBar
+                }
+                .padding(.bottom, 40)
             }
 
             if let error = cameraService.errorMessage {
@@ -80,6 +102,29 @@ struct CameraRecordView: View {
         .task {
             await cameraService.setupSession()
         }
+    }
+
+    private var modePicker: some View {
+        HStack(spacing: 24) {
+            Button {
+                withAnimation(.spring(response: 0.3)) { currentMode = .video }
+            } label: {
+                Text("VIDEO")
+                    .font(.system(size: 13, weight: currentMode == .video ? .black : .medium))
+                    .foregroundStyle(currentMode == .video ? KickIQTheme.accent : .white.opacity(0.5))
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.3)) { currentMode = .photo }
+            } label: {
+                Text("PHOTO")
+                    .font(.system(size: 13, weight: currentMode == .photo ? .black : .medium))
+                    .foregroundStyle(currentMode == .photo ? KickIQTheme.accent : .white.opacity(0.5))
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+        .background(.black.opacity(0.5), in: Capsule())
     }
 
     private var recordingIndicator: some View {
@@ -107,32 +152,98 @@ struct CameraRecordView: View {
         HStack(spacing: 40) {
             Spacer()
 
-            Button {
-                if cameraService.isRecording {
-                    stopRecording()
-                } else {
-                    startRecording()
-                }
-            } label: {
-                ZStack {
-                    Circle()
-                        .stroke(.white, lineWidth: 4)
-                        .frame(width: 72, height: 72)
-
+            if currentMode == .video {
+                Button {
                     if cameraService.isRecording {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(.red)
-                            .frame(width: 28, height: 28)
+                        stopRecording()
                     } else {
+                        startRecording()
+                    }
+                } label: {
+                    ZStack {
                         Circle()
-                            .fill(.red)
+                            .stroke(.white, lineWidth: 4)
+                            .frame(width: 72, height: 72)
+
+                        if cameraService.isRecording {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(.red)
+                                .frame(width: 28, height: 28)
+                        } else {
+                            Circle()
+                                .fill(.red)
+                                .frame(width: 58, height: 58)
+                        }
+                    }
+                }
+                .sensoryFeedback(.impact(weight: .heavy), trigger: cameraService.isRecording)
+            } else {
+                Button {
+                    capturePhoto()
+                } label: {
+                    ZStack {
+                        Circle()
+                            .stroke(.white, lineWidth: 4)
+                            .frame(width: 72, height: 72)
+
+                        Circle()
+                            .fill(.white)
                             .frame(width: 58, height: 58)
                     }
                 }
+                .sensoryFeedback(.impact(weight: .medium), trigger: capturedPreview != nil)
             }
-            .sensoryFeedback(.impact(weight: .heavy), trigger: cameraService.isRecording)
 
             Spacer()
+        }
+    }
+
+    private func photoPreviewOverlay(_ image: UIImage) -> some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .ignoresSafeArea()
+
+            VStack {
+                Spacer()
+
+                HStack(spacing: KickIQTheme.Spacing.xl) {
+                    Button {
+                        withAnimation(.spring(response: 0.3)) {
+                            showCapturedPreview = false
+                            capturedPreview = nil
+                        }
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.title2)
+                            Text("Retake")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(.white)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        onPhotoCaptured?(image)
+                        dismiss()
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 28))
+                            Text("Use Photo")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundStyle(KickIQTheme.accent)
+                    }
+                }
+                .padding(.horizontal, KickIQTheme.Spacing.xl)
+                .padding(.bottom, 50)
+            }
         }
     }
 
@@ -154,6 +265,21 @@ struct CameraRecordView: View {
         .background(Color(.systemGroupedBackground))
     }
 
+    private func capturePhoto() {
+        withAnimation(.easeInOut(duration: 0.15)) { flashAnimation = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeOut(duration: 0.2)) { flashAnimation = false }
+        }
+
+        cameraService.capturePhoto { image in
+            guard let image else { return }
+            capturedPreview = image
+            withAnimation(.spring(response: 0.3)) {
+                showCapturedPreview = true
+            }
+        }
+    }
+
     private func startRecording() {
         cameraService.startRecording()
         recordingTime = 0
@@ -172,7 +298,7 @@ struct CameraRecordView: View {
         timer = nil
         cameraService.stopRecording { url in
             if let url {
-                onVideoRecorded(url)
+                onVideoRecorded?(url)
                 dismiss()
             }
         }

@@ -54,9 +54,12 @@ struct AnalyzeView: View {
             Task { await handleVideoSelection(newItem) }
         }
         .fullScreenCover(isPresented: $showCamera) {
-            CameraRecordView { recordedURL in
-                Task { await handleRecordedVideo(recordedURL) }
-            }
+            CameraRecordView(
+                onVideoRecorded: { recordedURL in
+                    Task { await handleRecordedVideo(recordedURL) }
+                },
+                initialMode: .video
+            )
         }
         .sheet(isPresented: $showFilmingGuide) {
             FilmingGuideSheet()
