@@ -10,6 +10,11 @@ struct SavedPlansView: View {
     @State private var qrPayload: QRSharePayload?
     @State private var planToDelete: SavedPlan?
     @State private var showDeleteConfirm = false
+    @State private var showGenerateSkillPlan = false
+    @State private var showGenerateConditioningPlan = false
+    @State private var planToRedo: SavedPlan?
+    @State private var showRedoPlan = false
+    @State private var showNewPlanPicker = false
 
     var body: some View {
         NavigationStack {
@@ -27,6 +32,15 @@ struct SavedPlansView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
                         .foregroundStyle(KickIQTheme.accent)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showNewPlanPicker = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(KickIQTheme.accent)
+                    }
                 }
             }
         }
@@ -50,6 +64,17 @@ struct SavedPlansView: View {
                 )
             }
         }
+        .sheet(isPresented: $showGenerateSkillPlan) {
+            GeneratePlanSheet(storage: storage, planType: .skillDrills)
+        }
+        .sheet(isPresented: $showGenerateConditioningPlan) {
+            GeneratePlanSheet(storage: storage, planType: .conditioning)
+        }
+        .sheet(isPresented: $showRedoPlan) {
+            if let plan = planToRedo {
+                RedoPlanSheet(originalPlan: plan, storage: storage)
+            }
+        }
         .alert("Delete Plan?", isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) {
                 if let plan = planToDelete {
@@ -59,6 +84,13 @@ struct SavedPlansView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This plan will be permanently removed.")
+        }
+        .confirmationDialog("New Plan", isPresented: $showNewPlanPicker) {
+            Button("Skill Drills Plan") { showGenerateSkillPlan = true }
+            Button("Conditioning Plan") { showGenerateConditioningPlan = true }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Choose the type of plan to create")
         }
     }
 
@@ -80,6 +112,21 @@ struct SavedPlansView: View {
                 .font(.subheadline)
                 .foregroundStyle(KickIQTheme.textSecondary)
                 .multilineTextAlignment(.center)
+
+            Button {
+                showNewPlanPicker = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Create New Plan")
+                }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.black)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+            }
+
             Spacer()
         }
         .padding(.horizontal, KickIQTheme.Spacing.lg)
@@ -180,6 +227,17 @@ struct SavedPlansView: View {
                 }
 
                 Button {
+                    planToRedo = plan
+                    showRedoPlan = true
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(accentColor)
+                        .frame(width: 40, height: 36)
+                        .background(accentColor.opacity(0.12), in: .rect(cornerRadius: KickIQTheme.Radius.sm))
+                }
+
+                Button {
                     pdfURL = PlanPDFExporter.generatePDF(for: plan)
                     if pdfURL != nil { showPDFShare = true }
                 } label: {
@@ -242,6 +300,243 @@ struct SavedPlansView: View {
             summary: plan.summaryText,
             days: Array(qrDays)
         ))
+    }
+}
+
+struct RedoPlanSheet: View {
+    let originalPlan: SavedPlan
+    let storage: StorageService
+    @Environment(\.dismiss) private var dismiss
+    @State private var isGenerating = false
+    @State private var generatedPlan: SavedPlan?
+    @State private var showResult = false
+
+    private var accentColor: Color {
+        originalPlan.planType == .conditioning ? .orange : KickIQTheme.accent
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: KickIQTheme.Spacing.lg) {
+                Spacer().frame(height: KickIQTheme.Spacing.md)
+
+                ZStack {
+                    Circle()
+                        .fill(accentColor.opacity(0.12))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 36))
+                        .foregroundStyle(accentColor)
+                }
+
+                VStack(spacing: 6) {
+                    Text("Redo Plan")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Regenerate \"\(originalPlan.title)\" with the same settings but fresh drills.")
+                        .font(.subheadline)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+
+                VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+                    redoInfoRow(icon: originalPlan.planType == .conditioning ? "flame.fill" : "figure.soccer", label: "Type", value: originalPlan.planType == .conditioning ? "Conditioning" : "Skill Drills")
+                    redoInfoRow(icon: "calendar", label: "Duration", value: "\(originalPlan.weekCount) weeks")
+                    redoInfoRow(icon: "clock", label: "Per Session", value: originalPlan.sessionDuration.label)
+                    redoInfoRow(icon: "target", label: "Focus", value: originalPlan.focusAreas.joined(separator: ", "))
+                }
+                .padding(KickIQTheme.Spacing.md)
+                .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                .padding(.horizontal, KickIQTheme.Spacing.md)
+
+                Spacer()
+
+                VStack(spacing: KickIQTheme.Spacing.sm) {
+                    Button {
+                        regeneratePlan()
+                    } label: {
+                        HStack(spacing: KickIQTheme.Spacing.sm) {
+                            if isGenerating {
+                                ProgressView().tint(.black)
+                            } else {
+                                Image(systemName: "sparkles")
+                            }
+                            Text(isGenerating ? "Generating..." : "Regenerate Plan")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(accentColor, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                    }
+                    .disabled(isGenerating)
+
+                    Button("Cancel") { dismiss() }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+                .padding(.horizontal, KickIQTheme.Spacing.md)
+                .padding(.bottom, KickIQTheme.Spacing.md)
+            }
+            .background(KickIQTheme.background.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(KickIQTheme.background)
+        .fullScreenCover(isPresented: $showResult) {
+            if let plan = generatedPlan {
+                PlanResultView(plan: plan, storage: storage, onAccept: { acceptedPlan in
+                    storage.addSavedPlan(acceptedPlan)
+                    dismiss()
+                }, onRegenerate: {
+                    showResult = false
+                    generatedPlan = nil
+                })
+            }
+        }
+    }
+
+    private func redoInfoRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: KickIQTheme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(accentColor)
+                .frame(width: 20)
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(KickIQTheme.textSecondary)
+                .frame(width: 80, alignment: .leading)
+            Text(value)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(KickIQTheme.textPrimary)
+                .lineLimit(2)
+            Spacer()
+        }
+    }
+
+    private func regeneratePlan() {
+        isGenerating = true
+        let drillsService = DrillsService()
+        if let profile = storage.profile {
+            drillsService.loadDrills(for: profile.position, weakness: profile.weakness, skillLevel: profile.skillLevel)
+        }
+
+        let areas = originalPlan.focusAreas
+        let weekCount = originalPlan.weekCount
+        let sessionDuration = originalPlan.sessionDuration
+        let planType = originalPlan.planType
+        let totalDays = weekCount * 5
+        let intensityPattern: [TrainingIntensity] = [.medium, .heavy, .light, .medium, .heavy]
+
+        var days: [SavedPlanDay] = []
+
+        for dayIndex in 0..<totalDays {
+            let weekNum = (dayIndex / 5) + 1
+            let dayInWeek = (dayIndex % 5)
+            let intensity = intensityPattern[dayInWeek % intensityPattern.count]
+            let focusArea = areas[dayIndex % areas.count]
+
+            let drills = buildDrillsForDay(
+                service: drillsService,
+                focus: focusArea,
+                intensity: intensity,
+                planType: planType,
+                sessionDuration: sessionDuration
+            )
+
+            let day = SavedPlanDay(
+                dayNumber: dayIndex + 1,
+                weekNumber: weekNum,
+                focus: focusArea,
+                intensity: intensity,
+                duration: sessionDuration,
+                drills: drills
+            )
+            days.append(day)
+        }
+
+        let title: String
+        if areas.count <= 2 {
+            title = "\(weekCount)-Week \(areas.joined(separator: " & ")) Plan"
+        } else {
+            title = "\(weekCount)-Week \(planType == .conditioning ? "Conditioning" : "Skills") Plan"
+        }
+
+        let plan = SavedPlan(
+            planType: planType,
+            title: title,
+            focusAreas: areas,
+            sessionDuration: sessionDuration,
+            weekCount: weekCount,
+            days: days
+        )
+
+        generatedPlan = plan
+        isGenerating = false
+        showResult = true
+    }
+
+    private func buildDrillsForDay(service: DrillsService, focus: String, intensity: TrainingIntensity, planType: SavedPlanType, sessionDuration: SessionDuration) -> [SavedPlanDrill] {
+        let targetCount: Int
+        switch sessionDuration {
+        case .twenty: targetCount = 2
+        case .thirty: targetCount = 3
+        case .fortyFive: targetCount = 4
+        case .sixty: targetCount = 5
+        case .ninety: targetCount = 7
+        }
+
+        var pool: [Drill]
+        if planType == .conditioning {
+            let allConditioning = service.allDrills.filter { ConditioningType.isConditioningDrill($0) }
+            let condType = ConditioningType.allCases.first { $0.rawValue == focus }
+            let focused = condType.map { t in allConditioning.filter { ConditioningType.classify($0) == t } } ?? allConditioning
+            pool = focused.isEmpty ? allConditioning : focused
+        } else {
+            let allSkill = service.allDrills.filter { !ConditioningType.isConditioningDrill($0) }
+            let focused = allSkill.filter { $0.targetSkill == focus }
+            pool = focused.isEmpty ? allSkill : focused
+        }
+
+        guard !pool.isEmpty else { return [] }
+
+        var selected: [SavedPlanDrill] = []
+        var usedNames: Set<String> = []
+
+        for drill in pool.shuffled() {
+            guard selected.count < targetCount else { break }
+            guard !usedNames.contains(drill.name) else { continue }
+            usedNames.insert(drill.name)
+            selected.append(SavedPlanDrill(
+                name: drill.name,
+                description: drill.description,
+                duration: drill.duration,
+                reps: drill.reps,
+                targetSkill: drill.targetSkill,
+                difficulty: drill.difficulty,
+                coachingCues: drill.coachingCues
+            ))
+        }
+
+        if selected.count < targetCount {
+            let remaining = service.allDrills.filter { !usedNames.contains($0.name) }
+            for drill in remaining.shuffled().prefix(targetCount - selected.count) {
+                usedNames.insert(drill.name)
+                selected.append(SavedPlanDrill(
+                    name: drill.name,
+                    description: drill.description,
+                    duration: drill.duration,
+                    reps: drill.reps,
+                    targetSkill: drill.targetSkill,
+                    difficulty: drill.difficulty,
+                    coachingCues: drill.coachingCues
+                ))
+            }
+        }
+
+        return selected
     }
 }
 

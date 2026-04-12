@@ -14,6 +14,8 @@ struct PlanResultView: View {
     @State private var showQRShare = false
     @State private var pdfURL: URL?
     @State private var acceptedPlan: SavedPlan?
+    @State private var showPostAccept = false
+    @State private var acceptTrigger = 0
 
     private var accentColor: Color {
         plan.planType == .conditioning ? .orange : KickIQTheme.accent
@@ -54,6 +56,13 @@ struct PlanResultView: View {
                 acceptRejectBar
             }
         }
+        .sheet(isPresented: $showPostAccept) {
+            PostAcceptActionsSheet(
+                plan: acceptedPlan ?? plan,
+                storage: storage,
+                onDone: { dismiss() }
+            )
+        }
         .sheet(isPresented: $showQRShare) {
             let payload = buildQRPayload()
             QRCodeShareSheet(
@@ -67,6 +76,7 @@ struct PlanResultView: View {
                 ShareSheet(items: [url])
             }
         }
+        .sensoryFeedback(.success, trigger: acceptTrigger)
         .alert("Calendar Access", isPresented: $showCalendarAlert) {
             Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -316,7 +326,10 @@ struct PlanResultView: View {
                 if calendarSynced {
                     accepted.isSyncedToCalendar = true
                 }
+                acceptedPlan = accepted
                 onAccept(accepted)
+                acceptTrigger += 1
+                showPostAccept = true
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
