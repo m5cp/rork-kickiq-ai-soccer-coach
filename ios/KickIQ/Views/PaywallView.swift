@@ -3,9 +3,12 @@ import RevenueCat
 
 struct PaywallView: View {
     var store: StoreViewModel
+    var userRole: UserRole = .player
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPackage: Package?
     @State private var appeared = false
+
+    private var isCoach: Bool { userRole == .coach }
 
     var body: some View {
         NavigationStack {
@@ -92,18 +95,18 @@ struct PaywallView: View {
                     )
                     .frame(width: 100, height: 100)
 
-                Image(systemName: "bolt.shield.fill")
+                Image(systemName: isCoach ? "whistle.fill" : "bolt.shield.fill")
                     .font(.system(size: 44))
                     .foregroundStyle(KickIQTheme.accent)
                     .symbolEffect(.bounce, value: appeared)
             }
 
-            Text("UNLOCK KICKIQ PRO")
+            Text(isCoach ? "UNLOCK COACH PRO" : "UNLOCK KICKIQ PRO")
                 .font(.system(.title2, design: .default, weight: .black).width(.compressed))
                 .tracking(2)
                 .foregroundStyle(KickIQTheme.textPrimary)
 
-            Text("Train smarter with premium AI coaching")
+            Text(isCoach ? "AI-powered tools for your entire team" : "Train smarter with premium AI coaching")
                 .font(.subheadline)
                 .foregroundStyle(KickIQTheme.textSecondary)
         }
@@ -114,13 +117,24 @@ struct PaywallView: View {
 
     private var featuresGrid: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                featureItem(icon: "brain.head.profile.fill", title: "AI Chat", free: "10/day", pro: "Up to 500/day")
-                featureItem(icon: "video.fill", title: "Video Analysis", free: "2/day", pro: "Up to 100/day")
-            }
-            HStack(spacing: 10) {
-                featureItem(icon: "figure.soccer", title: "Custom Drills", free: "Basic", pro: "Advanced")
-                featureItem(icon: "chart.line.uptrend.xyaxis", title: "Progress", free: "Limited", pro: "Full Access")
+            if isCoach {
+                HStack(spacing: 10) {
+                    featureItem(icon: "person.3.fill", title: "Players", free: "Unlimited", pro: "Unlimited")
+                    featureItem(icon: "brain.head.profile.fill", title: "AI Chat", free: "10/day", pro: "Up to 500/day")
+                }
+                HStack(spacing: 10) {
+                    featureItem(icon: "video.fill", title: "AI Analysis", free: "2/day", pro: "Up to 100/day")
+                    featureItem(icon: "chart.bar.doc.horizontal.fill", title: "Reports", free: "Basic", pro: "Full + Export")
+                }
+            } else {
+                HStack(spacing: 10) {
+                    featureItem(icon: "brain.head.profile.fill", title: "AI Chat", free: "10/day", pro: "Up to 500/day")
+                    featureItem(icon: "video.fill", title: "Video Analysis", free: "2/day", pro: "Up to 100/day")
+                }
+                HStack(spacing: 10) {
+                    featureItem(icon: "figure.soccer", title: "Custom Drills", free: "Basic", pro: "Advanced")
+                    featureItem(icon: "chart.line.uptrend.xyaxis", title: "Progress", free: "Limited", pro: "Full Access")
+                }
             }
         }
         .padding(.horizontal, KickIQTheme.Spacing.md)
@@ -247,11 +261,20 @@ struct PaywallView: View {
     }
 
     private func periodDescription(for package: Package) -> String {
-        switch package.identifier {
-        case "$rc_annual": return "500 AI chats/day · 100 analyses · All features"
-        case "$rc_monthly": return "150 AI chats/day · 30 analyses · All features"
-        case "$rc_weekly": return "50 AI chats/day · 10 analyses · All features"
-        default: return ""
+        if isCoach {
+            switch package.identifier {
+            case "$rc_annual": return "500 AI chats/day · 100 analyses · Full reports"
+            case "$rc_monthly": return "150 AI chats/day · 30 analyses · Full reports"
+            case "$rc_weekly": return "50 AI chats/day · 10 analyses · Basic reports"
+            default: return ""
+            }
+        } else {
+            switch package.identifier {
+            case "$rc_annual": return "500 AI chats/day · 100 analyses · All features"
+            case "$rc_monthly": return "150 AI chats/day · 30 analyses · All features"
+            case "$rc_weekly": return "50 AI chats/day · 10 analyses · All features"
+            default: return ""
+            }
         }
     }
 

@@ -1,5 +1,4 @@
 import SwiftUI
-
 import RevenueCat
 
 struct OnboardingView: View {
@@ -15,7 +14,21 @@ struct OnboardingView: View {
     @State private var appeared = false
     @State private var selectedPackage: Package?
 
-    private let totalSteps = 10
+    private var isCoachPath: Bool { userRole == .coach }
+
+    private var totalSteps: Int { isCoachPath ? 7 : 10 }
+
+    private var currentStepTags: [Int] {
+        if isCoachPath {
+            return Array(0..<7)
+        } else {
+            return Array(0..<10)
+        }
+    }
+
+    private var showContinueButton: Bool {
+        currentStep < (totalSteps - 1)
+    }
 
     var body: some View {
         ZStack {
@@ -24,7 +37,7 @@ struct OnboardingView: View {
             VStack(spacing: 0) {
                 HStack {
                     progressBar
-                    
+
                     Button {
                         completeOnboarding()
                     } label: {
@@ -37,24 +50,42 @@ struct OnboardingView: View {
                 .padding(.horizontal, KickIQTheme.Spacing.md)
 
                 TabView(selection: $currentStep) {
-                    nameStep.tag(0)
-                    roleStep.tag(1)
-                    positionStep.tag(2)
-                    ageStep.tag(3)
-                    skillLevelStep.tag(4)
-                    weaknessStep.tag(5)
-                    painStep.tag(6)
-                    howItWorksStep.tag(7)
-                    socialProofStep.tag(8)
-                    paywallStep.tag(9)
+                    if isCoachPath {
+                        nameStep.tag(0)
+                        roleStep.tag(1)
+                        coachValueStep.tag(2)
+                        coachFeaturesStep.tag(3)
+                        coachSetupStep.tag(4)
+                        coachSocialProofStep.tag(5)
+                        coachPaywallStep.tag(6)
+                    } else {
+                        nameStep.tag(0)
+                        roleStep.tag(1)
+                        positionStep.tag(2)
+                        ageStep.tag(3)
+                        skillLevelStep.tag(4)
+                        weaknessStep.tag(5)
+                        painStep.tag(6)
+                        howItWorksStep.tag(7)
+                        socialProofStep.tag(8)
+                        playerPaywallStep.tag(9)
+                    }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 9 {
+                if showContinueButton {
                     continueButton
                 }
             }
+        }
+        .onChange(of: userRole) { _, newRole in
+            if currentStep > 1 {
+                withAnimation(.spring(response: 0.3)) {
+                    currentStep = 1
+                }
+            }
+            selectedPackage = nil
         }
         .onAppear {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
@@ -93,7 +124,7 @@ struct OnboardingView: View {
                     .tracking(2)
                     .foregroundStyle(KickIQTheme.textPrimary)
 
-                Text("So we can personalize your coaching")
+                Text("So we can personalize your experience")
                     .font(.subheadline)
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
@@ -183,7 +214,7 @@ struct OnboardingView: View {
                         Image(systemName: "info.circle.fill")
                             .font(.caption)
                             .foregroundStyle(KickIQTheme.accent)
-                        Text("You'll get a team dashboard after creating a team")
+                        Text("Coach path: manage teams, assign drills, track every player")
                             .font(.caption)
                             .foregroundStyle(KickIQTheme.textSecondary)
                     }
@@ -199,7 +230,318 @@ struct OnboardingView: View {
         .animation(.spring(response: 0.3), value: userRole)
     }
 
-    // MARK: - Step 2: Position
+    // MARK: - Coach Path Step 2: Value Proposition
+    private var coachValueStep: some View {
+        VStack(spacing: KickIQTheme.Spacing.xl) {
+            Spacer()
+
+            Image(systemName: "whistle.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(KickIQTheme.accent)
+                .symbolEffect(.bounce, value: currentStep == 2)
+
+            VStack(spacing: KickIQTheme.Spacing.md) {
+                Text("YOUR TEAM.\nYOUR DATA.\nYOUR EDGE.")
+                    .font(.system(.title, design: .default, weight: .black))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(KickIQTheme.textPrimary)
+
+                Text("Stop guessing. KickIQ gives you AI-powered\ninsights on every player, every session.")
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(KickIQTheme.textSecondary)
+                    .padding(.top, KickIQTheme.Spacing.sm)
+            }
+
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.xl)
+    }
+
+    // MARK: - Coach Path Step 3: Features
+    private var coachFeaturesStep: some View {
+        ScrollView {
+            VStack(spacing: KickIQTheme.Spacing.lg) {
+                stepHeader(title: "WHAT YOU GET", subtitle: "Built for coaches who want to win")
+
+                VStack(spacing: KickIQTheme.Spacing.md) {
+                    coachFeatureRow(icon: "person.3.fill", title: "Unlimited Players", subtitle: "Invite your entire roster — no player limits, ever", free: true)
+                    coachFeatureRow(icon: "list.clipboard.fill", title: "Custom Drill Plans", subtitle: "Build & assign training plans to individuals or the team", free: true)
+                    coachFeatureRow(icon: "chart.bar.doc.horizontal.fill", title: "Team Reports", subtitle: "See who's improving, who needs work, export to PDF", free: true)
+                    coachFeatureRow(icon: "brain.head.profile.fill", title: "AI Video Analysis", subtitle: "AI breaks down each player's technique automatically", free: false)
+                    coachFeatureRow(icon: "bubble.left.and.bubble.right.fill", title: "AI Coach Chat", subtitle: "Ask the AI for drill ideas, session plans, injury tips", free: false)
+                    coachFeatureRow(icon: "square.and.arrow.up.fill", title: "Data Export", subtitle: "Export player stats, reports, and progress data", free: true)
+                }
+                .padding(.horizontal, KickIQTheme.Spacing.md)
+            }
+            .padding(.bottom, KickIQTheme.Spacing.lg)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private func coachFeatureRow(icon: String, title: String, subtitle: String, free: Bool) -> some View {
+        HStack(spacing: KickIQTheme.Spacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(KickIQTheme.accent.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                Image(systemName: icon)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(KickIQTheme.accent)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    if free {
+                        Text("FREE")
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundStyle(.green)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.green.opacity(0.15), in: Capsule())
+                    } else {
+                        Text("PRO")
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundStyle(KickIQTheme.accent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(KickIQTheme.accent.opacity(0.15), in: Capsule())
+                    }
+                }
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+
+            Spacer()
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+    }
+
+    // MARK: - Coach Path Step 4: What You Can Set Up
+    private var coachSetupStep: some View {
+        VStack(spacing: KickIQTheme.Spacing.xl) {
+            Spacer()
+
+            Text("SET UP IN MINUTES")
+                .font(.system(.title2, design: .default, weight: .black).width(.compressed))
+                .tracking(2)
+                .foregroundStyle(KickIQTheme.textPrimary)
+
+            VStack(spacing: KickIQTheme.Spacing.lg) {
+                howItWorksRow(step: "1", icon: "person.crop.rectangle.stack.fill", title: "Create Team", subtitle: "Set up your team and invite players via QR code")
+                howItWorksRow(step: "2", icon: "list.clipboard.fill", title: "Assign Drills", subtitle: "Build plans and push them to any player")
+                howItWorksRow(step: "3", icon: "chart.line.uptrend.xyaxis", title: "Track Progress", subtitle: "Watch the whole team improve with real data")
+            }
+
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.lg)
+    }
+
+    // MARK: - Coach Path Step 5: Social Proof
+    private var coachSocialProofStep: some View {
+        ScrollView {
+            VStack(spacing: KickIQTheme.Spacing.lg) {
+                stepHeader(title: "COACHES LOVE KICKIQ", subtitle: "See what other coaches are saying")
+
+                VStack(spacing: KickIQTheme.Spacing.md) {
+                    coachTestimonialCard(name: "Coach Davis", team: "U16 Academy", result: "Replaced three spreadsheets and a WhatsApp group. My players actually follow their drill plans now.")
+                    coachTestimonialCard(name: "Coach Ramirez", team: "Club Premier", result: "The AI analysis spotted a footwork issue in my striker I'd been missing for weeks. Game changer.")
+                    coachTestimonialCard(name: "Coach Patel", team: "High School Varsity", result: "Parents love seeing their kid's progress reports. Saves me hours of paperwork every week.")
+                }
+                .padding(.horizontal, KickIQTheme.Spacing.md)
+            }
+            .padding(.bottom, KickIQTheme.Spacing.lg)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    private func coachTestimonialCard(name: String, team: String, result: String) -> some View {
+        VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
+                ZStack {
+                    Circle()
+                        .fill(KickIQTheme.accent.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "whistle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(KickIQTheme.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text(team)
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+                Spacer()
+
+                HStack(spacing: 2) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(KickIQTheme.accent)
+                    }
+                }
+            }
+
+            Text("\"\(result)\"")
+                .font(.subheadline)
+                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
+                .italic()
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+    }
+
+    // MARK: - Coach Paywall Step
+    private var coachPaywallStep: some View {
+        ScrollView {
+            VStack(spacing: KickIQTheme.Spacing.lg) {
+                VStack(spacing: KickIQTheme.Spacing.sm) {
+                    Text("UNLOCK COACH PRO")
+                        .font(.system(.title2, design: .default, weight: .black).width(.compressed))
+                        .tracking(2)
+                        .foregroundStyle(KickIQTheme.textPrimary)
+
+                    Text("Free coaching tools + AI power")
+                        .font(.subheadline)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+                .padding(.top, KickIQTheme.Spacing.lg)
+
+                coachFreeVsProComparison
+
+                if let current = store.offerings?.current {
+                    VStack(spacing: 10) {
+                        ForEach(sortedOnboardingPackages(current.availablePackages), id: \.identifier) { package in
+                            onboardingPricingCard(package: package, isCoach: true)
+                        }
+                    }
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
+
+                    Button {
+                        guard let pkg = selectedPackage else {
+                            completeOnboarding()
+                            return
+                        }
+                        Task { await store.purchase(package: pkg) }
+                    } label: {
+                        Group {
+                            if store.isPurchasing {
+                                ProgressView().tint(.black)
+                            } else {
+                                Text(onboardingSubscribeText)
+                                    .font(.headline)
+                                    .foregroundStyle(.black)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, KickIQTheme.Spacing.md)
+                        .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                    }
+                    .disabled(store.isPurchasing)
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
+                    .sensoryFeedback(.impact(weight: .medium), trigger: store.isPurchasing)
+                } else if store.isLoading {
+                    ProgressView()
+                        .padding(.vertical, KickIQTheme.Spacing.xl)
+                } else {
+                    coachFallbackPricing
+
+                    Button {
+                        completeOnboarding()
+                    } label: {
+                        Text("Continue Free")
+                            .font(.headline)
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, KickIQTheme.Spacing.md)
+                            .background(KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+                    }
+                    .padding(.horizontal, KickIQTheme.Spacing.md)
+                }
+
+                paywallFooter
+            }
+        }
+        .scrollIndicators(.hidden)
+        .onChange(of: store.isPremium) { _, isPremium in
+            if isPremium { completeOnboarding() }
+        }
+    }
+
+    private var coachFreeVsProComparison: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                comparisonItem(icon: "person.3.fill", title: "Players", free: "Unlimited", pro: "Unlimited")
+                comparisonItem(icon: "list.clipboard.fill", title: "Drill Plans", free: "Unlimited", pro: "Unlimited")
+            }
+            HStack(spacing: 10) {
+                comparisonItem(icon: "brain.head.profile.fill", title: "AI Chat", free: "10/day", pro: "Up to 500/day")
+                comparisonItem(icon: "video.fill", title: "AI Analysis", free: "2/day", pro: "Up to 100/day")
+            }
+            HStack(spacing: 10) {
+                comparisonItem(icon: "chart.bar.doc.horizontal.fill", title: "Reports", free: "Basic", pro: "Full + Export")
+                comparisonItem(icon: "square.and.arrow.up.fill", title: "Data Export", free: "CSV", pro: "CSV + PDF")
+            }
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.md)
+    }
+
+    private func comparisonItem(icon: String, title: String, free: String, pro: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption)
+                    .foregroundStyle(KickIQTheme.accent)
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
+            }
+
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(KickIQTheme.textSecondary.opacity(0.3))
+                    .frame(width: 6, height: 6)
+                Text(free)
+                    .font(.system(size: 10))
+                    .foregroundStyle(KickIQTheme.textSecondary)
+            }
+
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.green)
+                Text(pro)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(KickIQTheme.Spacing.sm + 4)
+        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.md))
+    }
+
+    private var coachFallbackPricing: some View {
+        VStack(spacing: 10) {
+            pricingCard(title: "Annual", price: "$149.99/yr", perWeek: "$2.88/week", badge: "BEST VALUE", isHighlighted: true, trialText: "7-day free trial, then $149.99/year")
+            pricingCard(title: "Monthly", price: "$24.99/mo", perWeek: "$6.25/week", badge: nil, isHighlighted: false, trialText: nil)
+            pricingCard(title: "Weekly", price: "$9.99/wk", perWeek: nil, badge: nil, isHighlighted: false, trialText: nil)
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.md)
+    }
+
+    // MARK: - Player Path Steps (2-8)
     private var positionStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -240,7 +582,6 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 2: Age
     private var ageStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -263,7 +604,6 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 3: Skill Level
     private var skillLevelStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -311,7 +651,6 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 4: Weakness
     private var weaknessStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -361,7 +700,6 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 5: Pain Screen
     private var painStep: some View {
         VStack(spacing: KickIQTheme.Spacing.xl) {
             Spacer()
@@ -369,7 +707,7 @@ struct OnboardingView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 56))
                 .foregroundStyle(KickIQTheme.accent)
-                .symbolEffect(.bounce, value: currentStep == 5)
+                .symbolEffect(.bounce, value: currentStep == 6)
 
             VStack(spacing: KickIQTheme.Spacing.md) {
                 Text("Most players never improve\nbecause no one tells them\nwhat to fix.")
@@ -390,7 +728,6 @@ struct OnboardingView: View {
         .padding(.horizontal, KickIQTheme.Spacing.xl)
     }
 
-    // MARK: - Step 6: How It Works
     private var howItWorksStep: some View {
         VStack(spacing: KickIQTheme.Spacing.xl) {
             Spacer()
@@ -412,7 +749,6 @@ struct OnboardingView: View {
         .padding(.horizontal, KickIQTheme.Spacing.lg)
     }
 
-    // MARK: - Step 7: Social Proof
     private var socialProofStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -430,8 +766,8 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 8: Paywall
-    private var paywallStep: some View {
+    // MARK: - Player Paywall Step
+    private var playerPaywallStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
                 VStack(spacing: KickIQTheme.Spacing.sm) {
@@ -446,10 +782,12 @@ struct OnboardingView: View {
                 }
                 .padding(.top, KickIQTheme.Spacing.lg)
 
+                playerFreeVsProGrid
+
                 if let current = store.offerings?.current {
                     VStack(spacing: 10) {
                         ForEach(sortedOnboardingPackages(current.availablePackages), id: \.identifier) { package in
-                            onboardingPricingCard(package: package)
+                            onboardingPricingCard(package: package, isCoach: false)
                         }
                     }
                     .padding(.horizontal, KickIQTheme.Spacing.md)
@@ -491,7 +829,7 @@ struct OnboardingView: View {
                     Button {
                         completeOnboarding()
                     } label: {
-                        Text("Continue")
+                        Text("Continue Free")
                             .font(.headline)
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
@@ -501,50 +839,71 @@ struct OnboardingView: View {
                     .padding(.horizontal, KickIQTheme.Spacing.md)
                 }
 
-                HStack(spacing: KickIQTheme.Spacing.lg) {
-                    Button {
-                        Task { await store.restore() }
-                    } label: {
-                        Text("Restore Purchases")
-                            .font(.subheadline)
-                            .foregroundStyle(KickIQTheme.textSecondary)
-                    }
-
-                    Button {
-                        completeOnboarding()
-                    } label: {
-                        Text("Skip")
-                            .font(.subheadline)
-                            .foregroundStyle(KickIQTheme.textSecondary)
-                    }
-                }
-
-                VStack(spacing: 4) {
-                    if let pkg = selectedPackage {
-                        Text(onboardingBillingDisclosure(for: pkg))
-                            .font(.caption2)
-                            .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, KickIQTheme.Spacing.md)
-                    }
-                    HStack(spacing: KickIQTheme.Spacing.md) {
-                        NavigationLink("Privacy Policy") {
-                            LegalPageView(page: .privacyPolicy)
-                        }
-                        Text("·").foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
-                        NavigationLink("Terms of Service") {
-                            LegalPageView(page: .termsOfUse)
-                        }
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
-                }
-                .padding(.bottom, KickIQTheme.Spacing.lg)
+                paywallFooter
             }
         }
         .scrollIndicators(.hidden)
         .onChange(of: store.isPremium) { _, isPremium in
             if isPremium { completeOnboarding() }
+        }
+    }
+
+    private var playerFreeVsProGrid: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                comparisonItem(icon: "brain.head.profile.fill", title: "AI Chat", free: "10/day", pro: "Up to 500/day")
+                comparisonItem(icon: "video.fill", title: "Video Analysis", free: "2/day", pro: "Up to 100/day")
+            }
+            HStack(spacing: 10) {
+                comparisonItem(icon: "figure.soccer", title: "Custom Drills", free: "Basic", pro: "Advanced + AI")
+                comparisonItem(icon: "chart.line.uptrend.xyaxis", title: "Progress", free: "7-day", pro: "Full History")
+            }
+        }
+        .padding(.horizontal, KickIQTheme.Spacing.md)
+    }
+
+    // MARK: - Shared Paywall Components
+    private var paywallFooter: some View {
+        VStack(spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: KickIQTheme.Spacing.lg) {
+                Button {
+                    Task { await store.restore() }
+                } label: {
+                    Text("Restore Purchases")
+                        .font(.subheadline)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Button {
+                    completeOnboarding()
+                } label: {
+                    Text("Continue Free")
+                        .font(.subheadline)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+            }
+
+            VStack(spacing: 4) {
+                if let pkg = selectedPackage {
+                    Text(onboardingBillingDisclosure(for: pkg))
+                        .font(.caption2)
+                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, KickIQTheme.Spacing.md)
+                }
+                HStack(spacing: KickIQTheme.Spacing.md) {
+                    NavigationLink("Privacy Policy") {
+                        LegalPageView(page: .privacyPolicy)
+                    }
+                    Text("·").foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
+                    NavigationLink("Terms of Service") {
+                        LegalPageView(page: .termsOfUse)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
+            }
+            .padding(.bottom, KickIQTheme.Spacing.lg)
         }
     }
 
@@ -557,7 +916,7 @@ struct OnboardingView: View {
         }
     }
 
-    private func onboardingPricingCard(package: Package) -> some View {
+    private func onboardingPricingCard(package: Package, isCoach: Bool) -> some View {
         let isSelected = selectedPackage?.identifier == package.identifier
         let isAnnual = package.identifier == "$rc_annual"
         let product = package.storeProduct
@@ -583,6 +942,10 @@ struct OnboardingView: View {
                                 .background(KickIQTheme.accent, in: Capsule())
                         }
                     }
+
+                    Text(tierDescription(for: package, isCoach: isCoach))
+                        .font(.caption2)
+                        .foregroundStyle(KickIQTheme.textSecondary)
 
                     if let intro = product.introductoryDiscount {
                         Text(onboardingIntroText(intro, price: product.localizedPriceString, package: package))
@@ -611,6 +974,24 @@ struct OnboardingView: View {
         .onAppear {
             if isAnnual && selectedPackage == nil {
                 selectedPackage = package
+            }
+        }
+    }
+
+    private func tierDescription(for package: Package, isCoach: Bool) -> String {
+        if isCoach {
+            switch package.identifier {
+            case "$rc_annual": return "500 AI chats/day · 100 analyses · Full reports"
+            case "$rc_monthly": return "150 AI chats/day · 30 analyses · Full reports"
+            case "$rc_weekly": return "50 AI chats/day · 10 analyses · Basic reports"
+            default: return ""
+            }
+        } else {
+            switch package.identifier {
+            case "$rc_annual": return "500 AI chats/day · 100 analyses · All features"
+            case "$rc_monthly": return "150 AI chats/day · 30 analyses · All features"
+            case "$rc_weekly": return "50 AI chats/day · 10 analyses · All features"
+            default: return ""
             }
         }
     }
@@ -840,7 +1221,7 @@ struct OnboardingView: View {
 
     private func completeOnboarding() {
         let profile = PlayerProfile(
-            name: name.isEmpty ? "Player" : name.trimmingCharacters(in: .whitespaces),
+            name: name.isEmpty ? (isCoachPath ? "Coach" : "Player") : name.trimmingCharacters(in: .whitespaces),
             position: position,
             ageRange: ageRange,
             skillLevel: skillLevel,

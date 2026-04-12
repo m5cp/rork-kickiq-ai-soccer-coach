@@ -21,6 +21,8 @@ class StoreViewModel {
     var isPurchasing = false
     var error: String?
 
+    var userRole: UserRole = .player
+
     var dailyMessageLimit: Int {
         switch currentTier {
         case .free: return 10
@@ -46,6 +48,18 @@ class StoreViewModel {
         case .monthly: return 30
         case .annual: return 100
         }
+    }
+
+    var unlimitedPlayers: Bool {
+        userRole == .coach
+    }
+
+    var coachFreeFeatures: [String] {
+        ["Unlimited Players", "Custom Drill Plans", "Team Reports (Basic)", "Data Export (CSV)", "QR Code Invites"]
+    }
+
+    var coachProFeatures: [String] {
+        ["AI Video Analysis", "AI Coach Chat", "Full Reports + PDF Export", "Advanced Analytics"]
     }
 
     var tierDisplayName: String {

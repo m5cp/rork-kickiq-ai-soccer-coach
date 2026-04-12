@@ -14,7 +14,7 @@ struct AnalyzeView: View {
     @State private var showResults = false
     @State private var appeared = false
     @State private var pulseAnimation = false
-    @State private var showCameraUnavailable = false
+    @State private var showCamera = false
     @State private var showFilmingGuide = false
     @State private var showProfile = false
 
@@ -53,8 +53,10 @@ struct AnalyzeView: View {
             guard let newItem else { return }
             Task { await handleVideoSelection(newItem) }
         }
-        .alert(isPresented: $showCameraUnavailable) {
-            cameraUnavailableAlert
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraRecordView { recordedURL in
+                Task { await handleRecordedVideo(recordedURL) }
+            }
         }
         .sheet(isPresented: $showFilmingGuide) {
             FilmingGuideSheet()
@@ -155,7 +157,7 @@ struct AnalyzeView: View {
 
     private var recordButton: some View {
         Button {
-            showCameraUnavailable = true
+            showCamera = true
         } label: {
             HStack(spacing: KickIQTheme.Spacing.md) {
                 ZStack {
@@ -184,14 +186,6 @@ struct AnalyzeView: View {
             .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
         }
         .accessibilityLabel("Record a training clip using the camera")
-    }
-
-    private var cameraUnavailableAlert: Alert {
-        Alert(
-            title: Text("Camera Not Available"),
-            message: Text("Install this app on your device via the Rork App to use the camera for recording training clips."),
-            dismissButton: .default(Text("OK"))
-        )
     }
 
     private var uploadButton: some View {
@@ -288,6 +282,25 @@ struct AnalyzeView: View {
             extractedFrames = frames
             thumbnailImage = frames.first
         }
+
+        guard !extractedFrames.isEmpty,
+              let position = storage.profile?.position,
+              let level = storage.profile?.skillLevel else { return }
+
+        let result = await aiService.analyzeVideo(frames: extractedFrames, videoURL: videoURL, position: position, skillLevel: level)
+
+        if let result {
+            analysisResult = result
+            storage.addSession(result)
+            withAnimation(.spring(response: 0.5)) { showResults = true }
+        }
+    }
+
+    private func handleRecordedVideo(_ url: URL) async {
+        videoURL = url
+        let frames = await AIAnalysisService.extractFrames(from: url, count: 4)
+        extractedFrames = frames
+        thumbnailImage = frames.first
 
         guard !extractedFrames.isEmpty,
               let position = storage.profile?.position,

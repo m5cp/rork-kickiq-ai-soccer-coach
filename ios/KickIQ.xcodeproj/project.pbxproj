@@ -512,6 +512,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "KickIQ syncs your training sessions to your calendar so you never miss a workout";
 				INFOPLIST_KEY_NSCameraUsageDescription = "KickIQ needs camera access to record your training clips";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "KickIQ needs microphone access to capture audio during training recordings";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "KickIQ needs photo library access to upload your training clips";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -549,6 +550,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "KickIQ syncs your training sessions to your calendar so you never miss a workout";
 				INFOPLIST_KEY_NSCameraUsageDescription = "KickIQ needs camera access to record your training clips";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "KickIQ needs microphone access to capture audio during training recordings";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "KickIQ needs photo library access to upload your training clips";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

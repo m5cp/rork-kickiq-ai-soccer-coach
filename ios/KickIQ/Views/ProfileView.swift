@@ -84,7 +84,7 @@ struct ProfileView: View {
                 JournalView(storage: storage)
             }
             .sheet(isPresented: $showPaywall) {
-                PaywallView(store: store)
+                PaywallView(store: store, userRole: storage.profile?.userRole ?? .player)
             }
             .alert("Delete All Data?", isPresented: $showDeleteAlert) {
                 Button("Delete", role: .destructive) {
