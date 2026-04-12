@@ -7,17 +7,21 @@ struct BenchmarkView: View {
     @State private var selectedDrill: BenchmarkDrill?
     @State private var scoreAnimated = false
 
+    private var playerGender: PlayerGender {
+        storage.profile?.gender ?? .male
+    }
+
     private var playerRank: BenchmarkPlayerRank {
-        let score = benchmarkService.overallScore(results: storage.benchmarkResults)
+        let score = benchmarkService.overallScore(results: storage.benchmarkResults, gender: playerGender)
         return BenchmarkPlayerRank.rank(for: score)
     }
 
     private var overallPct: Double {
-        benchmarkService.overallScore(results: storage.benchmarkResults)
+        benchmarkService.overallScore(results: storage.benchmarkResults, gender: playerGender)
     }
 
     private var completedCount: Int {
-        storage.benchmarkResults.filter { $0.latestScore != nil }.count
+        storage.benchmarkResults.filter { !$0.isSkipped && $0.latestScore != nil }.count
     }
 
     private var totalCount: Int {
@@ -51,8 +55,8 @@ struct BenchmarkView: View {
             }
         }
         .onAppear {
-            let age = storage.profile?.ageRange ?? .sixteen18
-            benchmarkService.loadDrills(for: age)
+            let age = storage.profile?.ageRange ?? .fifteen18
+            benchmarkService.loadDrills(for: age, gender: playerGender)
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) { scoreAnimated = true }
@@ -162,7 +166,7 @@ struct BenchmarkView: View {
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQAICoachTheme.textPrimary)
 
-                    let weak = benchmarkService.weakestCategories(results: storage.benchmarkResults)
+                    let weak = benchmarkService.weakestCategories(results: storage.benchmarkResults, gender: playerGender)
                     if let first = weak.first {
                         HStack(spacing: 4) {
                             Image(systemName: "target")
@@ -201,7 +205,7 @@ struct BenchmarkView: View {
                 .foregroundStyle(KickIQAICoachTheme.accent)
 
             ForEach(BenchmarkCategory.allCases) { cat in
-                let score = benchmarkService.categoryScore(results: storage.benchmarkResults, category: cat)
+                let score = benchmarkService.categoryScore(results: storage.benchmarkResults, category: cat, gender: playerGender)
                 HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
                     Image(systemName: cat.icon)
                         .font(.caption)
@@ -275,6 +279,7 @@ struct BenchmarkView: View {
 
     private func benchmarkDrillRow(_ drill: BenchmarkDrill) -> some View {
         let result = storage.benchmarkResults.first(where: { $0.benchmarkDrillID == drill.id })
+        let isSkipped = result?.isSkipped ?? false
         let hasScore = result?.latestScore != nil
         let trend = result?.trend ?? .neutral
 
@@ -284,10 +289,14 @@ struct BenchmarkView: View {
             HStack(spacing: KickIQAICoachTheme.Spacing.md) {
                 ZStack {
                     Circle()
-                        .fill(hasScore ? KickIQAICoachTheme.accent.opacity(0.15) : KickIQAICoachTheme.surface)
+                        .fill(isSkipped ? Color.orange.opacity(0.1) : hasScore ? KickIQAICoachTheme.accent.opacity(0.15) : KickIQAICoachTheme.surface)
                         .frame(width: 42, height: 42)
 
-                    if hasScore {
+                    if isSkipped {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.orange)
+                    } else if hasScore {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 18))
                             .foregroundStyle(KickIQAICoachTheme.accent)
@@ -303,11 +312,25 @@ struct BenchmarkView: View {
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQAICoachTheme.textPrimary)
 
-                    if let score = result?.latestScore {
+                    if isSkipped {
+                        Text("Did Not Measure")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    } else if let score = result?.latestScore {
                         HStack(spacing: 6) {
                             Text("\(Self.formatScore(score)) \(drill.unit)")
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(KickIQAICoachTheme.accent)
+
+                            let comparison = BenchmarkService.averageComparison(score: score, drill: drill, gender: playerGender)
+                            if !comparison.isEmpty {
+                                Text(comparison)
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(comparison == "Above Average" ? .green : comparison == "Below Average" ? .orange : KickIQAICoachTheme.textSecondary)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background((comparison == "Above Average" ? Color.green : comparison == "Below Average" ? Color.orange : KickIQAICoachTheme.textSecondary).opacity(0.12), in: Capsule())
+                            }
 
                             if result?.attempts.count ?? 0 >= 2 {
                                 HStack(spacing: 2) {
@@ -335,7 +358,7 @@ struct BenchmarkView: View {
             .padding(KickIQAICoachTheme.Spacing.sm + 2)
             .background(
                 RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.md)
-                    .fill(hasScore ? KickIQAICoachTheme.accent.opacity(0.04) : Color.clear)
+                    .fill(isSkipped ? Color.orange.opacity(0.03) : hasScore ? KickIQAICoachTheme.accent.opacity(0.04) : Color.clear)
             )
         }
         .sensoryFeedback(.selection, trigger: selectedDrill?.id)

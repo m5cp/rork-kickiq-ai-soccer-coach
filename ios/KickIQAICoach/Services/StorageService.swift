@@ -447,8 +447,9 @@ class StorageService {
         let attempt = BenchmarkAttempt(benchmarkDrillID: drillID, score: score)
         if let index = benchmarkResults.firstIndex(where: { $0.benchmarkDrillID == drillID }) {
             benchmarkResults[index].attempts.append(attempt)
+            benchmarkResults[index].isSkipped = false
         } else {
-            let result = BenchmarkResult(benchmarkDrillID: drillID, category: category, attempts: [attempt], drillName: drillName)
+            let result = BenchmarkResult(benchmarkDrillID: drillID, category: category, attempts: [attempt], drillName: drillName, isSkipped: false)
             benchmarkResults.append(result)
         }
         if let data = try? JSONEncoder().encode(benchmarkResults) {
@@ -460,11 +461,24 @@ class StorageService {
         WidgetDataService.updateWidgetData(storage: self)
     }
 
+    func skipBenchmarkDrill(drillID: String, category: BenchmarkCategory, drillName: String) {
+        if let index = benchmarkResults.firstIndex(where: { $0.benchmarkDrillID == drillID }) {
+            benchmarkResults[index].isSkipped = true
+        } else {
+            let result = BenchmarkResult(benchmarkDrillID: drillID, category: category, drillName: drillName, isSkipped: true)
+            benchmarkResults.append(result)
+        }
+        if let data = try? JSONEncoder().encode(benchmarkResults) {
+            UserDefaults.standard.set(data, forKey: benchmarkResultsKey)
+        }
+    }
+
     var benchmarkOverallScore: Double {
         guard !benchmarkResults.isEmpty else { return 0 }
         let service = BenchmarkService()
-        service.loadDrills(for: profile?.ageRange ?? .sixteen18)
-        return service.overallScore(results: benchmarkResults)
+        let gender = profile?.gender ?? .male
+        service.loadDrills(for: profile?.ageRange ?? .fifteen18, gender: gender)
+        return service.overallScore(results: benchmarkResults, gender: gender)
     }
 
     var benchmarkPlayerRank: BenchmarkPlayerRank {
@@ -473,8 +487,9 @@ class StorageService {
 
     var benchmarkWeakestCategories: [BenchmarkCategory] {
         let service = BenchmarkService()
-        service.loadDrills(for: profile?.ageRange ?? .sixteen18)
-        return service.weakestCategories(results: benchmarkResults)
+        let gender = profile?.gender ?? .male
+        service.loadDrills(for: profile?.ageRange ?? .fifteen18, gender: gender)
+        return service.weakestCategories(results: benchmarkResults, gender: gender)
     }
 
     func hasSessionOnDate(_ date: Date) -> Bool {

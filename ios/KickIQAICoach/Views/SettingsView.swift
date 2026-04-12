@@ -21,6 +21,7 @@ struct SettingsView: View {
                     teamColorSection
 
                     sectionHeader("PREFERENCES")
+                    terminologyToggle
                     settingsRow(icon: "bell.fill", title: "Notification Preferences") {
                         showNotificationSettings = true
                     }
@@ -49,7 +50,7 @@ struct SettingsView: View {
                         Text("KickIQAICoach v2.0")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.4))
-                        Text("AI-Powered Soccer Coaching")
+                        Text("AI-Powered \(storage.profile?.sportName ?? "Soccer") Coaching")
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
                     }
@@ -185,6 +186,43 @@ struct SettingsView: View {
     }
 
     @State private var pickerColor: Color = Color(hex: KickIQAICoachTheme.shared.activeTeamColor.primary)
+
+    private var terminologyToggle: some View {
+        let usesFootball = storage.profile?.usesFootballTerminology ?? false
+        return HStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+            Image(systemName: "globe")
+                .font(.subheadline)
+                .foregroundStyle(KickIQAICoachTheme.accent)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Sport Terminology")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                Text(usesFootball ? "Using \"Football\"" : "Using \"Soccer\"")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+            }
+
+            Spacer()
+
+            Button {
+                if var profile = storage.profile {
+                    profile.usesFootballTerminology.toggle()
+                    storage.saveProfile(profile)
+                }
+            } label: {
+                Text(usesFootball ? "Football" : "Soccer")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.onAccent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(KickIQAICoachTheme.accent, in: Capsule())
+            }
+        }
+        .padding(KickIQAICoachTheme.Spacing.md)
+        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
+    }
 
     private var customColorSection: some View {
         VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {

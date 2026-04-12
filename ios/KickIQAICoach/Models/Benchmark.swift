@@ -7,6 +7,7 @@ nonisolated enum BenchmarkCategory: String, Codable, CaseIterable, Sendable, Ide
     case shooting = "Shooting"
     case dribbling = "Dribbling"
     case agility = "Agility"
+    case endurance = "Endurance"
 
     var id: String { rawValue }
 
@@ -18,6 +19,7 @@ nonisolated enum BenchmarkCategory: String, Codable, CaseIterable, Sendable, Ide
         case .shooting: "scope"
         case .dribbling: "figure.soccer"
         case .agility: "hare.fill"
+        case .endurance: "lungs.fill"
         }
     }
 
@@ -29,6 +31,28 @@ nonisolated enum BenchmarkCategory: String, Codable, CaseIterable, Sendable, Ide
         case .shooting: "red"
         case .dribbling: "orange"
         case .agility: "teal"
+        case .endurance: "pink"
+        }
+    }
+}
+
+nonisolated struct GenderThresholds: Codable, Sendable {
+    let maleElite: Double
+    let maleAverage: Double
+    let femaleElite: Double
+    let femaleAverage: Double
+
+    func elite(for gender: PlayerGender) -> Double {
+        switch gender.benchmarkGender {
+        case .male, .nonBinary: maleElite
+        case .female: femaleElite
+        }
+    }
+
+    func average(for gender: PlayerGender) -> Double {
+        switch gender.benchmarkGender {
+        case .male, .nonBinary: maleAverage
+        case .female: femaleAverage
         }
     }
 }
@@ -42,6 +66,7 @@ nonisolated struct BenchmarkDrill: Codable, Sendable, Identifiable {
     let unit: String
     let higherIsBetter: Bool
     let eliteThresholds: [String: Double]
+    let genderThresholds: GenderThresholds?
 
     init(
         id: String = UUID().uuidString,
@@ -51,7 +76,8 @@ nonisolated struct BenchmarkDrill: Codable, Sendable, Identifiable {
         howToRecord: String,
         unit: String,
         higherIsBetter: Bool = true,
-        eliteThresholds: [String: Double] = [:]
+        eliteThresholds: [String: Double] = [:],
+        genderThresholds: GenderThresholds? = nil
     ) {
         self.id = id
         self.category = category
@@ -61,6 +87,7 @@ nonisolated struct BenchmarkDrill: Codable, Sendable, Identifiable {
         self.unit = unit
         self.higherIsBetter = higherIsBetter
         self.eliteThresholds = eliteThresholds
+        self.genderThresholds = genderThresholds
     }
 }
 
@@ -84,25 +111,29 @@ nonisolated struct BenchmarkResult: Codable, Sendable, Identifiable {
     let category: BenchmarkCategory
     var attempts: [BenchmarkAttempt]
     let drillName: String
+    var isSkipped: Bool
 
-    init(id: String = UUID().uuidString, benchmarkDrillID: String, category: BenchmarkCategory, attempts: [BenchmarkAttempt] = [], drillName: String) {
+    init(id: String = UUID().uuidString, benchmarkDrillID: String, category: BenchmarkCategory, attempts: [BenchmarkAttempt] = [], drillName: String, isSkipped: Bool = false) {
         self.id = id
         self.benchmarkDrillID = benchmarkDrillID
         self.category = category
         self.attempts = attempts
         self.drillName = drillName
+        self.isSkipped = isSkipped
     }
 
     var latestScore: Double? {
-        attempts.last?.score
+        guard !isSkipped else { return nil }
+        return attempts.last?.score
     }
 
     var bestScore: Double? {
-        attempts.map(\.score).max()
+        guard !isSkipped else { return nil }
+        return attempts.map(\.score).max()
     }
 
     var trend: BenchmarkTrend {
-        guard attempts.count >= 2 else { return .neutral }
+        guard !isSkipped, attempts.count >= 2 else { return .neutral }
         let last = attempts[attempts.count - 1].score
         let prev = attempts[attempts.count - 2].score
         if last > prev { return .improving }

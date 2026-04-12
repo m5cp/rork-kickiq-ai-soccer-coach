@@ -29,12 +29,13 @@ struct OnboardingView: View {
     @State private var currentStep: Int = 0
     @State private var name: String = ""
     @State private var position: PlayerPosition = .midfielder
-    @State private var ageRange: AgeRange = .sixteen18
+    @State private var ageRange: AgeRange = .fifteen18
+    @State private var gender: PlayerGender = .male
     @State private var skillLevel: SkillLevel = .beginner
     @State private var weakness: WeaknessArea = .firstTouch
     @State private var stepAppeared: Bool = false
 
-    private let totalSteps = 8
+    private let totalSteps = 9
 
     var body: some View {
         ZStack {
@@ -52,17 +53,18 @@ struct OnboardingView: View {
                 TabView(selection: $currentStep) {
                     positionStep.tag(0)
                     ageStep.tag(1)
-                    skillLevelStep.tag(2)
-                    weaknessStep.tag(3)
-                    painStep.tag(4)
-                    howItWorksStep.tag(5)
-                    socialProofStep.tag(6)
-                    paywallStep.tag(7)
+                    genderStep.tag(2)
+                    skillLevelStep.tag(3)
+                    weaknessStep.tag(4)
+                    painStep.tag(5)
+                    howItWorksStep.tag(6)
+                    socialProofStep.tag(7)
+                    paywallStep.tag(8)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 7 {
+                if currentStep < 8 {
                     continueButton
                 }
             }
@@ -181,6 +183,70 @@ struct OnboardingView: View {
                     }
                 }
                 .padding(.horizontal, 20)
+            }
+            .padding(.bottom, 24)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    // MARK: - Gender Step
+
+    private var genderStep: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                stepHeader(title: "GENDER", subtitle: "Used for benchmark comparisons")
+
+                VStack(spacing: 10) {
+                    ForEach(PlayerGender.allCases) { g in
+                        Button {
+                            gender = g
+                        } label: {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    Circle()
+                                        .fill(gender == g ? KickIQAICoachTheme.accent.opacity(0.15) : Color.white.opacity(0.04))
+                                        .frame(width: 40, height: 40)
+
+                                    Image(systemName: g.icon)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundStyle(gender == g ? KickIQAICoachTheme.accent : .white.opacity(0.4))
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(g.rawValue)
+                                        .font(.headline.weight(.black))
+                                        .foregroundStyle(gender == g ? .white : .white.opacity(0.5))
+                                    if g == .nonBinary {
+                                        Text("Benchmarks default to male standards")
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(.white.opacity(0.35))
+                                    }
+                                }
+
+                                Spacer()
+
+                                if gender == g {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(KickIQAICoachTheme.accent)
+                                        .font(.title3.weight(.bold))
+                                        .transition(.scale.combined(with: .opacity))
+                                }
+                            }
+                            .padding(16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(gender == g ? KickIQAICoachTheme.accent.opacity(0.12) : Color.white.opacity(0.04))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(gender == g ? KickIQAICoachTheme.accent.opacity(0.6) : Color.white.opacity(0.06), lineWidth: gender == g ? 1.5 : 0.5)
+                                    )
+                            )
+                        }
+                        .sensoryFeedback(.selection, trigger: gender)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .animation(.spring(response: 0.3), value: gender)
             }
             .padding(.bottom, 24)
         }
@@ -650,7 +716,8 @@ struct OnboardingView: View {
             position: position,
             ageRange: ageRange,
             skillLevel: skillLevel,
-            weakness: weakness
+            weakness: weakness,
+            gender: gender
         )
         storage.saveProfile(profile)
         storage.completeOnboarding()

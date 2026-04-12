@@ -39,13 +39,43 @@ nonisolated enum PlayerPosition: String, Codable, CaseIterable, Sendable, Identi
     }
 }
 
+nonisolated enum PlayerGender: String, Codable, CaseIterable, Sendable, Identifiable {
+    case male = "Male"
+    case female = "Female"
+    case nonBinary = "Non-Binary"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .male: "figure.stand"
+        case .female: "figure.stand.dress"
+        case .nonBinary: "figure.wave"
+        }
+    }
+
+    var benchmarkGender: PlayerGender {
+        switch self {
+        case .male, .nonBinary: .male
+        case .female: .female
+        }
+    }
+}
+
 nonisolated enum AgeRange: String, Codable, CaseIterable, Sendable, Identifiable {
-    case under12 = "Under 12"
-    case twelve15 = "12–15"
-    case sixteen18 = "16–18"
+    case under8 = "Under 8"
+    case nine12 = "9–12"
+    case thirteen14 = "13–14"
+    case fifteen18 = "15–18"
     case eighteenPlus = "18+"
 
     var id: String { rawValue }
+
+    var label: String { rawValue }
+
+    var includesEndurance: Bool {
+        self == .fifteen18 || self == .eighteenPlus
+    }
 }
 
 nonisolated enum SkillLevel: String, Codable, CaseIterable, Sendable, Identifiable {
@@ -137,15 +167,19 @@ nonisolated struct PlayerProfile: Codable, Sendable {
     var ageRange: AgeRange
     var skillLevel: SkillLevel
     var weakness: WeaknessArea
+    var gender: PlayerGender
+    var usesFootballTerminology: Bool
     var createdAt: Date
     var avatar: ProfileAvatar?
 
     init(
         name: String = "",
         position: PlayerPosition = .midfielder,
-        ageRange: AgeRange = .sixteen18,
+        ageRange: AgeRange = .fifteen18,
         skillLevel: SkillLevel = .beginner,
         weakness: WeaknessArea = .firstTouch,
+        gender: PlayerGender = .male,
+        usesFootballTerminology: Bool = false,
         createdAt: Date = .now,
         avatar: ProfileAvatar? = nil
     ) {
@@ -154,7 +188,13 @@ nonisolated struct PlayerProfile: Codable, Sendable {
         self.ageRange = ageRange
         self.skillLevel = skillLevel
         self.weakness = weakness
+        self.gender = gender
+        self.usesFootballTerminology = usesFootballTerminology
         self.createdAt = createdAt
         self.avatar = avatar
+    }
+
+    var sportName: String {
+        usesFootballTerminology ? "Football" : "Soccer"
     }
 }

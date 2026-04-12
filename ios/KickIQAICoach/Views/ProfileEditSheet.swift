@@ -8,6 +8,8 @@ struct ProfileEditSheet: View {
     @State private var position: PlayerPosition = .midfielder
     @State private var skillLevel: SkillLevel = .beginner
     @State private var weakness: WeaknessArea = .firstTouch
+    @State private var gender: PlayerGender = .male
+    @State private var usesFootball: Bool = false
     @State private var selectedAvatarType: AvatarType = .symbol
     @State private var selectedSymbol: String = "figure.soccer"
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -33,6 +35,8 @@ struct ProfileEditSheet: View {
                 VStack(spacing: KickIQAICoachTheme.Spacing.lg) {
                     avatarSection
                     nameSection
+                    genderSection
+                    terminologySection
                     positionSection
                     skillLevelSection
                     weaknessSection
@@ -80,6 +84,8 @@ struct ProfileEditSheet: View {
                 position = profile.position
                 skillLevel = profile.skillLevel
                 weakness = profile.weakness
+                gender = profile.gender
+                usesFootball = profile.usesFootballTerminology
                 if let avatar = profile.avatar {
                     switch avatar {
                     case .symbol(let sym):
@@ -200,6 +206,93 @@ struct ProfileEditSheet: View {
         }
     }
 
+    private var genderSection: some View {
+        VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+            Text("GENDER")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(KickIQAICoachTheme.accent)
+
+            ForEach(PlayerGender.allCases) { g in
+                Button {
+                    gender = g
+                } label: {
+                    HStack {
+                        Image(systemName: g.icon)
+                            .foregroundStyle(gender == g ? KickIQAICoachTheme.accent : KickIQAICoachTheme.textSecondary)
+                            .frame(width: 24)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(g.rawValue)
+                                .foregroundStyle(gender == g ? KickIQAICoachTheme.textPrimary : KickIQAICoachTheme.textSecondary)
+                            if g == .nonBinary {
+                                Text("Benchmarks use male standards")
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.6))
+                            }
+                        }
+                        Spacer()
+                        if gender == g {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                        }
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .padding(KickIQAICoachTheme.Spacing.sm + 2)
+                    .background(gender == g ? KickIQAICoachTheme.accent.opacity(0.1) : KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                }
+            }
+        }
+    }
+
+    private var terminologySection: some View {
+        VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+            Text("SPORT NAME")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(KickIQAICoachTheme.accent)
+
+            HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                Button {
+                    usesFootball = false
+                } label: {
+                    HStack {
+                        Image(systemName: "flag.fill")
+                            .foregroundStyle(!usesFootball ? KickIQAICoachTheme.accent : KickIQAICoachTheme.textSecondary)
+                        Text("Soccer")
+                            .foregroundStyle(!usesFootball ? KickIQAICoachTheme.textPrimary : KickIQAICoachTheme.textSecondary)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, KickIQAICoachTheme.Spacing.sm + 2)
+                    .background(!usesFootball ? KickIQAICoachTheme.accent.opacity(0.15) : KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.sm)
+                            .stroke(!usesFootball ? KickIQAICoachTheme.accent : Color.clear, lineWidth: 1.5)
+                    )
+                }
+
+                Button {
+                    usesFootball = true
+                } label: {
+                    HStack {
+                        Image(systemName: "globe")
+                            .foregroundStyle(usesFootball ? KickIQAICoachTheme.accent : KickIQAICoachTheme.textSecondary)
+                        Text("Football")
+                            .foregroundStyle(usesFootball ? KickIQAICoachTheme.textPrimary : KickIQAICoachTheme.textSecondary)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, KickIQAICoachTheme.Spacing.sm + 2)
+                    .background(usesFootball ? KickIQAICoachTheme.accent.opacity(0.15) : KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.sm)
+                            .stroke(usesFootball ? KickIQAICoachTheme.accent : Color.clear, lineWidth: 1.5)
+                    )
+                }
+            }
+        }
+    }
+
     private var positionSection: some View {
         VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
             Text("POSITION")
@@ -301,9 +394,11 @@ struct ProfileEditSheet: View {
         let profile = PlayerProfile(
             name: name.trimmingCharacters(in: .whitespaces),
             position: position,
-            ageRange: storage.profile?.ageRange ?? .sixteen18,
+            ageRange: storage.profile?.ageRange ?? .fifteen18,
             skillLevel: skillLevel,
             weakness: weakness,
+            gender: gender,
+            usesFootballTerminology: usesFootball,
             avatar: avatar
         )
         storage.saveProfile(profile)
