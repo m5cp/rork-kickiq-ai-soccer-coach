@@ -5,6 +5,7 @@ import StoreKit
 struct ProfileView: View {
     let storage: StorageService
     var storeVM: StoreViewModel
+    let customContentService: CustomContentService
     @State private var appeared = false
     @State private var showEditProfile = false
     @State private var showSettings = false
@@ -21,6 +22,7 @@ struct ProfileView: View {
                 VStack(spacing: KickIQAICoachTheme.Spacing.md + 4) {
                     avatarSection
                     statsRow
+                    myContentCard
                     coachReportCard
                     legalSection
                     supportSection
@@ -194,6 +196,60 @@ struct ProfileView: View {
                 .foregroundStyle(KickIQAICoachTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var myContentCard: some View {
+        NavigationLink {
+            CustomContentLibraryView(customContentService: customContentService, storage: storage)
+        } label: {
+            HStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "doc.badge.plus")
+                        .font(.title3)
+                        .foregroundStyle(.orange)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("My Custom Content")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    let total = customContentService.totalCustomItems
+                    Text(total > 0 ? "\(total) imported item\(total == 1 ? "" : "s")" : "Import drills, exercises & benchmarks from PDF")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+
+                Spacer()
+
+                if customContentService.totalCustomItems > 0 {
+                    Text("\(customContentService.totalCustomItems)")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.orange.opacity(0.12), in: Capsule())
+                }
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQAICoachTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                    .fill(KickIQAICoachTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                            .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.07), value: appeared)
     }
 
     private var coachReportCard: some View {

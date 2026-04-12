@@ -2,10 +2,12 @@ import SwiftUI
 
 struct BenchmarkView: View {
     let storage: StorageService
+    let customContentService: CustomContentService
     @State private var benchmarkService = BenchmarkService()
     @State private var appeared = false
     @State private var selectedDrill: BenchmarkDrill?
     @State private var scoreAnimated = false
+    @State private var showImport = false
 
     private var playerGender: PlayerGender {
         storage.profile?.gender ?? .male
@@ -39,6 +41,9 @@ struct BenchmarkView: View {
                     }
 
                     categorySection
+                    if !customContentService.library.benchmarks.isEmpty {
+                        customBenchmarksSection
+                    }
                 }
                 .padding(.bottom, KickIQAICoachTheme.Spacing.xl)
             }
@@ -46,6 +51,19 @@ struct BenchmarkView: View {
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Benchmark")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showImport = true
+                    } label: {
+                        Image(systemName: "doc.badge.plus")
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                    }
+                }
+            }
+            .sheet(isPresented: $showImport) {
+                PDFImportView(customContentService: customContentService)
+            }
             .sheet(item: $selectedDrill) { drill in
                 BenchmarkDrillDetailView(
                     drill: drill,
@@ -362,6 +380,47 @@ struct BenchmarkView: View {
             )
         }
         .sensoryFeedback(.selection, trigger: selectedDrill?.id)
+    }
+
+    private var customBenchmarksSection: some View {
+        VStack(spacing: KickIQAICoachTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.fill.badge.plus")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.orange)
+                    Text("MY CUSTOM BENCHMARKS")
+                        .font(.system(.caption, design: .default, weight: .black))
+                        .tracking(1.5)
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+                .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
+
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange.opacity(0.7))
+                    Text("Custom benchmarks are not compared against peer averages")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.orange.opacity(0.7))
+                }
+                .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
+
+                VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                    let customBenchmarks = customContentService.allCustomBenchmarksAsBenchmarkDrills()
+                    ForEach(customBenchmarks) { drill in
+                        benchmarkDrillRow(drill)
+                    }
+                }
+                .padding(KickIQAICoachTheme.Spacing.md)
+                .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.xl))
+                .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
+            }
+        }
+        .padding(.top, KickIQAICoachTheme.Spacing.md)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.4).delay(0.3), value: appeared)
     }
 
     static func formatScore(_ score: Double) -> String {

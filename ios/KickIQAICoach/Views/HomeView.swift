@@ -3,6 +3,7 @@ import StoreKit
 
 struct HomeView: View {
     let storage: StorageService
+    let customContentService: CustomContentService
     @Binding var selectedTab: Int
     @State private var appeared = false
     @State private var streakBounce = false
@@ -97,9 +98,11 @@ struct HomeView: View {
             .navigationDestination(for: String.self) { destination in
                 switch destination {
                 case "skills":
-                    SkillsDrillsView(storage: storage)
+                    SkillsDrillsView(storage: storage, customContentService: customContentService)
                 case "conditioning":
-                    ConditioningDrillsView(storage: storage)
+                    ConditioningDrillsView(storage: storage, customContentService: customContentService)
+                case "myContent":
+                    CustomContentLibraryView(customContentService: customContentService, storage: storage)
                 default:
                     EmptyView()
                 }

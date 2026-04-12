@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DrillsView: View {
     let storage: StorageService
+    let customContentService: CustomContentService
     @State private var drillsService = DrillsService()
     @State private var conditioningService = ConditioningDrillsService()
     @State private var appeared = false

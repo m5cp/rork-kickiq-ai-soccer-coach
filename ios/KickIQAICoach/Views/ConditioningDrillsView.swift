@@ -2,10 +2,12 @@ import SwiftUI
 
 struct ConditioningDrillsView: View {
     let storage: StorageService
+    let customContentService: CustomContentService
     @State private var conditioningService = ConditioningDrillsService()
     @State private var appeared = false
     @State private var showGeneratePlan = false
     @State private var showPlanDetail = false
+    @State private var showImport = false
 
     var body: some View {
         ScrollView {
@@ -20,6 +22,9 @@ struct ConditioningDrillsView: View {
                     conditioningHeaderInfo
                     categoryCardsGrid
                 }
+                if !customContentService.library.conditioning.isEmpty {
+                    customConditioningSection
+                }
             }
             .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
             .padding(.bottom, KickIQAICoachTheme.Spacing.xl)
@@ -28,6 +33,19 @@ struct ConditioningDrillsView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle("Fitness Generator")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showImport = true
+                } label: {
+                    Image(systemName: "doc.badge.plus")
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                }
+            }
+        }
+        .sheet(isPresented: $showImport) {
+            PDFImportView(customContentService: customContentService)
+        }
         .sheet(isPresented: $showGeneratePlan) {
             PlanGeneratorSheet(storage: storage, planType: .conditioning) { _ in
                 showPlanDetail = true
@@ -233,6 +251,84 @@ struct ConditioningDrillsView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var customConditioningSection: some View {
+        VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+            HStack(spacing: 6) {
+                Image(systemName: "person.fill.badge.plus")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.orange)
+                Text("MY CUSTOM EXERCISES")
+                    .font(.system(.caption2, design: .default, weight: .black))
+                    .tracking(1.5)
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+            }
+
+            let customDrills = customContentService.allCustomConditioningAsDrills()
+            let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(Array(customGroupedConditioning(customDrills).enumerated()), id: \.element.focus) { index, group in
+                    NavigationLink {
+                        ConditioningCategoryDetailView(
+                            focus: ConditioningFocus.allCases.first(where: { $0.rawValue == group.focus }) ?? .endurance,
+                            drills: group.drills,
+                            storage: storage
+                        )
+                    } label: {
+                        customConditioningCard(focus: group.focus, drillCount: group.drills.count)
+                    }
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 15)
+                    .animation(.spring(response: 0.4).delay(Double(index) * 0.05 + 0.2), value: appeared)
+                }
+            }
+        }
+        .padding(.top, KickIQAICoachTheme.Spacing.sm)
+    }
+
+    private func customGroupedConditioning(_ drills: [Drill]) -> [(focus: String, drills: [Drill])] {
+        var groups: [String: [Drill]] = [:]
+        for drill in drills {
+            groups[drill.targetSkill, default: []].append(drill)
+        }
+        return groups.map { (focus: $0.key, drills: $0.value) }.sorted { $0.focus < $1.focus }
+    }
+
+    private func customConditioningCard(focus: String, drillCount: Int) -> some View {
+        VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+            ZStack {
+                Circle()
+                    .fill(Color.orange.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "person.fill.badge.plus")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.orange)
+            }
+
+            Text(focus)
+                .font(.subheadline.weight(.black))
+                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            Text("\(drillCount) custom")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.orange)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(KickIQAICoachTheme.Spacing.md)
+        .frame(minHeight: 150)
+        .background(
+            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                .fill(KickIQAICoachTheme.card)
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                        .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                )
+        )
     }
 
     private func loadDrills() {

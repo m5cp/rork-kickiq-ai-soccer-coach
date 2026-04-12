@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var notificationService = NotificationService()
     @State private var themeManager = KickIQAICoachTheme.shared
     @State private var storeVM = StoreViewModel()
+    @State private var customContentService = CustomContentService()
     @State private var selectedTab: Int = 0
     @State private var celebratingBadge: MilestoneBadge?
     @State private var previousBadgeCount: Int = 0
@@ -91,15 +92,15 @@ struct ContentView: View {
     private var mainTabView: some View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: 0) {
-                HomeView(storage: storage, selectedTab: $selectedTab)
+                HomeView(storage: storage, customContentService: customContentService, selectedTab: $selectedTab)
             }
 
             Tab("Benchmark", systemImage: "chart.bar.doc.horizontal.fill", value: 1) {
-                BenchmarkView(storage: storage)
+                BenchmarkView(storage: storage, customContentService: customContentService)
             }
 
             Tab("Drills", systemImage: "figure.soccer", value: 2) {
-                DrillsView(storage: storage)
+                DrillsView(storage: storage, customContentService: customContentService)
             }
 
             Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 3) {
@@ -107,7 +108,7 @@ struct ContentView: View {
             }
 
             Tab("Profile", systemImage: "person.fill", value: 4) {
-                ProfileView(storage: storage, storeVM: storeVM)
+                ProfileView(storage: storage, storeVM: storeVM, customContentService: customContentService)
             }
         }
         .tabViewStyle(.sidebarAdaptable)
