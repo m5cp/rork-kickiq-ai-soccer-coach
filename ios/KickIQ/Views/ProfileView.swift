@@ -74,7 +74,7 @@ struct ProfileView: View {
 
             VStack(spacing: KickIQTheme.Spacing.xs) {
                 Text(storage.profile?.name ?? "Player")
-                    .font(.system(.title2, design: .default, weight: .bold))
+                    .font(.system(.title2, design: .default, weight: .black))
                     .foregroundStyle(KickIQTheme.textPrimary)
 
                 HStack(spacing: KickIQTheme.Spacing.sm) {
@@ -91,7 +91,7 @@ struct ProfileView: View {
                         Text("·")
                             .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
                         Text(level.rawValue)
-                            .font(.caption.weight(.medium))
+                            .font(.caption.weight(.bold))
                             .foregroundStyle(KickIQTheme.textSecondary)
                     }
                 }
@@ -180,7 +180,7 @@ struct ProfileView: View {
                     .foregroundStyle(KickIQTheme.textPrimary)
             }
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(KickIQTheme.textSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -202,10 +202,10 @@ struct ProfileView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Coach Report")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textPrimary)
                     Text("Generate a detailed report to send to your coach")
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
 
@@ -294,10 +294,10 @@ struct ProfileView: View {
     private var appFooter: some View {
         VStack(spacing: 2) {
             Text("KickIQ v2.0")
-                .font(.caption)
+                .font(.caption.weight(.bold))
                 .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
             Text("AI-Powered Soccer Coaching")
-                .font(.caption2)
+                .font(.caption2.weight(.bold))
                 .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
         }
         .frame(maxWidth: .infinity)
@@ -322,7 +322,7 @@ struct ProfileView: View {
                 .frame(width: 24)
 
             Text(title)
-                .font(.subheadline.weight(.medium))
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(KickIQTheme.textPrimary)
 
             Spacer()

@@ -87,12 +87,12 @@ struct HomeView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: KickIQTheme.Spacing.xs) {
             Text("KICKIQ")
-                .font(.system(.caption, design: .default, weight: .bold).width(.compressed))
+                .font(.system(.caption, design: .default, weight: .black).width(.compressed))
                 .tracking(3)
                 .foregroundStyle(KickIQTheme.accent)
 
             Text("\(greeting), \(storage.profile?.name ?? "Player")")
-                .font(.system(.title2, design: .default, weight: .bold))
+                .font(.system(.title2, design: .default, weight: .black))
                 .foregroundStyle(KickIQTheme.textPrimary)
 
             HStack(spacing: 6) {
@@ -105,7 +105,7 @@ struct HomeView: View {
                 Text("·")
                     .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
                 Text("\(storage.xpPoints) XP")
-                    .font(.caption.weight(.medium))
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
         }
@@ -235,12 +235,12 @@ struct HomeView: View {
                         .font(.system(.title2, design: .default, weight: .black))
                         .foregroundStyle(KickIQTheme.textPrimary)
                     Text("day streak")
-                        .font(.subheadline.weight(.medium))
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
 
                 Text(storage.streakMessage)
-                    .font(.caption)
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(storage.isStreakBroken ? KickIQTheme.accent : KickIQTheme.textSecondary.opacity(0.7))
             }
 
@@ -289,11 +289,11 @@ struct HomeView: View {
 
                     if goal != nil {
                         Text(completed >= target ? "Goal reached! 🎯" : "\(target - completed) more to go")
-                            .font(.subheadline.weight(.medium))
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(completed >= target ? .green : KickIQTheme.textSecondary)
                     } else {
                         Text("Tap to set a weekly training goal")
-                            .font(.subheadline.weight(.medium))
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(KickIQTheme.textSecondary)
                     }
                 }
@@ -338,7 +338,7 @@ struct HomeView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(KickIQTheme.textPrimary)
                     Text(storage.trainingPlan != nil ? "View your personalized weekly schedule" : "AI-generated plan based on your weaknesses")
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
 
@@ -411,7 +411,7 @@ struct HomeView: View {
                 .foregroundStyle(KickIQTheme.textPrimary)
 
             Text("Focus: \(weakSkill.rawValue) — tailored to your weakest area. Resets daily.")
-                .font(.subheadline)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(KickIQTheme.textSecondary)
                 .lineLimit(2)
 
@@ -446,7 +446,7 @@ struct HomeView: View {
                         .foregroundStyle(KickIQTheme.textPrimary)
                 }
                 Text("This Week")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
             .frame(maxWidth: .infinity)
@@ -463,7 +463,7 @@ struct HomeView: View {
                         .foregroundStyle(KickIQTheme.textPrimary)
                 }
                 Text("Drills Done")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
             .frame(maxWidth: .infinity)
@@ -480,7 +480,7 @@ struct HomeView: View {
                         .foregroundStyle(KickIQTheme.textPrimary)
                 }
                 Text("Favorites")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
             .frame(maxWidth: .infinity)
@@ -497,7 +497,7 @@ struct HomeView: View {
                         .foregroundStyle(KickIQTheme.textPrimary)
                 }
                 Text("Best Score")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
             .frame(maxWidth: .infinity)
@@ -531,7 +531,7 @@ struct HomeView: View {
             }
 
             Text("\(storage.favoriteDrillIDs.count) drill\(storage.favoriteDrillIDs.count == 1 ? "" : "s") saved for quick access")
-                .font(.subheadline)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(KickIQTheme.textSecondary)
         }
         .padding(KickIQTheme.Spacing.md)
@@ -553,11 +553,11 @@ struct HomeView: View {
             .foregroundStyle(.orange)
 
             Text("Time to recheck your weakest skill")
-                .font(.headline)
+                .font(.headline.weight(.bold))
                 .foregroundStyle(KickIQTheme.textPrimary)
 
             Text("It's been a month — update your focus area to keep improving.")
-                .font(.subheadline)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(KickIQTheme.textSecondary)
 
             HStack(spacing: KickIQTheme.Spacing.sm) {
@@ -604,7 +604,7 @@ struct HomeView: View {
                     .foregroundStyle(KickIQTheme.accent)
                 Spacer()
                 Text(session.date, style: .relative)
-                    .font(.caption)
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(KickIQTheme.textSecondary.opacity(0.6))
             }
 
@@ -625,7 +625,7 @@ struct HomeView: View {
                                 .foregroundStyle(KickIQTheme.textPrimary)
                         }
                         Text(score.category.rawValue)
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.system(size: 9, weight: .bold))
                             .foregroundStyle(KickIQTheme.textSecondary)
                             .lineLimit(1)
                     }
@@ -634,7 +634,7 @@ struct HomeView: View {
             }
 
             Text(session.feedback)
-                .font(.caption)
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(KickIQTheme.textSecondary)
                 .lineLimit(2)
         }
@@ -671,11 +671,11 @@ struct ReassessmentSheet: View {
                             .foregroundStyle(KickIQTheme.accent)
 
                         Text("What needs the most work?")
-                            .font(.title3.weight(.bold))
+                            .font(.title3.weight(.black))
                             .foregroundStyle(KickIQTheme.textPrimary)
 
                         Text("Pick the area you want to focus on this month.")
-                            .font(.subheadline)
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(KickIQTheme.textSecondary)
                     }
                     .padding(.top, KickIQTheme.Spacing.md)

@@ -54,7 +54,7 @@ struct AnalyzeView: View {
                     .foregroundStyle(KickIQTheme.textPrimary)
 
                 Text("Upload a training clip for AI feedback")
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
             .opacity(appeared ? 1 : 0)
@@ -65,7 +65,7 @@ struct AnalyzeView: View {
                     Image(systemName: position.icon)
                         .foregroundStyle(KickIQTheme.accent)
                     Text("Analyzing as \(position.rawValue)")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
                 .padding(.horizontal, KickIQTheme.Spacing.md)
@@ -143,10 +143,10 @@ struct AnalyzeView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Record Clip")
-                        .font(.headline)
+                        .font(.headline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textPrimary)
                     Text("Use camera to film your session")
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
                 Spacer()
@@ -186,10 +186,10 @@ struct AnalyzeView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Upload from Library")
-                        .font(.headline)
+                        .font(.headline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textPrimary)
                     Text("Select a video or photo from your session")
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
                 Spacer()

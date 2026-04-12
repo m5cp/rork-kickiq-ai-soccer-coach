@@ -58,7 +58,7 @@ struct DrillsView: View {
                         Image(systemName: cat.icon)
                             .font(.system(size: 13))
                         Text(cat.rawValue)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.subheadline.weight(.bold))
                     }
                     .foregroundStyle(selectedCategory == cat ? KickIQTheme.onAccent : KickIQTheme.textSecondary)
                     .frame(maxWidth: .infinity)
@@ -99,7 +99,7 @@ struct DrillsView: View {
                 Image(systemName: "heart.circle.fill")
                     .foregroundStyle(KickIQTheme.accent)
                 Text("Build your athletic foundation")
-                    .font(.subheadline.weight(.medium))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
 
@@ -196,7 +196,7 @@ struct DrillsView: View {
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textPrimary)
                     Text("\(count) exercise\(count == 1 ? "" : "s")")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
 
@@ -221,7 +221,7 @@ struct DrillsView: View {
                     Image(systemName: "target")
                         .foregroundStyle(KickIQTheme.accent)
                     Text("Focused on your weakest areas")
-                        .font(.subheadline.weight(.medium))
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
 
@@ -340,7 +340,7 @@ struct DrillsView: View {
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textPrimary)
                     Text("\(count) drill\(count == 1 ? "" : "s")")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
 
@@ -384,7 +384,7 @@ struct DrillsView: View {
 
             VStack(alignment: .leading, spacing: KickIQTheme.Spacing.xs) {
                 Text(drill.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(KickIQTheme.textPrimary)
                     .lineLimit(1)
 
@@ -393,7 +393,7 @@ struct DrillsView: View {
                     Text("·")
                     Text(drill.difficulty.rawValue)
                 }
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(KickIQTheme.textSecondary)
             }
 
@@ -417,11 +417,11 @@ struct DrillsView: View {
                 .foregroundStyle(KickIQTheme.accent.opacity(0.5))
 
             Text("Drills Loading")
-                .font(.title3.weight(.bold))
+                .font(.title3.weight(.black))
                 .foregroundStyle(KickIQTheme.textPrimary)
 
             Text("Complete your profile to get\npersonalized drill recommendations")
-                .font(.subheadline)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(KickIQTheme.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -465,7 +465,7 @@ struct QRDrillShareSheet: View {
                 }
 
                 Text("Scan this QR code to view the drill details")
-                    .font(.caption)
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(KickIQTheme.textSecondary)
                     .multilineTextAlignment(.center)
 
@@ -572,7 +572,7 @@ struct DrillDetailSheet: View {
                             .foregroundStyle(KickIQTheme.accent)
 
                         Text(drill.description)
-                            .font(.body)
+                            .font(.body.weight(.semibold))
                             .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
                             .lineSpacing(4)
                     }
@@ -591,7 +591,7 @@ struct DrillDetailSheet: View {
                                         .foregroundStyle(KickIQTheme.accent)
                                         .padding(.top, 2)
                                     Text(cue)
-                                        .font(.subheadline)
+                                        .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(KickIQTheme.textPrimary.opacity(0.8))
                                 }
                             }

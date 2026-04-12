@@ -39,10 +39,10 @@ struct SettingsView: View {
 
                     VStack(spacing: 2) {
                         Text("KickIQ v2.0")
-                            .font(.caption)
+                            .font(.caption.weight(.bold))
                             .foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
                         Text("AI-Powered Soccer Coaching")
-                            .font(.caption2)
+                            .font(.caption2.weight(.bold))
                             .foregroundStyle(KickIQTheme.textSecondary.opacity(0.3))
                     }
                     .frame(maxWidth: .infinity)
@@ -100,7 +100,7 @@ struct SettingsView: View {
                             .font(.title3)
                             .foregroundStyle(KickIQTheme.shared.appearanceMode == mode ? KickIQTheme.accent : KickIQTheme.textSecondary)
                         Text(mode.rawValue)
-                            .font(.caption.weight(.semibold))
+                            .font(.caption.weight(.bold))
                             .foregroundStyle(KickIQTheme.shared.appearanceMode == mode ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
@@ -147,7 +147,7 @@ struct SettingsView: View {
                                 }
 
                             Text(color.name)
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(isSelected ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
                                 .lineLimit(1)
                         }
@@ -200,10 +200,10 @@ struct SettingsView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Pick any color")
-                        .font(.subheadline.weight(.medium))
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textPrimary)
                     Text("Match your team's exact colors")
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
 
@@ -252,7 +252,7 @@ struct SettingsView: View {
                     .frame(width: 24)
 
                 Text(title)
-                    .font(.subheadline.weight(.medium))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(isDestructive ? .red : KickIQTheme.textPrimary)
 
                 Spacer()

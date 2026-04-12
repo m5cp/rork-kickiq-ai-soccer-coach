@@ -6,6 +6,7 @@ nonisolated enum PlayerPosition: String, Codable, CaseIterable, Sendable, Identi
     case midfielder = "Midfielder"
     case winger = "Winger"
     case striker = "Striker"
+    case coachTrainer = "Coach/Trainer"
 
     var id: String { rawValue }
 
@@ -16,6 +17,7 @@ nonisolated enum PlayerPosition: String, Codable, CaseIterable, Sendable, Identi
         case .midfielder: "arrow.triangle.2.circlepath"
         case .winger: "bolt.horizontal.fill"
         case .striker: "scope"
+        case .coachTrainer: "whistle.fill"
         }
     }
 
@@ -31,6 +33,8 @@ nonisolated enum PlayerPosition: String, Codable, CaseIterable, Sendable, Identi
             [.firstTouch, .bodyPosition, .ballControl, .shooting, .movement]
         case .striker:
             [.firstTouch, .bodyPosition, .ballControl, .shooting, .movement]
+        case .coachTrainer:
+            [.firstTouch, .bodyPosition, .ballControl, .shooting, .movement, .positioning, .communication]
         }
     }
 }

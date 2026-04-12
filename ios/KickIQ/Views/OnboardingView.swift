@@ -1,5 +1,105 @@
 import SwiftUI
 
+struct SoccerBall: Identifiable {
+    let id = UUID()
+    var x: CGFloat
+    var y: CGFloat
+    var size: CGFloat
+    var speed: CGFloat
+    var opacity: Double
+    var rotation: Double
+    var direction: CGFloat
+}
+
+struct SoccerBallsBackground: View {
+    @State private var balls: [SoccerBall] = []
+    @State private var animating: Bool = false
+    let screenWidth: CGFloat
+    let screenHeight: CGFloat
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            Canvas { context, size in
+                for ball in balls {
+                    let rect = CGRect(
+                        x: ball.x - ball.size / 2,
+                        y: ball.y - ball.size / 2,
+                        width: ball.size,
+                        height: ball.size
+                    )
+                    context.opacity = ball.opacity
+                    context.drawLayer { ctx in
+                        ctx.rotate(by: .degrees(ball.rotation))
+                        let symbol = ctx.resolve(Image(systemName: "soccerball"))
+                        ctx.draw(symbol, in: rect)
+                    }
+                }
+            }
+            .onChange(of: timeline.date) { _, _ in
+                updateBalls()
+            }
+        }
+        .foregroundStyle(KickIQTheme.accent.opacity(0.15))
+        .onAppear {
+            generateBalls()
+        }
+    }
+
+    private func generateBalls() {
+        balls = (0..<12).map { _ in
+            SoccerBall(
+                x: CGFloat.random(in: 0...screenWidth),
+                y: CGFloat.random(in: -screenHeight...screenHeight * 2),
+                size: CGFloat.random(in: 20...60),
+                speed: CGFloat.random(in: 0.5...2.5),
+                opacity: Double.random(in: 0.08...0.25),
+                rotation: Double.random(in: 0...360),
+                direction: CGFloat.random(in: -1...1)
+            )
+        }
+    }
+
+    private func updateBalls() {
+        for i in balls.indices {
+            balls[i].y -= balls[i].speed
+            balls[i].x += balls[i].direction * 0.3
+            balls[i].rotation += balls[i].speed * 2
+
+            if balls[i].y < -balls[i].size {
+                balls[i].y = screenHeight + balls[i].size
+                balls[i].x = CGFloat.random(in: 0...screenWidth)
+                balls[i].direction = CGFloat.random(in: -1...1)
+            }
+        }
+    }
+}
+
+struct DynamicMeshBackground: View {
+    @State private var phase: CGFloat = 0
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            MeshGradient(
+                width: 3, height: 3,
+                points: [
+                    [0, 0], [0.5, 0], [1, 0],
+                    [Float(0.0 + 0.05 * sin(t * 0.5)), 0.5],
+                    [Float(0.5 + 0.08 * cos(t * 0.7)), Float(0.5 + 0.06 * sin(t * 0.6))],
+                    [Float(1.0 + 0.05 * sin(t * 0.4)), 0.5],
+                    [0, 1], [0.5, 1], [1, 1]
+                ],
+                colors: [
+                    Color(hex: 0x0A0E1A), Color(hex: 0x0D1B2A), Color(hex: 0x0A0E1A),
+                    Color(hex: 0x13294B).opacity(0.8), KickIQTheme.accent.opacity(0.15), Color(hex: 0x13294B).opacity(0.6),
+                    Color(hex: 0x0A0E1A), Color(hex: 0x0D1B2A), Color(hex: 0x0A0E1A)
+                ]
+            )
+        }
+        .ignoresSafeArea()
+    }
+}
+
 struct OnboardingView: View {
     let storage: StorageService
     @State private var currentStep: Int = 0
@@ -13,29 +113,40 @@ struct OnboardingView: View {
     private let totalSteps = 8
 
     var body: some View {
-        ZStack {
-            KickIQTheme.background.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                DynamicMeshBackground()
 
-            VStack(spacing: 0) {
-                progressBar
+                SoccerBallsBackground(
+                    screenWidth: geo.size.width,
+                    screenHeight: geo.size.height
+                )
+
+                VStack(spacing: 0) {
+                    HStack {
+                        progressBar
+                        Spacer()
+                        skipButton
+                    }
                     .padding(.top, 12)
                     .padding(.horizontal, KickIQTheme.Spacing.md)
 
-                TabView(selection: $currentStep) {
-                    positionStep.tag(0)
-                    ageStep.tag(1)
-                    skillLevelStep.tag(2)
-                    weaknessStep.tag(3)
-                    painStep.tag(4)
-                    howItWorksStep.tag(5)
-                    socialProofStep.tag(6)
-                    paywallStep.tag(7)
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .animation(.spring(response: 0.4), value: currentStep)
+                    TabView(selection: $currentStep) {
+                        positionStep.tag(0)
+                        ageStep.tag(1)
+                        skillLevelStep.tag(2)
+                        weaknessStep.tag(3)
+                        painStep.tag(4)
+                        howItWorksStep.tag(5)
+                        socialProofStep.tag(6)
+                        paywallStep.tag(7)
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 7 {
-                    continueButton
+                    if currentStep < 7 {
+                        continueButton
+                    }
                 }
             }
         }
@@ -45,11 +156,21 @@ struct OnboardingView: View {
         }
     }
 
+    private var skipButton: some View {
+        Button {
+            completeOnboarding()
+        } label: {
+            Text("Skip")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(KickIQTheme.textSecondary)
+        }
+    }
+
     private var progressBar: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(KickIQTheme.divider)
+                    .fill(Color.white.opacity(0.1))
                     .frame(height: 4)
 
                 Capsule()
@@ -58,10 +179,9 @@ struct OnboardingView: View {
                     .animation(.spring(response: 0.3), value: currentStep)
             }
         }
-        .frame(height: 4)
+        .frame(width: 200, height: 4)
     }
 
-    // MARK: - Step 1: Position
     private var positionStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -74,18 +194,18 @@ struct OnboardingView: View {
                         } label: {
                             VStack(spacing: 10) {
                                 Image(systemName: pos.icon)
-                                    .font(.system(size: 28))
+                                    .font(.system(size: 28, weight: .bold))
                                     .foregroundStyle(position == pos ? KickIQTheme.accent : KickIQTheme.textSecondary)
 
                                 Text(pos.rawValue)
-                                    .font(.headline)
-                                    .foregroundStyle(position == pos ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(position == pos ? .white : KickIQTheme.textSecondary)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, KickIQTheme.Spacing.lg)
                             .background(
                                 RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                                    .fill(position == pos ? KickIQTheme.accent.opacity(0.15) : KickIQTheme.card)
+                                    .fill(position == pos ? KickIQTheme.accent.opacity(0.2) : Color.white.opacity(0.06))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
                                             .stroke(position == pos ? KickIQTheme.accent : Color.clear, lineWidth: 2)
@@ -102,7 +222,6 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 2: Age
     private var ageStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -125,7 +244,6 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 3: Skill Level
     private var skillLevelStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -139,23 +257,24 @@ struct OnboardingView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(level.rawValue)
-                                        .font(.headline)
-                                        .foregroundStyle(skillLevel == level ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
+                                        .font(.headline.weight(.bold))
+                                        .foregroundStyle(skillLevel == level ? .white : KickIQTheme.textSecondary)
                                     Text(level.description)
-                                        .font(.caption)
+                                        .font(.caption.weight(.semibold))
                                         .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
                                 }
                                 Spacer()
                                 if skillLevel == level {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundStyle(KickIQTheme.accent)
+                                        .font(.title3.weight(.bold))
                                         .transition(.scale.combined(with: .opacity))
                                 }
                             }
                             .padding(KickIQTheme.Spacing.md)
                             .background(
                                 RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
-                                    .fill(skillLevel == level ? KickIQTheme.accent.opacity(0.15) : KickIQTheme.card)
+                                    .fill(skillLevel == level ? KickIQTheme.accent.opacity(0.2) : Color.white.opacity(0.06))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
                                             .stroke(skillLevel == level ? KickIQTheme.accent : Color.clear, lineWidth: 1.5)
@@ -173,7 +292,6 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 4: Weakness
     private var weaknessStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -186,26 +304,27 @@ struct OnboardingView: View {
                         } label: {
                             HStack(spacing: 14) {
                                 Image(systemName: area.icon)
-                                    .font(.title3)
+                                    .font(.title3.weight(.bold))
                                     .foregroundStyle(weakness == area ? KickIQTheme.accent : KickIQTheme.textSecondary)
                                     .frame(width: 32)
 
                                 Text(area.rawValue)
-                                    .font(.headline)
-                                    .foregroundStyle(weakness == area ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(weakness == area ? .white : KickIQTheme.textSecondary)
 
                                 Spacer()
 
                                 if weakness == area {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundStyle(KickIQTheme.accent)
+                                        .font(.title3.weight(.bold))
                                         .transition(.scale.combined(with: .opacity))
                                 }
                             }
                             .padding(KickIQTheme.Spacing.md)
                             .background(
                                 RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
-                                    .fill(weakness == area ? KickIQTheme.accent.opacity(0.15) : KickIQTheme.card)
+                                    .fill(weakness == area ? KickIQTheme.accent.opacity(0.2) : Color.white.opacity(0.06))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
                                             .stroke(weakness == area ? KickIQTheme.accent : Color.clear, lineWidth: 1.5)
@@ -223,13 +342,12 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 5: Pain Screen
     private var painStep: some View {
         VStack(spacing: KickIQTheme.Spacing.xl) {
             Spacer()
 
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 56))
+                .font(.system(size: 56, weight: .bold))
                 .foregroundStyle(KickIQTheme.accent)
                 .symbolEffect(.bounce, value: currentStep == 4)
 
@@ -237,10 +355,10 @@ struct OnboardingView: View {
                 Text("Most players never improve\nbecause no one tells them\nwhat to fix.")
                     .font(.system(.title, design: .default, weight: .black))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(KickIQTheme.textPrimary)
+                    .foregroundStyle(.white)
 
                 Text("KickIQ is your AI coach.\nAlways watching. Always improving you.")
-                    .font(.body)
+                    .font(.body.weight(.semibold))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(KickIQTheme.textSecondary)
                     .padding(.top, KickIQTheme.Spacing.sm)
@@ -252,7 +370,6 @@ struct OnboardingView: View {
         .padding(.horizontal, KickIQTheme.Spacing.xl)
     }
 
-    // MARK: - Step 6: How It Works
     private var howItWorksStep: some View {
         VStack(spacing: KickIQTheme.Spacing.xl) {
             Spacer()
@@ -260,7 +377,7 @@ struct OnboardingView: View {
             Text("HOW IT WORKS")
                 .font(.system(.title2, design: .default, weight: .black).width(.compressed))
                 .tracking(2)
-                .foregroundStyle(KickIQTheme.textPrimary)
+                .foregroundStyle(.white)
 
             VStack(spacing: KickIQTheme.Spacing.lg) {
                 howItWorksRow(step: "1", icon: "video.fill", title: "Record", subtitle: "Film your training session")
@@ -274,7 +391,6 @@ struct OnboardingView: View {
         .padding(.horizontal, KickIQTheme.Spacing.lg)
     }
 
-    // MARK: - Step 7: Social Proof
     private var socialProofStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -292,7 +408,6 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Step 8: Paywall
     private var paywallStep: some View {
         ScrollView {
             VStack(spacing: KickIQTheme.Spacing.lg) {
@@ -300,10 +415,10 @@ struct OnboardingView: View {
                     Text("UNLOCK KICKIQ")
                         .font(.system(.title2, design: .default, weight: .black).width(.compressed))
                         .tracking(2)
-                        .foregroundStyle(KickIQTheme.textPrimary)
+                        .foregroundStyle(.white)
 
                     Text("Your AI coach is ready")
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
                 .padding(.top, KickIQTheme.Spacing.lg)
@@ -319,7 +434,7 @@ struct OnboardingView: View {
                     completeOnboarding()
                 } label: {
                     Text("Start Free Trial")
-                        .font(.headline)
+                        .font(.headline.weight(.black))
                         .foregroundStyle(KickIQTheme.onAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, KickIQTheme.Spacing.md)
@@ -332,20 +447,20 @@ struct OnboardingView: View {
                     completeOnboarding()
                 } label: {
                     Text("Restore Purchases")
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
 
                 VStack(spacing: 4) {
                     Text("Cancel anytime. No commitment.")
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(KickIQTheme.textSecondary.opacity(0.6))
                     HStack(spacing: KickIQTheme.Spacing.md) {
                         Link("Privacy Policy", destination: URL(string: "https://termly.io")!)
                         Text("·").foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
                         Link("Terms of Service", destination: URL(string: "https://termly.io")!)
                     }
-                    .font(.caption2)
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(KickIQTheme.textSecondary.opacity(0.5))
                 }
                 .padding(.bottom, KickIQTheme.Spacing.lg)
@@ -354,13 +469,12 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Continue Button
     private var continueButton: some View {
         Button {
             withAnimation(.spring(response: 0.4)) { currentStep += 1 }
         } label: {
             Text("Continue")
-                .font(.headline)
+                .font(.headline.weight(.black))
                 .foregroundStyle(KickIQTheme.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, KickIQTheme.Spacing.md)
@@ -371,16 +485,15 @@ struct OnboardingView: View {
         .sensoryFeedback(.impact(weight: .medium), trigger: currentStep)
     }
 
-    // MARK: - Helpers
     private func stepHeader(title: String, subtitle: String) -> some View {
         VStack(spacing: KickIQTheme.Spacing.sm) {
             Text(title)
                 .font(.system(.title2, design: .default, weight: .black).width(.compressed))
                 .tracking(2)
-                .foregroundStyle(KickIQTheme.textPrimary)
+                .foregroundStyle(.white)
 
             Text(subtitle)
-                .font(.subheadline)
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(KickIQTheme.textSecondary)
         }
         .padding(.top, KickIQTheme.Spacing.lg)
@@ -389,19 +502,20 @@ struct OnboardingView: View {
     private func selectionRow(title: String, isSelected: Bool) -> some View {
         HStack {
             Text(title)
-                .font(.headline)
-                .foregroundStyle(isSelected ? KickIQTheme.textPrimary : KickIQTheme.textSecondary)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(isSelected ? .white : KickIQTheme.textSecondary)
             Spacer()
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(KickIQTheme.accent)
+                    .font(.title3.weight(.bold))
                     .transition(.scale.combined(with: .opacity))
             }
         }
         .padding(KickIQTheme.Spacing.md)
         .background(
             RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
-                .fill(isSelected ? KickIQTheme.accent.opacity(0.15) : KickIQTheme.card)
+                .fill(isSelected ? KickIQTheme.accent.opacity(0.2) : Color.white.opacity(0.06))
                 .overlay(
                     RoundedRectangle(cornerRadius: KickIQTheme.Radius.md)
                         .stroke(isSelected ? KickIQTheme.accent : Color.clear, lineWidth: 1.5)
@@ -413,28 +527,28 @@ struct OnboardingView: View {
         HStack(spacing: KickIQTheme.Spacing.md) {
             ZStack {
                 Circle()
-                    .fill(KickIQTheme.accent.opacity(0.15))
+                    .fill(KickIQTheme.accent.opacity(0.2))
                     .frame(width: 56, height: 56)
                 Image(systemName: icon)
-                    .font(.title3)
+                    .font(.title3.weight(.bold))
                     .foregroundStyle(KickIQTheme.accent)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Step \(step)")
-                    .font(.caption.weight(.bold))
+                    .font(.caption.weight(.black))
                     .foregroundStyle(KickIQTheme.accent)
                 Text(title)
-                    .font(.headline)
-                    .foregroundStyle(KickIQTheme.textPrimary)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
                 Text(subtitle)
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
             Spacer()
         }
         .padding(KickIQTheme.Spacing.md)
-        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .background(Color.white.opacity(0.06), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
     }
 
     private func testimonialCard(name: String, age: String, result: String) -> some View {
@@ -442,19 +556,19 @@ struct OnboardingView: View {
             HStack(spacing: KickIQTheme.Spacing.sm) {
                 ZStack {
                     Circle()
-                        .fill(KickIQTheme.accent.opacity(0.15))
+                        .fill(KickIQTheme.accent.opacity(0.2))
                         .frame(width: 40, height: 40)
                     Text(String(name.prefix(1)))
-                        .font(.headline)
+                        .font(.headline.weight(.black))
                         .foregroundStyle(KickIQTheme.accent)
                 }
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text(name)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQTheme.textPrimary)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
                     Text("Age \(age)")
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
                 Spacer()
@@ -462,19 +576,19 @@ struct OnboardingView: View {
                 HStack(spacing: 2) {
                     ForEach(0..<5, id: \.self) { _ in
                         Image(systemName: "star.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(KickIQTheme.accent)
                     }
                 }
             }
 
             Text("\"\(result)\"")
-                .font(.subheadline)
-                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.85))
                 .italic()
         }
         .padding(KickIQTheme.Spacing.md)
-        .background(KickIQTheme.card, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
+        .background(Color.white.opacity(0.06), in: .rect(cornerRadius: KickIQTheme.Radius.lg))
     }
 
     private func pricingCard(title: String, price: String, perWeek: String?, badge: String?, isHighlighted: Bool, trialText: String?) -> some View {
@@ -482,8 +596,8 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: KickIQTheme.Spacing.sm) {
                     Text(title)
-                        .font(.headline)
-                        .foregroundStyle(KickIQTheme.textPrimary)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
 
                     if let badge {
                         Text(badge)
@@ -497,13 +611,13 @@ struct OnboardingView: View {
 
                 if let perWeek {
                     Text(perWeek)
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(KickIQTheme.textSecondary)
                 }
 
                 if let trialText {
                     Text(trialText)
-                        .font(.caption2.weight(.semibold))
+                        .font(.caption2.weight(.black))
                         .foregroundStyle(KickIQTheme.accent)
                 }
             }
@@ -511,16 +625,16 @@ struct OnboardingView: View {
             Spacer()
 
             Text(price)
-                .font(.title3.weight(.bold))
-                .foregroundStyle(KickIQTheme.textPrimary)
+                .font(.title3.weight(.black))
+                .foregroundStyle(.white)
         }
         .padding(KickIQTheme.Spacing.md)
         .background(
             RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                .fill(isHighlighted ? KickIQTheme.accent.opacity(0.12) : KickIQTheme.card)
+                .fill(isHighlighted ? KickIQTheme.accent.opacity(0.15) : Color.white.opacity(0.06))
                 .overlay(
                     RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
-                        .stroke(isHighlighted ? KickIQTheme.accent : KickIQTheme.divider, lineWidth: isHighlighted ? 2 : 1)
+                        .stroke(isHighlighted ? KickIQTheme.accent : Color.white.opacity(0.08), lineWidth: isHighlighted ? 2 : 1)
                 )
         )
     }
