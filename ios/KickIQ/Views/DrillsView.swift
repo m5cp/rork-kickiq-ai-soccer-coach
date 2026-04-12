@@ -67,6 +67,28 @@ struct DrillsView: View {
             .navigationTitle("Drills")
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $searchText, prompt: activeSection == .skills ? "Search skill drills..." : "Search conditioning...")
+            .searchSuggestions {
+                if searchText.isEmpty {
+                    ForEach(recentSearches, id: \.self) { term in
+                        Label(term, systemImage: "clock.arrow.circlepath")
+                            .searchCompletion(term)
+                    }
+                    if !recentSearches.isEmpty {
+                        Button("Clear Recent Searches") {
+                            clearRecentSearches()
+                        }
+                    }
+                    Section("Popular") {
+                        Label("Ball Control", systemImage: "circle.dashed").searchCompletion("Ball Control")
+                        Label("Shooting", systemImage: "scope").searchCompletion("Shooting")
+                        Label("Passing", systemImage: "arrow.right.arrow.left").searchCompletion("Passing")
+                        Label("Dribbling", systemImage: "figure.soccer").searchCompletion("Dribbling")
+                    }
+                }
+            }
+            .onSubmit(of: .search) {
+                saveRecentSearch(searchText)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -623,6 +645,9 @@ struct DrillsView: View {
                                 } label: {
                                     conditioningGridCard(drill, typeColor: group.color)
                                 }
+                                .contextMenu {
+                                    drillContextMenu(drill)
+                                }
                             }
                         }
                         .padding(.top, 10)
@@ -709,6 +734,9 @@ struct DrillsView: View {
                 .shadow(.drop(color: .black.opacity(0.06), radius: 3, y: 1)),
             in: .rect(cornerRadius: KickIQTheme.Radius.lg)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(drill.name). \(drill.intensity.rawValue) intensity. \(drill.duration). \(isCompleted ? "Completed." : "") \(isFav ? "Favorited." : "")")
+        .accessibilityHint("Double tap to view details. Long press for more options.")
     }
 
     private func intensityColor(_ intensity: DrillIntensity) -> Color {
@@ -804,6 +832,9 @@ struct DrillsView: View {
                         } label: {
                             drillGridCard(drill)
                         }
+                        .contextMenu {
+                            drillContextMenu(drill)
+                        }
                     }
                 }
                 .padding(.top, 10)
@@ -814,6 +845,35 @@ struct DrillsView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 12)
         .animation(.spring(response: 0.4).delay(Double(sectionIndex) * 0.04), value: appeared)
+    }
+
+    @ViewBuilder
+    private func drillContextMenu(_ drill: Drill) -> some View {
+        let isFav = storage.isFavorite(drill.id)
+        let isCompleted = storage.completedDrillIDs.contains(drill.id)
+
+        Button {
+            storage.toggleFavorite(drill.id)
+            favoriteTrigger += 1
+        } label: {
+            Label(isFav ? "Unfavorite" : "Favorite", systemImage: isFav ? "heart.slash" : "heart")
+        }
+
+        Button {
+            if !isCompleted {
+                storage.completeDrill(drill)
+                completedTrigger += 1
+            }
+        } label: {
+            Label(isCompleted ? "Completed" : "Mark Complete", systemImage: isCompleted ? "checkmark.circle.fill" : "checkmark.circle")
+        }
+        .disabled(isCompleted)
+
+        Button {
+            selectedDrill = drill
+        } label: {
+            Label("View Details", systemImage: "info.circle")
+        }
     }
 
     private func drillGridCard(_ drill: Drill) -> some View {
@@ -886,6 +946,9 @@ struct DrillsView: View {
                 .shadow(.drop(color: .black.opacity(0.06), radius: 3, y: 1)),
             in: .rect(cornerRadius: KickIQTheme.Radius.lg)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(drill.name). \(drill.difficulty.rawValue) difficulty. \(drill.duration). \(isCompleted ? "Completed." : "") \(isFav ? "Favorited." : "")")
+        .accessibilityHint("Double tap to view details. Long press for more options.")
     }
 
     private func difficultyDot(_ difficulty: DrillDifficulty) -> some View {
@@ -903,23 +966,55 @@ struct DrillsView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: KickIQTheme.Spacing.md) {
-            Spacer().frame(height: 60)
+        VStack(spacing: KickIQTheme.Spacing.lg) {
+            Spacer().frame(height: 40)
 
-            Image(systemName: "figure.soccer")
-                .font(.system(size: 48))
-                .foregroundStyle(KickIQTheme.accent.opacity(0.5))
+            ZStack {
+                Circle()
+                    .fill(KickIQTheme.accent.opacity(0.08))
+                    .frame(width: 120, height: 120)
 
-            Text("Drills Loading")
-                .font(.title3.weight(.bold))
-                .foregroundStyle(KickIQTheme.textPrimary)
+                Circle()
+                    .fill(KickIQTheme.accent.opacity(0.04))
+                    .frame(width: 160, height: 160)
 
-            Text("Complete your profile to get\npersonalized drill recommendations")
-                .font(.subheadline)
-                .foregroundStyle(KickIQTheme.textSecondary)
-                .multilineTextAlignment(.center)
+                Image(systemName: "figure.soccer")
+                    .font(.system(size: 52))
+                    .foregroundStyle(KickIQTheme.accent.opacity(0.6))
+                    .symbolEffect(.pulse.wholeSymbol, options: .repeating)
+            }
+
+            VStack(spacing: KickIQTheme.Spacing.sm) {
+                Text("Your Drills Are Loading")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(KickIQTheme.textPrimary)
+
+                Text("Complete your profile to unlock\npersonalized drill recommendations")
+                    .font(.subheadline)
+                    .foregroundStyle(KickIQTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            Spacer().frame(height: 20)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var recentSearches: [String] {
+        UserDefaults.standard.stringArray(forKey: "kickiq_recent_drill_searches") ?? []
+    }
+
+    private func saveRecentSearch(_ term: String) {
+        guard !term.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        var searches = recentSearches
+        searches.removeAll { $0.lowercased() == term.lowercased() }
+        searches.insert(term, at: 0)
+        if searches.count > 5 { searches = Array(searches.prefix(5)) }
+        UserDefaults.standard.set(searches, forKey: "kickiq_recent_drill_searches")
+    }
+
+    private func clearRecentSearches() {
+        UserDefaults.standard.removeObject(forKey: "kickiq_recent_drill_searches")
     }
 
     private func loadDrills() {
@@ -963,6 +1058,7 @@ struct DrillDetailSheet: View {
     @State private var showRecordEntry = false
     @State private var recordValue: String = ""
     @State private var showConfetti = false
+    @State private var completionScale: CGFloat = 1.0
 
     private var isCompleted: Bool {
         storage.completedDrillIDs.contains(drill.id)
@@ -1165,15 +1261,25 @@ struct DrillDetailSheet: View {
 
                     Button {
                         if !isCompleted {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                                completionScale = 1.15
+                            }
                             storage.completeDrill(drill)
                             completedTrigger += 1
                             showConfetti = true
+                            Task {
+                                try? await Task.sleep(for: .seconds(0.2))
+                                withAnimation(.spring(response: 0.3)) {
+                                    completionScale = 1.0
+                                }
+                            }
                         } else {
                             dismiss()
                         }
                     } label: {
                         HStack(spacing: KickIQTheme.Spacing.sm) {
                             Image(systemName: isCompleted ? "checkmark.circle.fill" : "checkmark")
+                                .symbolEffect(.bounce, value: showConfetti)
                             Text(isCompleted ? "Completed" : "Mark Complete")
                         }
                         .font(.headline)
@@ -1182,6 +1288,8 @@ struct DrillDetailSheet: View {
                         .padding(.vertical, KickIQTheme.Spacing.md)
                         .background(isCompleted ? KickIQTheme.surface : KickIQTheme.accent, in: .rect(cornerRadius: KickIQTheme.Radius.lg))
                     }
+                    .scaleEffect(completionScale)
+                    .sensoryFeedback(.success, trigger: showConfetti)
                 }
                 .padding(KickIQTheme.Spacing.md + 4)
             }

@@ -30,6 +30,17 @@ struct HomeView: View {
 
     private var isIPad: Bool { sizeClass == .regular }
 
+    private var showStreakAtRisk: Bool {
+        let hour = Calendar.current.component(.hour, from: .now)
+        guard hour >= 17 else { return false }
+        guard storage.streakCount > 0 else { return false }
+        guard !storage.streakFrozenToday else { return false }
+        if let last = storage.lastSessionDate {
+            return !Calendar.current.isDateInToday(last)
+        }
+        return false
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -40,6 +51,9 @@ struct HomeView: View {
                 }
             }
             .scrollIndicators(.hidden)
+            .refreshable {
+                await refreshHomeData()
+            }
             .background(KickIQTheme.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -117,6 +131,9 @@ struct HomeView: View {
     private var iPhoneHomeLayout: some View {
         VStack(spacing: KickIQTheme.Spacing.md + 4) {
             headerSection
+            if showStreakAtRisk {
+                streakAtRiskBanner
+            }
             heroCard
             startSessionCTA
             quickActions
@@ -128,6 +145,7 @@ struct HomeView: View {
             if let session = storage.latestSession {
                 recentAnalysisCard(session)
             }
+            tipOfTheDayCard
         }
         .padding(.horizontal, KickIQTheme.Spacing.md)
         .padding(.bottom, KickIQTheme.Spacing.xl)
@@ -138,6 +156,10 @@ struct HomeView: View {
     private var iPadHomeLayout: some View {
         VStack(spacing: KickIQTheme.Spacing.lg) {
             headerSection
+
+            if showStreakAtRisk {
+                streakAtRiskBanner
+            }
 
             HStack(alignment: .top, spacing: KickIQTheme.Spacing.lg) {
                 VStack(spacing: KickIQTheme.Spacing.md + 4) {
@@ -161,11 +183,56 @@ struct HomeView: View {
             if let session = storage.latestSession {
                 recentAnalysisCard(session)
             }
+            tipOfTheDayCard
         }
         .padding(.horizontal, KickIQTheme.Spacing.lg)
         .padding(.bottom, KickIQTheme.Spacing.xl)
         .frame(maxWidth: AdaptiveLayout.iPadWideMaxContentWidth)
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Streak At Risk Banner
+
+    private var streakAtRiskBanner: some View {
+        Button {
+            selectedTab = 1
+        } label: {
+            HStack(spacing: KickIQTheme.Spacing.sm + 2) {
+                Image(systemName: "flame.fill")
+                    .font(.title3)
+                    .foregroundStyle(.orange)
+                    .symbolEffect(.pulse.wholeSymbol, options: .repeating)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your \(storage.streakCount)-day streak is at risk!")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQTheme.textPrimary)
+                    Text("Train now to keep it alive")
+                        .font(.caption)
+                        .foregroundStyle(KickIQTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.orange.opacity(0.6))
+            }
+            .padding(KickIQTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                    .fill(Color.orange.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+        .sensoryFeedback(.warning, trigger: showStreakAtRisk)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.03), value: appeared)
     }
 
     // MARK: - Cards
@@ -778,6 +845,50 @@ struct HomeView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.25), value: appeared)
+    }
+
+    private var tipOfTheDayCard: some View {
+        let tip = SoccerTip.tipOfTheDay()
+        return VStack(alignment: .leading, spacing: KickIQTheme.Spacing.sm) {
+            HStack(spacing: 6) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.caption)
+                Text("TIP OF THE DAY")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+            }
+            .foregroundStyle(.yellow)
+
+            Text(tip.text)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(KickIQTheme.textPrimary.opacity(0.85))
+                .lineSpacing(3)
+
+            HStack(spacing: 6) {
+                Image(systemName: tip.icon)
+                    .font(.system(size: 10, weight: .semibold))
+                Text(tip.category)
+                    .font(.caption2.weight(.bold))
+            }
+            .foregroundStyle(KickIQTheme.textSecondary)
+        }
+        .padding(KickIQTheme.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                .fill(KickIQTheme.card)
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQTheme.Radius.lg)
+                        .stroke(Color.yellow.opacity(0.15), lineWidth: 1)
+                )
+        )
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.3), value: appeared)
+    }
+
+    private func refreshHomeData() async {
+        try? await Task.sleep(for: .seconds(0.5))
+        storage.loadAll()
     }
 
     private func checkReviewPrompt() {

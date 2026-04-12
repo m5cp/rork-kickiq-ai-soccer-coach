@@ -9,10 +9,30 @@ nonisolated struct KickIQEntry: TimelineEntry {
     let xpPoints: Int
     let playerLevel: String
     let drillsCompleted: Int
+    let dailyTip: String
+    let tipCategory: String
 }
 
 nonisolated struct KickIQProvider: TimelineProvider {
     private let suiteName = "group.app.rork.kickiq.shared"
+
+    private let tips: [(text: String, category: String)] = [
+        ("Keep your head up while dribbling — scanning opens passing lanes.", "Dribbling"),
+        ("Receive with the foot furthest from the defender.", "First Touch"),
+        ("Practice weak foot for 10 min every session.", "Weak Foot"),
+        ("Plant your standing foot next to the ball when shooting.", "Shooting"),
+        ("Use inside of foot for short passes — more control.", "Passing"),
+        ("Check your shoulder before receiving the ball.", "Awareness"),
+        ("Stay on the balls of your feet when defending.", "Defending"),
+        ("Quality reps beat quantity — 30 focused min > 90 unfocused.", "Training"),
+        ("Visualize your next move before the ball arrives.", "Mental"),
+        ("Warm up with dynamic stretches, not static.", "Recovery"),
+    ]
+
+    private func tipOfTheDay() -> (text: String, category: String) {
+        let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: .now) ?? 1
+        return tips[dayOfYear % tips.count]
+    }
 
     func placeholder(in context: Context) -> KickIQEntry {
         KickIQEntry(
@@ -22,13 +42,16 @@ nonisolated struct KickIQProvider: TimelineProvider {
             playerName: "Player",
             xpPoints: 250,
             playerLevel: "Club Player",
-            drillsCompleted: 15
+            drillsCompleted: 15,
+            dailyTip: "Keep your head up while dribbling.",
+            tipCategory: "Dribbling"
         )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (KickIQEntry) -> Void) {
         completion(readEntry())
     }
+
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<KickIQEntry>) -> Void) {
         let entry = readEntry()
@@ -38,6 +61,7 @@ nonisolated struct KickIQProvider: TimelineProvider {
 
     private func readEntry() -> KickIQEntry {
         let defaults = UserDefaults(suiteName: suiteName)
+        let tip = tipOfTheDay()
         return KickIQEntry(
             date: .now,
             streakCount: defaults?.integer(forKey: "widget_streak") ?? 0,
@@ -45,7 +69,9 @@ nonisolated struct KickIQProvider: TimelineProvider {
             playerName: defaults?.string(forKey: "widget_player_name") ?? "Player",
             xpPoints: defaults?.integer(forKey: "widget_xp") ?? 0,
             playerLevel: defaults?.string(forKey: "widget_player_level") ?? "Rookie",
-            drillsCompleted: defaults?.integer(forKey: "widget_drills_completed") ?? 0
+            drillsCompleted: defaults?.integer(forKey: "widget_drills_completed") ?? 0,
+            dailyTip: tip.text,
+            tipCategory: tip.category
         )
     }
 }
@@ -64,6 +90,10 @@ struct KickIQWidgetView: View {
             smallWidget
         case .systemMedium:
             mediumWidget
+        case .accessoryCircular:
+            accessoryCircularWidget
+        case .accessoryRectangular:
+            accessoryRectangularWidget
         default:
             largeWidget
         }
@@ -206,7 +236,27 @@ struct KickIQWidgetView: View {
                 largeStatItem(icon: "chart.line.uptrend.xyaxis", value: "\(entry.skillScore)", label: "Score")
             }
 
-            Spacer()
+            Divider()
+                .background(.white.opacity(0.1))
+
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.yellow)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("TIP: \(entry.tipCategory.uppercased())")
+                        .font(.system(size: 8, weight: .black))
+                        .tracking(0.5)
+                        .foregroundStyle(.yellow.opacity(0.7))
+                    Text(entry.dailyTip)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer(minLength: 0)
 
             HStack(spacing: 6) {
                 Image(systemName: "play.circle.fill")
@@ -219,6 +269,37 @@ struct KickIQWidgetView: View {
             }
         }
         .containerBackground(bgColor, for: .widget)
+    }
+
+    private var accessoryCircularWidget: some View {
+        ZStack {
+            AccessoryWidgetBackground()
+
+            Gauge(value: Double(entry.streakCount), in: 0...max(Double(entry.streakCount), 30)) {
+                Image(systemName: "flame.fill")
+            } currentValueLabel: {
+                Text("\(entry.streakCount)")
+                    .font(.system(size: 16, weight: .black))
+            }
+            .gaugeStyle(.accessoryCircular)
+        }
+    }
+
+    private var accessoryRectangularWidget: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 4) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 10))
+                Text("\(entry.streakCount) day streak")
+                    .font(.system(size: 12, weight: .bold))
+            }
+            HStack(spacing: 8) {
+                Label("\(entry.skillScore)", systemImage: "chart.bar.fill")
+                Label("\(entry.drillsCompleted)", systemImage: "figure.soccer")
+            }
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.secondary)
+        }
     }
 
     private var skillScoreRing: some View {
@@ -287,7 +368,7 @@ struct KickIQWidget: Widget {
         }
         .configurationDisplayName("KickIQ Stats")
         .description("See your training streak, skill score, and XP at a glance.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
         .containerBackgroundRemovable(false)
     }
 }
