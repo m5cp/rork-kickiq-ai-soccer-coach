@@ -17,7 +17,7 @@ nonisolated enum PlayerPosition: String, Codable, CaseIterable, Sendable, Identi
         case .midfielder: "arrow.triangle.2.circlepath"
         case .winger: "bolt.horizontal.fill"
         case .striker: "scope"
-        case .coachTrainer: "whistle.fill"
+        case .coachTrainer: "clipboard.fill"
         }
     }
 
