@@ -174,6 +174,28 @@ class AuthService {
         }
     }
 
+    func deleteAccount() async -> Bool {
+        guard supabase.isConfigured, let userId = currentUser?.id else {
+            await signOut()
+            return true
+        }
+
+        do {
+            try await supabase.client.from("profiles")
+                .delete()
+                .eq("id", value: userId.uuidString)
+                .execute()
+        } catch {}
+
+        do {
+            try await supabase.client.auth.signOut()
+        } catch {}
+
+        currentUser = nil
+        isSignedIn = false
+        return true
+    }
+
     private func upsertProfile(userId: String, displayName: String) async {
         do {
             try await supabase.client.from("profiles")

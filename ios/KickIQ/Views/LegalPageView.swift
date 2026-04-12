@@ -83,7 +83,8 @@ struct LegalPageView: View {
 
             legalSection(title: "Information We Collect", body: """
 • Profile Information: Name, position, skill level, age range, and weakness preferences you provide during onboarding and profile setup.
-• Training Data: Video frames and images you upload for AI analysis. These are processed in real-time and are not stored on our servers after analysis is complete.
+• Account Information: If you sign in using Apple, Google, or email, we collect your email address and display name to enable team features. This data is stored securely on our cloud authentication service (Supabase).
+• Training Data: Video frames and images you upload for AI analysis. These are sent to Google's Gemini AI service for real-time processing and are not stored on our servers or by Google after analysis is complete.
 • Usage Data: App interaction data including session counts, streak data, drill completion, and XP points stored locally on your device.
 • Profile Photos: If you choose to upload a profile photo, it is stored locally on your device only.
 """)
@@ -97,11 +98,19 @@ struct LegalPageView: View {
 
             legalSection(title: "Data Storage & Security", body: "Your profile data, training history, and preferences are stored locally on your device using iOS secure storage. Video frames sent for AI analysis are transmitted securely via HTTPS and are processed in real-time. We do not retain your video data after analysis is complete.")
 
-            legalSection(title: "Third-Party Services", body: "We use AI services to analyze your training videos. These services process data in real-time and do not store your images. We do not sell, trade, or share your personal information with third parties for marketing purposes.")
+            legalSection(title: "Third-Party Services", body: """
+We use the following third-party services:
+• Google Gemini AI: Processes video frames and chat messages in real-time for coaching analysis. Data is not retained after processing.
+• Supabase: Provides secure authentication and team data storage for users who sign in.
+• RevenueCat: Manages subscription status. Only anonymized purchase identifiers are shared.
+• Apple Sign In / Google Sign In: Used for authentication only.
 
-            legalSection(title: "Your Rights", body: "You can delete all your data at any time by using the \"Delete Account\" option in the app. This permanently removes all locally stored profile data, training history, and preferences.")
+We do not sell, trade, or share your personal information with third parties for marketing purposes.
+""")
 
-            legalSection(title: "Children's Privacy", body: "KickIQ is suitable for users of all ages. For users under 13, we recommend parental supervision. We do not knowingly collect personally identifiable information from children under 13 without parental consent.")
+            legalSection(title: "Your Rights", body: "You can delete all your data at any time by using the \"Delete All Data\" option in Profile > Account. This permanently removes all locally stored profile data, training history, and preferences, as well as your account and associated data from our cloud servers. Subscription cancellation must be done separately through your Apple ID settings.")
+
+            legalSection(title: "Children's Privacy", body: "KickIQ is designed for athletes of all ages. Users under 13 should use the app under parental or guardian supervision. We do not knowingly collect personally identifiable information from children under 13 without verifiable parental consent. If you believe we have collected information from a child under 13 without consent, please contact us immediately at contact@m5cairo.com and we will delete the data.")
 
             legalSection(title: "Contact Us", body: "If you have questions about this Privacy Policy, contact us at:\ncontact@m5cairo.com")
         }
@@ -114,12 +123,12 @@ struct LegalPageView: View {
             legalSection(title: "Description of Service", body: "KickIQ is an AI-powered soccer coaching application that analyzes training videos and provides feedback, skill scores, and drill recommendations. The App is designed to supplement — not replace — professional coaching.")
 
             legalSection(title: "Subscription Terms", body: """
-• KickIQ offers auto-renewable subscriptions: Weekly ($6.99/week), Monthly ($19.99/month), and Annual ($99.99/year).
-• The Annual plan includes a 3-day free trial.
+• KickIQ offers auto-renewable subscriptions with Weekly, Monthly, and Annual plans. Prices are displayed in the app and may vary by region.
+• Some plans may include a free trial period. If offered, the free trial converts to a paid subscription unless cancelled at least 24 hours before the trial ends.
 • Payment is charged to your Apple ID account at confirmation of purchase.
 • Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.
-• You can manage and cancel subscriptions in your App Store account settings.
-• No refunds are provided for partial subscription periods.
+• You can manage and cancel subscriptions in your device's Settings > Apple ID > Subscriptions.
+• No refunds are provided for partial subscription periods. Unused portions of free trials are forfeited upon purchasing a subscription.
 """)
 
             legalSection(title: "User Conduct", body: """

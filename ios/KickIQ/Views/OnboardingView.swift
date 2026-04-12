@@ -352,9 +352,9 @@ struct OnboardingView: View {
                 stepHeader(title: "COACHES LOVE KICKIQ", subtitle: "See what other coaches are saying")
 
                 VStack(spacing: KickIQTheme.Spacing.md) {
-                    coachTestimonialCard(name: "Coach Davis", team: "U16 Academy", result: "Replaced three spreadsheets and a WhatsApp group. My players actually follow their drill plans now.")
-                    coachTestimonialCard(name: "Coach Ramirez", team: "Club Premier", result: "The AI analysis spotted a footwork issue in my striker I'd been missing for weeks. Game changer.")
-                    coachTestimonialCard(name: "Coach Patel", team: "High School Varsity", result: "Parents love seeing their kid's progress reports. Saves me hours of paperwork every week.")
+                    coachTestimonialCard(name: "Coach Davis", team: "U16 Academy", result: "Having all my drill plans and player data in one place saves me so much time.")
+                    coachTestimonialCard(name: "Coach Ramirez", team: "Club Premier", result: "The AI analysis gives me another perspective on player technique that I can use in my coaching.")
+                    coachTestimonialCard(name: "Coach Patel", team: "High School Varsity", result: "The progress reports make it easy to communicate player development to parents.")
                 }
                 .padding(.horizontal, KickIQTheme.Spacing.md)
             }
@@ -755,9 +755,9 @@ struct OnboardingView: View {
                 stepHeader(title: "PLAYERS LIKE YOU", subtitle: "See what KickIQ has done for them")
 
                 VStack(spacing: KickIQTheme.Spacing.md) {
-                    testimonialCard(name: "Marcus J.", age: "16", result: "Made varsity after 6 weeks of KickIQ training")
-                    testimonialCard(name: "Sofia R.", age: "14", result: "Improved my first touch score from 4 to 8 in one month")
-                    testimonialCard(name: "Aiden K.", age: "19", result: "Got scouted at a showcase after using KickIQ daily")
+                    testimonialCard(name: "Marcus J.", age: "16", result: "The AI feedback helped me focus on what actually matters in training")
+                    testimonialCard(name: "Sofia R.", age: "14", result: "I love seeing my skill scores improve over time — keeps me motivated")
+                    testimonialCard(name: "Aiden K.", age: "19", result: "Having personalized drills for my position changed how I train")
                 }
                 .padding(.horizontal, KickIQTheme.Spacing.md)
             }
@@ -891,13 +891,17 @@ struct OnboardingView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, KickIQTheme.Spacing.md)
                 }
-                HStack(spacing: KickIQTheme.Spacing.md) {
-                    NavigationLink("Privacy Policy") {
+                HStack(spacing: KickIQTheme.Spacing.sm) {
+                    NavigationLink("Privacy") {
                         LegalPageView(page: .privacyPolicy)
                     }
                     Text("·").foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
-                    NavigationLink("Terms of Service") {
+                    NavigationLink("Terms") {
                         LegalPageView(page: .termsOfUse)
+                    }
+                    Text("·").foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
+                    NavigationLink("EULA") {
+                        LegalPageView(page: .eula)
                     }
                 }
                 .font(.caption2)
@@ -1043,9 +1047,9 @@ struct OnboardingView: View {
             case .year: unit = value == 1 ? "year" : "years"
             @unknown default: unit = "period"
             }
-            return "After the \(value)-\(unit) free trial, auto-renews at \(price)/\(suffix). Cancel anytime in Settings > Subscriptions at least 24 hours before the trial ends."
+            return "After the \(value)-\(unit) free trial, auto-renews at \(price)/\(suffix). Cancel at least 24 hours before the trial ends in Settings > Subscriptions. No charge if cancelled during the trial."
         }
-        return "Auto-renews at \(price)/\(suffix). Cancel anytime in Settings > Subscriptions."
+        return "Auto-renews at \(price)/\(suffix). Cancel at least 24 hours before the end of the current period in Settings > Subscriptions."
     }
 
     // MARK: - Continue Button

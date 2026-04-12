@@ -344,13 +344,13 @@ struct PaywallView: View {
         Group {
             if let intro = package.storeProduct.introductoryDiscount {
                 let trialText = introText(intro)
-                Text("After the \(trialText), auto-renews at \(package.storeProduct.localizedPriceString)\(periodLabel(for: package).isEmpty ? "" : "/\(periodSuffix(for: package))").")
+                Text("After the \(trialText), auto-renews at \(package.storeProduct.localizedPriceString)/\(periodSuffix(for: package)). Cancel anytime at least 24 hours before the end of the trial period in Settings > Subscriptions. No charge if cancelled during the trial.")
                     .font(.caption2)
                     .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, KickIQTheme.Spacing.lg)
             } else {
-                Text("Auto-renews at \(package.storeProduct.localizedPriceString)/\(periodSuffix(for: package)). Cancel anytime in Settings > Subscriptions.")
+                Text("Auto-renews at \(package.storeProduct.localizedPriceString)/\(periodSuffix(for: package)). Cancel anytime at least 24 hours before the end of the current period in Settings > Subscriptions.")
                     .font(.caption2)
                     .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
                     .multilineTextAlignment(.center)
@@ -378,13 +378,17 @@ struct PaywallView: View {
                     .foregroundStyle(KickIQTheme.textSecondary)
             }
 
-            HStack(spacing: KickIQTheme.Spacing.md) {
+            HStack(spacing: KickIQTheme.Spacing.sm) {
                 NavigationLink("Privacy Policy") {
                     LegalPageView(page: .privacyPolicy)
                 }
                 Text("·").foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
                 NavigationLink("Terms of Service") {
                     LegalPageView(page: .termsOfUse)
+                }
+                Text("·").foregroundStyle(KickIQTheme.textSecondary.opacity(0.4))
+                NavigationLink("EULA") {
+                    LegalPageView(page: .eula)
                 }
             }
             .font(.caption2)

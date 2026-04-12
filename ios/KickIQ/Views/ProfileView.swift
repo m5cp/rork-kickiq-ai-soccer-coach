@@ -87,13 +87,18 @@ struct ProfileView: View {
                 PaywallView(store: store, userRole: storage.profile?.userRole ?? .player)
             }
             .alert("Delete All Data?", isPresented: $showDeleteAlert) {
-                Button("Delete", role: .destructive) {
-                    storage.deleteAccount()
-                    dismiss()
+                Button("Delete Everything", role: .destructive) {
+                    Task {
+                        if auth.isSignedIn {
+                            await auth.deleteAccount()
+                        }
+                        storage.deleteAccount()
+                        dismiss()
+                    }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will permanently delete your profile and all local data. This action cannot be undone.")
+                Text("This will permanently delete your profile, all local data, and your account from our servers. This action cannot be undone.")
             }
             .alert("Sign Out?", isPresented: $showSignOutAlert) {
                 Button("Sign Out", role: .destructive) {

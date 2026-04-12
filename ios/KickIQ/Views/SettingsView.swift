@@ -68,13 +68,19 @@ struct SettingsView: View {
                 }
             }
             .alert("Delete All Data?", isPresented: $showDeleteAlert) {
-                Button("Delete", role: .destructive) {
-                    storage.deleteAccount()
-                    dismiss()
+                Button("Delete Everything", role: .destructive) {
+                    Task {
+                        let auth = AuthService.shared
+                        if auth.isSignedIn {
+                            await auth.deleteAccount()
+                        }
+                        storage.deleteAccount()
+                        dismiss()
+                    }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will permanently delete your profile and all session data. This action cannot be undone.")
+                Text("This will permanently delete your profile, all local data, and your account from our servers. This action cannot be undone.")
             }
             .sheet(isPresented: $showNotificationSettings) {
                 NotificationPreferencesSheet()
