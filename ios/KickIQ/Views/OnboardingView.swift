@@ -443,7 +443,7 @@ struct OnboardingView: View {
                 .padding(.top, KickIQTheme.Spacing.lg)
 
                 VStack(spacing: 10) {
-                    pricingCard(title: "Annual", price: "$99.99/yr", perWeek: "$1.92/week", badge: "BEST VALUE", isHighlighted: true, trialText: "3-day free trial")
+                    pricingCard(title: "Annual", price: "$99.99/yr", perWeek: "$1.92/week", badge: "BEST VALUE", isHighlighted: true, trialText: "3-day free trial, then $99.99/year")
                     pricingCard(title: "Monthly", price: "$19.99/mo", perWeek: "$4.99/week", badge: nil, isHighlighted: false, trialText: nil)
                     pricingCard(title: "Weekly", price: "$6.99/wk", perWeek: nil, badge: nil, isHighlighted: false, trialText: nil)
                 }
@@ -452,7 +452,7 @@ struct OnboardingView: View {
                 Button {
                     completeOnboarding()
                 } label: {
-                    Text("Start Free Trial")
+                    Text("Start 3-Day Free Trial")
                         .font(.headline)
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
@@ -471,9 +471,11 @@ struct OnboardingView: View {
                 }
 
                 VStack(spacing: 4) {
-                    Text("Cancel anytime. No commitment.")
-                        .font(.caption)
-                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.6))
+                    Text("After the 3-day free trial, the Annual plan auto-renews at $99.99/year. Cancel anytime in Settings > Subscriptions at least 24 hours before the trial ends to avoid being charged.")
+                        .font(.caption2)
+                        .foregroundStyle(KickIQTheme.textSecondary.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, KickIQTheme.Spacing.md)
                     HStack(spacing: KickIQTheme.Spacing.md) {
                         NavigationLink("Privacy Policy") {
                             LegalPageView(page: .privacyPolicy)
