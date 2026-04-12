@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var storage = StorageService()
     @State private var notificationService = NotificationService()
     @State private var themeManager = KickIQAICoachTheme.shared
+    @State private var storeVM = StoreViewModel()
     @State private var selectedTab: Int = 0
     @State private var celebratingBadge: MilestoneBadge?
     @State private var previousBadgeCount: Int = 0
@@ -110,11 +111,18 @@ struct ContentView: View {
             }
 
             Tab("Profile", systemImage: "person.fill", value: 5) {
-                ProfileView(storage: storage)
+                ProfileView(storage: storage, storeVM: storeVM)
             }
         }
         .tabViewStyle(.sidebarAdaptable)
         .tint(KickIQAICoachTheme.accent)
         .environment(themeManager)
+        .onChange(of: notificationService.pendingDeepLink) { _, link in
+            guard let link else { return }
+            withAnimation(.spring(response: 0.3)) {
+                selectedTab = link.tabIndex
+            }
+            notificationService.pendingDeepLink = nil
+        }
     }
 }

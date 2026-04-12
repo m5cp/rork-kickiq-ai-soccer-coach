@@ -65,12 +65,33 @@ class AICoachService {
     var messages: [CoachMessage] = []
     var isLoading = false
     var errorMessage: String?
+    var isOffline = false
+    var hasShownOnboarding = false
 
     private var conversationHistory: [GeminiMessage] = []
-
     private let systemPrompt: String
+    private let playerName: String
+    private let position: String
+    private let weakness: String
+
+    private static let cacheKey = "kickiq_coach_cache"
+    private static let onboardingKey = "kickiq_coach_onboarded"
+
+    private static let offlineResponses: [String: String] = [
+        "weak foot": "To improve your weak foot, start with wall passes — 50 reps each foot daily. Then progress to dribbling figure-8s using only your weak foot. Within 2 weeks of consistent practice you'll notice a big difference. Focus on striking through the center of the ball with your laces.",
+        "shooting": "For shooting, focus on your plant foot placement — it should point at your target, about a ball's width from the ball. Strike through the center or top half of the ball. Practice with 20 shots from outside the box daily, focusing on technique over power.",
+        "dribbling": "Close ball control is everything. Do 10 minutes of cone dribbling daily — inside-outside touches, pull-backs, and Cruyff turns. Keep the ball within 1 foot of you at all times. Watch how Messi keeps the ball glued to his feet at full speed.",
+        "fitness": "Soccer fitness requires both endurance and explosiveness. Do interval sprints: 6x 30-second sprints with 60-second rests. Add 20 minutes of steady jogging. Include ladder drills for agility. Do this 3x per week alongside your technical training.",
+        "defending": "Good defending starts with positioning. Stay goal-side, watch the attacker's hips not the ball, and delay rather than dive in. Practice 1v1 defending drills where you focus on shepherding attackers away from goal.",
+        "first touch": "Your first touch determines everything. Practice receiving passes against a wall from different angles. Cushion the ball by withdrawing your foot on contact. Aim to control the ball within one stride of where you want to go next.",
+        "game day": "Game day prep: Light meal 3 hours before, hydrate well, dynamic warm-up 30 minutes before. Mentally visualize 3 key plays you want to execute. Stay loose, stay confident. Remember — the game is won in preparation.",
+        "default": "Great question! While I need internet to give you a fully personalized answer, here's a universal tip: The best players practice with purpose every single day. Even 15 focused minutes beats 2 hours of unfocused kicking. Set a specific skill goal for each session."
+    ]
 
     init(playerName: String = "Player", position: String = "Midfielder", skillLevel: String = "Intermediate", weakness: String = "First Touch") {
+        self.playerName = playerName
+        self.position = position
+        self.weakness = weakness
         self.systemPrompt = """
         You are KickIQ Coach, an elite AI soccer coaching assistant. You are knowledgeable, motivating, and direct — like a top-tier youth academy coach.
 
@@ -91,6 +112,20 @@ class AICoachService {
         - Address the player by name occasionally
         - Adapt advice to their position and skill level
         """
+        hasShownOnboarding = UserDefaults.standard.bool(forKey: Self.onboardingKey)
+        loadCachedMessages()
+    }
+
+    func startOnboardingConversation() {
+        guard !hasShownOnboarding else { return }
+        hasShownOnboarding = true
+        UserDefaults.standard.set(true, forKey: Self.onboardingKey)
+
+        let greeting = CoachMessage(
+            role: .coach,
+            content: "Hey \(playerName)! I'm your KickIQ AI Coach. I already know you play \(position) and want to work on \(weakness) — so I'm ready to help.\n\nYou can ask me anything: drill plans, technique tips, game-day advice, or how to improve a specific skill. I'll tailor everything to your level and position.\n\nTry asking something like \"Give me a 20-minute session for my \(weakness.lowercased())\" to get started!"
+        )
+        messages.append(greeting)
     }
 
     func sendMessage(_ text: String) async {
@@ -101,8 +136,12 @@ class AICoachService {
 
         isLoading = true
         errorMessage = nil
+        isOffline = false
 
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            cacheMessages()
+        }
 
         let apiKey = Config.EXPO_PUBLIC_GEMINI_API_KEY
         guard !apiKey.isEmpty else {
@@ -150,6 +189,11 @@ class AICoachService {
                 let fallback = CoachMessage(role: .coach, content: "Let me think about that differently. Can you rephrase your question?")
                 messages.append(fallback)
             }
+        } catch is URLError {
+            isOffline = true
+            let offlineResponse = getOfflineResponse(for: text)
+            let offlineMsg = CoachMessage(role: .coach, content: "\(offlineResponse)\n\n_\u{1F4F6} Offline mode — connect to the internet for personalized coaching._")
+            messages.append(offlineMsg)
         } catch {
             errorMessage = "Connection error. Check your internet and try again."
             let errorMsg = CoachMessage(role: .coach, content: "Looks like we lost connection. Make sure you're online and try sending that again.")
@@ -160,5 +204,40 @@ class AICoachService {
     func clearHistory() {
         messages.removeAll()
         conversationHistory.removeAll()
+        clearCache()
     }
+
+    private func getOfflineResponse(for query: String) -> String {
+        let lowered = query.lowercased()
+        for (keyword, response) in Self.offlineResponses {
+            if keyword != "default" && lowered.contains(keyword) {
+                return response
+            }
+        }
+        return Self.offlineResponses["default"]!
+    }
+
+    private func cacheMessages() {
+        let cacheable = messages.map { CachedMessage(role: $0.role == .user ? "user" : "coach", content: $0.content) }
+        if let data = try? JSONEncoder().encode(cacheable) {
+            UserDefaults.standard.set(data, forKey: Self.cacheKey)
+        }
+    }
+
+    private func loadCachedMessages() {
+        guard let data = UserDefaults.standard.data(forKey: Self.cacheKey),
+              let cached = try? JSONDecoder().decode([CachedMessage].self, from: data) else { return }
+        messages = cached.map {
+            CoachMessage(role: $0.role == "user" ? .user : .coach, content: $0.content)
+        }
+    }
+
+    private func clearCache() {
+        UserDefaults.standard.removeObject(forKey: Self.cacheKey)
+    }
+}
+
+nonisolated struct CachedMessage: Codable, Sendable {
+    let role: String
+    let content: String
 }

@@ -9,6 +9,8 @@ struct SettingsView: View {
     @State private var calendarService = CalendarService()
     @State private var showCalendarSuccess = false
     @State private var calendarEventsAdded = 0
+    @State private var exportURL: URL?
+    @State private var showExportShare = false
 
     var body: some View {
         NavigationStack {
@@ -29,6 +31,12 @@ struct SettingsView: View {
                     }
 
                     sectionHeader("DATA")
+                    settingsRow(icon: "square.and.arrow.up", title: "Export Training Data") {
+                        if let url = DataExportService.exportURL(from: storage) {
+                            exportURL = url
+                            showExportShare = true
+                        }
+                    }
                     settingsRow(icon: "arrow.counterclockwise", title: "Reset Onboarding") {
                         storage.resetOnboarding()
                         dismiss()
@@ -77,6 +85,11 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showNotificationSettings) {
                 NotificationPreferencesSheet()
+            }
+            .sheet(isPresented: $showExportShare) {
+                if let exportURL {
+                    ShareSheet(items: [exportURL])
+                }
             }
         }
         .presentationDetents([.large])

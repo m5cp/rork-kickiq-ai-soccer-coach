@@ -159,6 +159,7 @@ class StorageService {
         UserDefaults.standard.set(Array(sessionDates), forKey: sessionDatesKey)
 
         recordSessionDate()
+        WidgetDataService.updateWidgetData(storage: self)
     }
 
     func completeDrill(_ drill: Drill) {
@@ -167,6 +168,7 @@ class StorageService {
         xpPoints += 25
         UserDefaults.standard.set(xpPoints, forKey: xpKey)
         recordSessionDate()
+        WidgetDataService.updateWidgetData(storage: self)
     }
 
     func saveWeeklyGoal(_ goal: WeeklyGoal) {

@@ -76,6 +76,9 @@ struct AICoachView: View {
         }
         .onAppear {
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
+            if !coachService.hasShownOnboarding && coachService.messages.isEmpty {
+                coachService.startOnboardingConversation()
+            }
         }
     }
 

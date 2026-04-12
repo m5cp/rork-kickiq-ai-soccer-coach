@@ -1,12 +1,19 @@
 import SwiftUI
 import PhotosUI
+import StoreKit
 
 struct ProfileView: View {
     let storage: StorageService
+    var storeVM: StoreViewModel
     @State private var appeared = false
     @State private var showEditProfile = false
     @State private var showSettings = false
     @State private var showCoachReport = false
+    @State private var showDeleteAlert = false
+    @State private var showRestoreAlert = false
+    @State private var restoreMessage = ""
+    @State private var isRestoring = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -45,6 +52,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showCoachReport) {
                 CoachReportView(storage: storage)
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(store: storeVM)
             }
         }
         .onAppear {
@@ -271,6 +281,29 @@ struct ProfileView: View {
                     }
                 }
                 settingsActionRow(icon: "arrow.counterclockwise", title: "Restore Purchases") {
+                    Task { await restorePurchases() }
+                }
+
+                if !storeVM.isPremium {
+                    settingsActionRow(icon: "crown.fill", title: "Upgrade to Premium") {
+                        showPaywall = true
+                    }
+                } else {
+                    HStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+                        Image(systemName: "crown.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                            .frame(width: 24)
+                        Text("Premium Active")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.green)
+                        Spacer()
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                    .padding(KickIQAICoachTheme.Spacing.md)
+                    .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
                 }
             }
         }
@@ -284,7 +317,21 @@ struct ProfileView: View {
             sectionHeader("ACCOUNT")
 
             settingsActionRow(icon: "trash.fill", title: "Delete Account", isDestructive: true) {
+                showDeleteAlert = true
             }
+        }
+        .alert("Delete Account?", isPresented: $showDeleteAlert) {
+            Button("Delete Everything", role: .destructive) {
+                storage.deleteAccount()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete your profile, all training data, progress, and session history. This action cannot be undone.")
+        }
+        .alert("Restore Purchases", isPresented: $showRestoreAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(restoreMessage)
         }
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
@@ -333,6 +380,18 @@ struct ProfileView: View {
         }
         .padding(KickIQAICoachTheme.Spacing.md)
         .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
+    }
+
+    private func restorePurchases() async {
+        isRestoring = true
+        do {
+            try await AppStore.sync()
+            restoreMessage = "Purchases restored successfully."
+        } catch {
+            restoreMessage = "No purchases found to restore, or an error occurred."
+        }
+        isRestoring = false
+        showRestoreAlert = true
     }
 
     private func settingsActionRow(icon: String, title: String, isDestructive: Bool = false, action: @escaping () -> Void) -> some View {

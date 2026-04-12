@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import ActivityKit
 
 struct DrillTimerView: View {
     let drill: Drill
@@ -12,6 +13,8 @@ struct DrillTimerView: View {
     @State private var isResting: Bool = false
     @State private var timerActive: Bool = false
     @State private var showComplete: Bool = false
+    @State private var audio = AudioCueService()
+    @State private var liveActivity: Activity<DrillActivityAttributes>?
 
     private let restDuration: Int = 30
 
@@ -37,6 +40,15 @@ struct DrillTimerView: View {
                     Button("Done") { dismiss() }
                         .foregroundStyle(KickIQAICoachTheme.accent)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        audio.toggleMute()
+                    } label: {
+                        Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(audio.isMuted ? KickIQAICoachTheme.textSecondary : KickIQAICoachTheme.accent)
+                    }
+                }
             }
             .overlay {
                 if showComplete {
@@ -47,7 +59,13 @@ struct DrillTimerView: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationBackground(.background)
-        .onAppear { setupTimer() }
+        .onAppear {
+            setupTimer()
+            startLiveActivity()
+        }
+        .onDisappear {
+            endLiveActivity()
+        }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             guard timerActive else { return }
             tick()
@@ -203,20 +221,29 @@ struct DrillTimerView: View {
         if timeRemaining > 0 {
             timeRemaining -= 1
             if timeRemaining == 3 || timeRemaining == 2 || timeRemaining == 1 {
-                // Haptic cue for countdown
+                audio.playCountdownBeep()
+            } else if timeRemaining == 0 {
+                audio.playFinalBeep()
             }
+            updateLiveActivity()
         } else {
             if isResting {
                 isResting = false
                 totalTime = max(parseDuration(drill.duration) / max(parseSets(), 1), 30)
                 timeRemaining = totalTime
+                audio.playGo()
+                updateLiveActivity()
             } else if currentSet < totalSets {
                 currentSet += 1
                 isResting = true
                 totalTime = restDuration
                 timeRemaining = restDuration
+                audio.playRestStart()
+                updateLiveActivity()
             } else {
                 timerActive = false
+                audio.playComplete()
+                endLiveActivity()
                 withAnimation(.spring(response: 0.5)) { showComplete = true }
             }
         }
@@ -238,5 +265,56 @@ struct DrillTimerView: View {
         let m = seconds / 60
         let s = seconds % 60
         return String(format: "%d:%02d", m, s)
+    }
+
+    private func startLiveActivity() {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let attributes = DrillActivityAttributes(drillName: drill.name, targetSkill: drill.targetSkill)
+        let state = DrillActivityAttributes.ContentState(
+            timeRemaining: timeRemaining,
+            totalTime: totalTime,
+            currentSet: currentSet,
+            totalSets: totalSets,
+            isResting: isResting,
+            isRunning: timerActive
+        )
+        do {
+            liveActivity = try Activity.request(
+                attributes: attributes,
+                content: .init(state: state, staleDate: nil),
+                pushType: nil
+            )
+        } catch {}
+    }
+
+    private func updateLiveActivity() {
+        guard let liveActivity else { return }
+        let state = DrillActivityAttributes.ContentState(
+            timeRemaining: timeRemaining,
+            totalTime: totalTime,
+            currentSet: currentSet,
+            totalSets: totalSets,
+            isResting: isResting,
+            isRunning: timerActive
+        )
+        Task {
+            await liveActivity.update(.init(state: state, staleDate: nil))
+        }
+    }
+
+    private func endLiveActivity() {
+        guard let liveActivity else { return }
+        let finalState = DrillActivityAttributes.ContentState(
+            timeRemaining: 0,
+            totalTime: totalTime,
+            currentSet: totalSets,
+            totalSets: totalSets,
+            isResting: false,
+            isRunning: false
+        )
+        Task {
+            await liveActivity.end(.init(state: finalState, staleDate: nil), dismissalPolicy: .immediate)
+        }
+        self.liveActivity = nil
     }
 }

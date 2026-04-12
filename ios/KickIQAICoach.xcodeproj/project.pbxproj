@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		XX04F26848145D50BC4182XX /* KickIQWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = XX5FCC46B52D16D8FEA01AXX /* KickIQWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		XX298127CFBB2CF3FA631BXX /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		105FC58A2E9EAD3200EA8BCF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,13 +26,88 @@
 			remoteGlobalIDString = 105FC5792E9EAD3100EA8BCF;
 			remoteInfo = KickIQAICoach;
 		};
+		XXCAD10FFEA85756909466XX /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 105FC5722E9EAD3100EA8BCF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = XX5A9363A7B7539FBA2C85XX;
+			remoteInfo = KickIQWidget;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		XX09EE5F3ECC1F469D01BFXX /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				XX04F26848145D50BC4182XX /* KickIQWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		105FC57A2E9EAD3100EA8BCF /* KickIQAICoach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KickIQAICoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5892E9EAD3200EA8BCF /* KickIQAICoachTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KickIQAICoachTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5932E9EAD3200EA8BCF /* KickIQAICoachUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KickIQAICoachUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		XX5FCC46B52D16D8FEA01AXX /* KickIQWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KickIQWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		XX59FF957993BDFFA06C74XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = XX5A9363A7B7539FBA2C85XX /* KickIQWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		XXA647312772BAA0C64433XX /* KickIQWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KickIQWidget;
+			sourceTree = "<group>";
+			exceptions = (
+				XX59FF957993BDFFA06C74XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		105FC5772E9EAD3100EA8BCF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				XX298127CFBB2CF3FA631BXX /* RevenueCat in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		105FC5862E9EAD3200EA8BCF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		105FC5902E9EAD3200EA8BCF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		XX75B8358D2242CEB782C5XX /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		105FC57C2E9EAD3100EA8BCF /* KickIQAICoach */ = {
@@ -47,30 +127,6 @@
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
-/* Begin PBXFrameworksBuildPhase section */
-		105FC5772E9EAD3100EA8BCF /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		105FC5862E9EAD3200EA8BCF /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		105FC5902E9EAD3200EA8BCF /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
 /* Begin PBXGroup section */
 		105FC5712E9EAD3100EA8BCF = {
 			isa = PBXGroup;
@@ -79,6 +135,7 @@
 				105FC58C2E9EAD3200EA8BCF /* KickIQAICoachTests */,
 				105FC5962E9EAD3200EA8BCF /* KickIQAICoachUITests */,
 				105FC57B2E9EAD3100EA8BCF /* Products */,
+				XXA647312772BAA0C64433XX /* KickIQWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -88,6 +145,7 @@
 				105FC57A2E9EAD3100EA8BCF /* KickIQAICoach.app */,
 				105FC5892E9EAD3200EA8BCF /* KickIQAICoachTests.xctest */,
 				105FC5932E9EAD3200EA8BCF /* KickIQAICoachUITests.xctest */,
+				XX5FCC46B52D16D8FEA01AXX /* KickIQWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,16 +160,19 @@
 				105FC5762E9EAD3100EA8BCF /* Sources */,
 				105FC5772E9EAD3100EA8BCF /* Frameworks */,
 				105FC5782E9EAD3100EA8BCF /* Resources */,
+				XX09EE5F3ECC1F469D01BFXX /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				XX86ECCD9D084DBFDDA233XX /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				105FC57C2E9EAD3100EA8BCF /* KickIQAICoach */,
 			);
 			name = KickIQAICoach;
 			packageProductDependencies = (
+				XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */,
 			);
 			productName = KickIQAICoach;
 			productReference = 105FC57A2E9EAD3100EA8BCF /* KickIQAICoach.app */;
@@ -163,6 +224,26 @@
 			productReference = 105FC5932E9EAD3200EA8BCF /* KickIQAICoachUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		XX5A9363A7B7539FBA2C85XX /* KickIQWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = XXD6E2C227F88238DF8F43XX /* Build configuration list for PBXNativeTarget "KickIQWidget" */;
+			buildPhases = (
+				XXE0FD6AFA7551401BFCEBXX /* Sources */,
+				XX75B8358D2242CEB782C5XX /* Frameworks */,
+				XX8DEE49FEB104205DDA8DXX /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KickIQWidget;
+			productName = KickIQWidget;
+			productReference = XX5FCC46B52D16D8FEA01AXX /* KickIQWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+			fileSystemSynchronizedGroups = (
+				XXA647312772BAA0C64433XX /* KickIQWidget */,
+			);
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -204,6 +285,10 @@
 				105FC5792E9EAD3100EA8BCF /* KickIQAICoach */,
 				105FC5882E9EAD3200EA8BCF /* KickIQAICoachTests */,
 				105FC5922E9EAD3200EA8BCF /* KickIQAICoachUITests */,
+				XX5A9363A7B7539FBA2C85XX /* KickIQWidget */,
+			);
+			packageReferences = (
+				XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 		};
 /* End PBXProject section */
@@ -224,6 +309,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		105FC5912E9EAD3200EA8BCF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		XX8DEE49FEB104205DDA8DXX /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -254,6 +346,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		XXE0FD6AFA7551401BFCEBXX /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -266,6 +365,11 @@
 			isa = PBXTargetDependency;
 			target = 105FC5792E9EAD3100EA8BCF /* KickIQAICoach */;
 			targetProxy = 105FC5942E9EAD3200EA8BCF /* PBXContainerItemProxy */;
+		};
+		XX86ECCD9D084DBFDDA233XX /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = XX5A9363A7B7539FBA2C85XX /* KickIQWidget */;
+			targetProxy = XXCAD10FFEA85756909466XX /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -396,6 +500,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = KickIQAICoach/KickIQAICoach.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -432,6 +537,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = KickIQAICoach/KickIQAICoach.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -547,6 +653,52 @@
 			};
 			name = Release;
 		};
+		XX12FE045842C78CBD4536XX /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.06v1jbxc3wfuggmi1ea7t.kickiqwidget;
+				PRODUCT_NAME = KickIQWidget;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KickIQWidget/Info.plist;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				CODE_SIGN_ENTITLEMENTS = KickIQWidget/KickIQWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
+			};
+			name = Release;
+		};
+		XX43228ABA0B6A68A3270FXX /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.06v1jbxc3wfuggmi1ea7t.kickiqwidget;
+				PRODUCT_NAME = KickIQWidget;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KickIQWidget/Info.plist;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				CODE_SIGN_ENTITLEMENTS = KickIQWidget/KickIQWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -586,7 +738,35 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		XXD6E2C227F88238DF8F43XX /* Build configuration list for PBXNativeTarget "KickIQWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				XX43228ABA0B6A68A3270FXX /* Debug */,
+				XX12FE045842C78CBD4536XX /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 105FC5722E9EAD3100EA8BCF /* Project object */;
 }
