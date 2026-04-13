@@ -69,6 +69,11 @@ struct AICoachView: View {
                                     .font(.system(size: 10))
                                 Text(coachService.formattedTokensRemaining)
                                     .font(.system(size: 11, weight: .black))
+                                Text(isPremium ? "PRO" : "FREE")
+                                    .font(.system(size: 8, weight: .black))
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(isPremium ? Color.yellow.opacity(0.3) : Color.gray.opacity(0.3), in: .rect(cornerRadius: 3))
                             }
                             .foregroundStyle(coachService.tokensRemaining <= 30 ? .red : .orange)
                             .padding(.horizontal, 8)
@@ -143,6 +148,17 @@ struct AICoachView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(KickIQAICoachTheme.textSecondary)
                             .multilineTextAlignment(.center)
+
+                        HStack(spacing: 6) {
+                            Image(systemName: isPremium ? "crown.fill" : "person.fill")
+                                .font(.system(size: 10))
+                            Text(isPremium ? "Premium · 750 tokens/day" : "Free · 100 tokens/day")
+                                .font(.system(size: 11, weight: .bold))
+                        }
+                        .foregroundStyle(isPremium ? .yellow : KickIQAICoachTheme.textSecondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background((isPremium ? Color.yellow : KickIQAICoachTheme.textSecondary).opacity(0.12), in: Capsule())
                     }
                 }
                 .opacity(appeared ? 1 : 0)
@@ -422,44 +438,61 @@ struct AICoachView: View {
     }
 
     private var tokenLimitBanner: some View {
-        HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
-            Image(systemName: "bolt.trianglebadge.exclamationmark.fill")
-                .font(.subheadline)
-                .foregroundStyle(.orange)
+        VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+            HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                Image(systemName: "bolt.trianglebadge.exclamationmark.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.orange)
 
-            Text("Out of tokens")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Out of tokens")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    Text(isPremium ? "Daily budget used · resets at midnight" : "Free plan: 100 tokens/day")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
 
-            Spacer()
-
-            Button {
-                showTokenPacks = true
-            } label: {
-                Text("Get Tokens")
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.orange, in: Capsule())
+                Spacer()
             }
 
-            if !isPremium {
+            HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
                 Button {
-                    showPaywall = true
+                    showTokenPacks = true
                 } label: {
-                    Text("Go Pro")
-                        .font(.caption.weight(.black))
+                    HStack(spacing: 4) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 10))
+                        Text("Buy Tokens")
+                            .font(.caption.weight(.black))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(.orange, in: .rect(cornerRadius: 8))
+                }
+
+                if !isPremium {
+                    Button {
+                        showPaywall = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 10))
+                            Text("Go Pro · 7.5x More")
+                                .font(.caption.weight(.black))
+                        }
                         .foregroundStyle(KickIQAICoachTheme.onAccent)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(KickIQAICoachTheme.accent, in: Capsule())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(KickIQAICoachTheme.accent, in: .rect(cornerRadius: 8))
+                    }
                 }
             }
         }
         .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
-        .padding(.vertical, KickIQAICoachTheme.Spacing.sm)
-        .background(.orange.opacity(0.1))
+        .padding(.vertical, KickIQAICoachTheme.Spacing.sm + 2)
+        .background(.orange.opacity(0.08))
     }
 
     private var canSend: Bool {

@@ -94,7 +94,7 @@ struct PaywallView: View {
                     .tracking(2)
                     .foregroundStyle(KickIQAICoachTheme.textPrimary)
 
-                Text("Unlock your full potential")
+                Text("7.5x more coaching · 22.5K tokens/month")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(KickIQAICoachTheme.textSecondary)
             }
@@ -105,8 +105,8 @@ struct PaywallView: View {
 
     private var featuresSection: some View {
         VStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
-            featureRow(icon: "brain.head.profile.fill", title: "Unlimited AI Coach", subtitle: "Personalized advice anytime")
-            featureRow(icon: "video.fill", title: "Unlimited Video Analysis", subtitle: "AI-powered technique breakdown")
+            featureRow(icon: "brain.head.profile.fill", title: "7.5x More AI Coaching", subtitle: "750 tokens/day vs 100 free")
+            featureRow(icon: "bolt.fill", title: "Daily Token Reset", subtitle: "Fresh tokens every midnight")
             featureRow(icon: "chart.line.uptrend.xyaxis", title: "Advanced Progress Insights", subtitle: "Deep analytics and trends")
             featureRow(icon: "doc.text.fill", title: "Custom Training Plans", subtitle: "AI-generated multi-week plans")
             featureRow(icon: "crown.fill", title: "Priority Support", subtitle: "Get help when you need it")

@@ -102,33 +102,82 @@ struct TokenPacksView: View {
     }
 
     private var currentBalanceCard: some View {
-        HStack(spacing: KickIQAICoachTheme.Spacing.md) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("CURRENT BALANCE")
-                    .font(.caption.weight(.bold))
-                    .tracking(1)
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
-
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(formattedBalance)
-                        .font(.system(.title, design: .default, weight: .black))
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                    Text("bonus tokens")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+        VStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+            HStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("YOUR PLAN")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        Text(storeVM.isPremium ? "PREMIUM" : "FREE")
+                            .font(.system(size: 9, weight: .black))
+                            .foregroundStyle(storeVM.isPremium ? .yellow : KickIQAICoachTheme.textSecondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background((storeVM.isPremium ? Color.yellow : Color.gray).opacity(0.2), in: Capsule())
+                    }
+                }
+                Spacer()
+                ZStack {
+                    Circle()
+                        .fill(.orange.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.orange)
                 }
             }
 
-            Spacer()
+            HStack(spacing: 0) {
+                VStack(spacing: 3) {
+                    Text("DAILY BUDGET")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.5)
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    Text("\(storeVM.isPremium ? 750 : 100)")
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                    Text("tokens/day")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
 
-            ZStack {
-                Circle()
-                    .fill(.orange.opacity(0.15))
-                    .frame(width: 50, height: 50)
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(.orange)
+                Rectangle().fill(KickIQAICoachTheme.divider).frame(width: 1, height: 40)
+
+                VStack(spacing: 3) {
+                    Text("BONUS TOKENS")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.5)
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    Text(formattedBalance)
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(.orange)
+                    Text("never expire")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+
+                Rectangle().fill(KickIQAICoachTheme.divider).frame(width: 1, height: 40)
+
+                VStack(spacing: 3) {
+                    Text("PER MESSAGE")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.5)
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    Text("~15")
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    Text("tokens used")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
             }
+            .padding(.vertical, KickIQAICoachTheme.Spacing.sm + 2)
+            .background(Color(.tertiarySystemGroupedBackground), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
         }
         .padding(KickIQAICoachTheme.Spacing.md)
         .background(

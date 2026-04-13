@@ -217,6 +217,19 @@ struct HomeView: View {
                             .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 1))
                         }
                         .sensoryFeedback(.impact(weight: .light), trigger: showTokenPacks)
+
+                        HStack(spacing: 4) {
+                            Image(systemName: storeVM.isPremium ? "crown.fill" : "person.fill")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(storeVM.isPremium ? "PRO" : "FREE")
+                                .font(.system(size: 9, weight: .black))
+                                .tracking(0.5)
+                        }
+                        .foregroundStyle(storeVM.isPremium ? .yellow : .white.opacity(0.6))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(storeVM.isPremium ? .yellow.opacity(0.2) : .white.opacity(0.1), in: Capsule())
+                        .overlay(Capsule().stroke(storeVM.isPremium ? .yellow.opacity(0.3) : .white.opacity(0.1), lineWidth: 0.5))
                     }
                     .padding(KickIQAICoachTheme.Spacing.md)
                 }

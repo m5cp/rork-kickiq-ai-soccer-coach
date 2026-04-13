@@ -465,7 +465,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(KickIQAICoachTheme.accent)
 
-                Text("KickIQAICoach is your AI coach.\nAlways watching. Always improving you.")
+                Text("KickIQ is your AI coach.\nAlways watching. Always improving you.")
                     .font(.body.weight(.semibold))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.5))
@@ -506,12 +506,12 @@ struct OnboardingView: View {
     private var socialProofStep: some View {
         ScrollView {
             VStack(spacing: 24) {
-                stepHeader(title: "PLAYERS LIKE YOU", subtitle: "See what KickIQAICoach has done for them")
+                stepHeader(title: "PLAYERS LIKE YOU", subtitle: "See what KickIQ has done for them")
 
                 VStack(spacing: 12) {
-                    testimonialCard(name: "Marcus J.", age: "16", result: "Made varsity after 6 weeks of KickIQAICoach training")
+                    testimonialCard(name: "Marcus J.", age: "16", result: "Made varsity after 6 weeks of KickIQ training")
                     testimonialCard(name: "Sofia R.", age: "14", result: "Improved my first touch score from 4 to 8 in one month")
-                    testimonialCard(name: "Aiden K.", age: "19", result: "Got scouted at a showcase after using KickIQAICoach daily")
+                    testimonialCard(name: "Aiden K.", age: "19", result: "Got scouted at a showcase after using KickIQ daily")
                 }
                 .padding(.horizontal, 20)
             }

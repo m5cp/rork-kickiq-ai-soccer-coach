@@ -114,16 +114,16 @@ struct ProfileView: View {
                 }
 
                 HStack(spacing: 4) {
-                    Image(systemName: "bolt.fill")
+                    Image(systemName: storeVM.isPremium ? "crown.fill" : "figure.soccer")
                         .font(.system(size: 9))
-                    Text("KICKIQ ATHLETE")
+                    Text(storeVM.isPremium ? "KICKIQ PRO" : "KICKIQ FREE")
                         .font(.system(size: 10, weight: .black))
                         .tracking(1.5)
                 }
-                .foregroundStyle(KickIQAICoachTheme.accent)
+                .foregroundStyle(storeVM.isPremium ? .yellow : KickIQAICoachTheme.accent)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
-                .background(KickIQAICoachTheme.accent.opacity(0.15), in: Capsule())
+                .background((storeVM.isPremium ? Color.yellow : KickIQAICoachTheme.accent).opacity(0.15), in: Capsule())
                 .padding(.top, KickIQAICoachTheme.Spacing.xs)
             }
         }
@@ -403,37 +403,77 @@ struct ProfileView: View {
         Button {
             showTokenPacks = true
         } label: {
-            HStack(spacing: KickIQAICoachTheme.Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(.orange.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "bolt.fill")
-                        .font(.title3)
+            VStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+                HStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                    ZStack {
+                        Circle()
+                            .fill(.orange.opacity(0.15))
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "bolt.fill")
+                            .font(.title3)
+                            .foregroundStyle(.orange)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AI Tokens")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                        Text("Tap to get more tokens")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
+                }
+
+                HStack(spacing: 0) {
+                    VStack(spacing: 3) {
+                        Text("DAILY")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(0.5)
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        Text("\(storeVM.isPremium ? 750 : 100)/day")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Rectangle().fill(KickIQAICoachTheme.divider).frame(width: 1, height: 28)
+
+                    VStack(spacing: 3) {
+                        Text("BONUS")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(0.5)
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        HStack(spacing: 3) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 9))
+                            Text(formattedTokenBalance)
+                                .font(.caption.weight(.black))
+                        }
                         .foregroundStyle(.orange)
-                }
+                    }
+                    .frame(maxWidth: .infinity)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Token Balance")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                    Text("\(storage.tokenBalance) bonus tokens available")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                }
+                    Rectangle().fill(KickIQAICoachTheme.divider).frame(width: 1, height: 28)
 
-                Spacer()
-
-                HStack(spacing: 4) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 11))
-                    Text(formattedTokenBalance)
-                        .font(.headline.weight(.black))
+                    VStack(spacing: 3) {
+                        Text("PLAN")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(0.5)
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        Text(storeVM.isPremium ? "Premium" : "Free")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(storeVM.isPremium ? .green : KickIQAICoachTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .foregroundStyle(.orange)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(.orange.opacity(0.12), in: Capsule())
+                .padding(.vertical, KickIQAICoachTheme.Spacing.sm)
+                .background(Color(.tertiarySystemGroupedBackground), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
             }
             .padding(KickIQAICoachTheme.Spacing.md)
             .background(
