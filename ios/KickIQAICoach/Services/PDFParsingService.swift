@@ -26,8 +26,8 @@ class PDFParsingService {
 
         defer { isProcessing = false }
 
-        let toolkitURL = Config.EXPO_PUBLIC_TOOLKIT_URL
-        guard !toolkitURL.isEmpty else {
+        let apiKey = Config.EXPO_PUBLIC_GEMINI_API_KEY
+        guard !apiKey.isEmpty else {
             errorMessage = "AI not configured. Please try again later."
             return
         }
@@ -35,16 +35,17 @@ class PDFParsingService {
         let prompt = buildPrompt(for: contentType, text: text)
         let systemMsg = "You are a soccer training document parser. Extract drills, exercises, and benchmarks from documents into structured JSON. Always return valid JSON."
 
-        let endpoint = toolkitURL.hasSuffix("/") ? "\(toolkitURL)agent/chat" : "\(toolkitURL)/agent/chat"
+        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=\(apiKey)"
         guard let url = URL(string: endpoint) else {
             errorMessage = "Invalid API configuration"
             return
         }
 
-        let requestBody = ToolkitChatRequest(messages: [
-            ToolkitMessage(role: "system", content: systemMsg),
-            ToolkitMessage(role: "user", content: prompt)
-        ])
+        let requestBody = GeminiRequest(
+            contents: [GeminiContent(role: "user", parts: [GeminiPart(text: prompt)])],
+            systemInstruction: GeminiContent(role: "user", parts: [GeminiPart(text: systemMsg)]),
+            generationConfig: GeminiGenerationConfig(temperature: 0.2, maxOutputTokens: 4096)
+        )
 
         do {
             var urlRequest = URLRequest(url: url)
@@ -60,12 +61,11 @@ class PDFParsingService {
                 return
             }
 
+            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+
             let responseText: String
-            if let toolkitResponse = try? JSONDecoder().decode(ToolkitChatResponse.self, from: data),
-               let txt = toolkitResponse.text, !txt.isEmpty {
+            if let txt = geminiResponse.candidates?.first?.content?.parts?.first?.text, !txt.isEmpty {
                 responseText = txt
-            } else if let rawString = String(data: data, encoding: .utf8), !rawString.isEmpty {
-                responseText = rawString.trimmingCharacters(in: CharacterSet(charactersIn: "\"").union(.whitespacesAndNewlines))
             } else {
                 errorMessage = "Could not extract content from document."
                 return

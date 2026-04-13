@@ -1,17 +1,41 @@
 import Foundation
 
-nonisolated struct ToolkitMessage: Codable, Sendable {
+nonisolated struct GeminiContent: Codable, Sendable {
     let role: String
-    let content: String
+    let parts: [GeminiPart]
 }
 
-nonisolated struct ToolkitChatRequest: Codable, Sendable {
-    let messages: [ToolkitMessage]
+nonisolated struct GeminiPart: Codable, Sendable {
+    let text: String
 }
 
-nonisolated struct ToolkitChatResponse: Codable, Sendable {
-    let text: String?
-    let error: String?
+nonisolated struct GeminiRequest: Codable, Sendable {
+    let contents: [GeminiContent]
+    let systemInstruction: GeminiContent?
+    let generationConfig: GeminiGenerationConfig?
+}
+
+nonisolated struct GeminiGenerationConfig: Codable, Sendable {
+    let temperature: Double?
+    let maxOutputTokens: Int?
+}
+
+nonisolated struct GeminiResponse: Codable, Sendable {
+    let candidates: [GeminiCandidate]?
+    let error: GeminiError?
+}
+
+nonisolated struct GeminiCandidate: Codable, Sendable {
+    let content: GeminiCandidateContent?
+}
+
+nonisolated struct GeminiCandidateContent: Codable, Sendable {
+    let parts: [GeminiPart]?
+}
+
+nonisolated struct GeminiError: Codable, Sendable {
+    let message: String?
+    let code: Int?
 }
 
 struct CoachMessage: Identifiable, Equatable {
@@ -89,7 +113,7 @@ class AICoachService {
     var tokensRemaining: Int = 0
     var isAtLimit = false
 
-    private var conversationHistory: [ToolkitMessage] = []
+    private var conversationHistory: [GeminiContent] = []
     private let systemPrompt: String
     private let playerName: String
     private let position: String
@@ -238,7 +262,7 @@ class AICoachService {
         let userMessage = CoachMessage(role: .user, content: text)
         messages.append(userMessage)
 
-        conversationHistory.append(ToolkitMessage(role: "user", content: text))
+        conversationHistory.append(GeminiContent(role: "user", parts: [GeminiPart(text: text)]))
 
         isLoading = true
         errorMessage = nil
@@ -251,26 +275,25 @@ class AICoachService {
 
         lastFailedUserText = nil
 
-        let toolkitURL = Config.EXPO_PUBLIC_TOOLKIT_URL
-        guard !toolkitURL.isEmpty else {
+        let apiKey = Config.EXPO_PUBLIC_GEMINI_API_KEY
+        guard !apiKey.isEmpty else {
             let fallback = CoachMessage(role: .coach, content: "AI Coach is not configured yet. Please try again later.")
             messages.append(fallback)
             conversationHistory.removeLast()
             return
         }
 
-        let endpoint = toolkitURL.hasSuffix("/") ? "\(toolkitURL)agent/chat" : "\(toolkitURL)/agent/chat"
+        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=\(apiKey)"
         guard let url = URL(string: endpoint) else {
             errorMessage = "Invalid API configuration"
             return
         }
 
-        var allMessages: [ToolkitMessage] = [
-            ToolkitMessage(role: "system", content: systemPrompt)
-        ]
-        allMessages.append(contentsOf: conversationHistory)
-
-        let requestBody = ToolkitChatRequest(messages: allMessages)
+        let requestBody = GeminiRequest(
+            contents: conversationHistory,
+            systemInstruction: GeminiContent(role: "user", parts: [GeminiPart(text: systemPrompt)]),
+            generationConfig: GeminiGenerationConfig(temperature: 0.8, maxOutputTokens: 1024)
+        )
 
         do {
             var urlRequest = URLRequest(url: url)
@@ -283,7 +306,12 @@ class AICoachService {
 
             guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                 let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-                errorMessage = "Coach unavailable (error \(statusCode)). Try again."
+                if let geminiResp = try? JSONDecoder().decode(GeminiResponse.self, from: data),
+                   let errMsg = geminiResp.error?.message {
+                    errorMessage = "Coach error: \(errMsg)"
+                } else {
+                    errorMessage = "Coach unavailable (error \(statusCode)). Try again."
+                }
                 conversationHistory.removeLast()
                 lastFailedUserText = text
                 let errorMsg = CoachMessage(role: .coach, content: "Message failed — no tokens used. Tap retry or send again.")
@@ -291,22 +319,10 @@ class AICoachService {
                 return
             }
 
-            let responseText: String
-            if let toolkitResponse = try? JSONDecoder().decode(ToolkitChatResponse.self, from: data),
-               let txt = toolkitResponse.text, !txt.isEmpty {
-                responseText = txt
-            } else if let rawString = String(data: data, encoding: .utf8), !rawString.isEmpty {
-                let cleaned = rawString.trimmingCharacters(in: CharacterSet(charactersIn: "\"").union(.whitespacesAndNewlines))
-                if !cleaned.isEmpty && cleaned != "null" {
-                    responseText = cleaned
-                } else {
-                    conversationHistory.removeLast()
-                    lastFailedUserText = text
-                    let fallback = CoachMessage(role: .coach, content: "Message failed — no tokens used. Tap retry or send again.")
-                    messages.append(fallback)
-                    return
-                }
-            } else {
+            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+
+            guard let responseText = geminiResponse.candidates?.first?.content?.parts?.first?.text,
+                  !responseText.isEmpty else {
                 conversationHistory.removeLast()
                 lastFailedUserText = text
                 let fallback = CoachMessage(role: .coach, content: "Message failed — no tokens used. Tap retry or send again.")
@@ -317,7 +333,7 @@ class AICoachService {
             let tokensUsed = max(1, responseText.count / 40)
             let coachMessage = CoachMessage(role: .coach, content: responseText)
             messages.append(coachMessage)
-            conversationHistory.append(ToolkitMessage(role: "assistant", content: responseText))
+            conversationHistory.append(GeminiContent(role: "model", parts: [GeminiPart(text: responseText)]))
             recordTokensUsed(tokensUsed)
             extractAndSaveMemory(userText: userMessage.content, coachText: responseText)
         } catch is URLError {
