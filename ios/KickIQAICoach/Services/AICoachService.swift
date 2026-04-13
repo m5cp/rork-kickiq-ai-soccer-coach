@@ -73,9 +73,9 @@ nonisolated enum TokenTier: Sendable {
 
     var dailyTokenBudget: Int {
         switch self {
-        case .free: 10_000
-        case .monthly: 75_000
-        case .annual: 200_000
+        case .free: 100
+        case .monthly: 750
+        case .annual: 2_000
         }
     }
 
@@ -95,9 +95,9 @@ nonisolated enum TokenPackSize: Sendable {
 
     var tokenAmount: Int {
         switch self {
-        case .small: 100_000
-        case .medium: 500_000
-        case .large: 2_000_000
+        case .small: 1_000
+        case .medium: 5_000
+        case .large: 20_000
         }
     }
 
@@ -319,7 +319,8 @@ class AICoachService {
 
             let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
 
-            let tokensUsed = geminiResponse.usageMetadata?.totalTokenCount ?? 1500
+            let rawTokens = geminiResponse.usageMetadata?.totalTokenCount ?? 1500
+            let tokensUsed = max(1, rawTokens / 100)
 
             if let text = geminiResponse.candidates?.first?.content?.parts?.first?.text, !text.isEmpty {
                 let coachMessage = CoachMessage(role: .coach, content: text)
@@ -350,10 +351,10 @@ class AICoachService {
     }
 
     var formattedTokensRemaining: String {
-        if tokensRemaining >= 1_000_000 {
-            return String(format: "%.1fM", Double(tokensRemaining) / 1_000_000.0)
+        if tokensRemaining >= 10_000 {
+            return String(format: "%.1fK", Double(tokensRemaining) / 1_000.0)
         } else if tokensRemaining >= 1_000 {
-            return String(format: "%.0fK", Double(tokensRemaining) / 1_000.0)
+            return String(format: "%.1fK", Double(tokensRemaining) / 1_000.0)
         }
         return "\(tokensRemaining)"
     }

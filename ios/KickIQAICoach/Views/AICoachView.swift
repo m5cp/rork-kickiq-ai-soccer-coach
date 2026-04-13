@@ -70,7 +70,7 @@ struct AICoachView: View {
                                 Text(coachService.formattedTokensRemaining)
                                     .font(.system(size: 11, weight: .black))
                             }
-                            .foregroundStyle(coachService.tokensRemaining <= 3000 ? .red : .orange)
+                            .foregroundStyle(coachService.tokensRemaining <= 30 ? .red : .orange)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(KickIQAICoachTheme.surface, in: Capsule())

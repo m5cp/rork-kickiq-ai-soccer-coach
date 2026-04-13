@@ -152,8 +152,8 @@ struct TokenPacksView: View {
             } else if storeVM.tokenPackPackages.isEmpty {
                 VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
                     tokenPackCard(
-                        title: "100K Tokens",
-                        subtitle: "~60 coaching messages",
+                        title: "1,000 Tokens",
+                        subtitle: "~65 coaching messages",
                         price: "$2.99",
                         icon: "bolt.fill",
                         color: .blue,
@@ -161,8 +161,8 @@ struct TokenPacksView: View {
                         package: nil
                     )
                     tokenPackCard(
-                        title: "500K Tokens",
-                        subtitle: "~300 coaching messages",
+                        title: "5,000 Tokens",
+                        subtitle: "~330 coaching messages",
                         price: "$9.99",
                         icon: "bolt.badge.plus.fill",
                         color: .purple,
@@ -170,8 +170,8 @@ struct TokenPacksView: View {
                         package: nil
                     )
                     tokenPackCard(
-                        title: "2M Tokens",
-                        subtitle: "~1,200 coaching messages",
+                        title: "20,000 Tokens",
+                        subtitle: "~1,300 coaching messages",
                         price: "$29.99",
                         icon: "bolt.shield.fill",
                         color: .orange,
@@ -270,12 +270,12 @@ struct TokenPacksView: View {
             }
 
             VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
-                comparisonRow(icon: "bolt.fill", text: "75K tokens daily (free: 10K)")
+                comparisonRow(icon: "bolt.fill", text: "750 tokens daily (free: 100)")
                 comparisonRow(icon: "infinity", text: "Resets every day automatically")
                 comparisonRow(icon: "dollarsign.circle.fill", text: "Way cheaper than token packs")
             }
 
-            Text("Premium gives you 2.25M tokens/month — that's 4x the large token pack, every month.")
+            Text("Premium gives you 22.5K tokens/month — that's more than the large token pack, every month.")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(KickIQAICoachTheme.textSecondary)
         }
@@ -316,7 +316,7 @@ struct TokenPacksView: View {
             .foregroundStyle(KickIQAICoachTheme.textSecondary)
 
             VStack(alignment: .leading, spacing: 6) {
-                infoRow("Each AI coaching message uses ~1,500 tokens")
+                infoRow("Each AI coaching message uses ~15 tokens")
                 infoRow("Bonus tokens are used after your daily budget runs out")
                 infoRow("Bonus tokens never expire — use them anytime")
                 infoRow("Your daily budget resets every midnight")
@@ -378,10 +378,8 @@ struct TokenPacksView: View {
     }
 
     private func formattedTokenAmount(_ amount: Int) -> String {
-        if amount >= 1_000_000 {
-            return String(format: "%.1fM", Double(amount) / 1_000_000.0)
-        } else if amount >= 1_000 {
-            return String(format: "%.0fK", Double(amount) / 1_000.0)
+        if amount >= 1_000 {
+            return String(format: "%.1fK", Double(amount) / 1_000.0)
         }
         return "\(amount)"
     }
@@ -390,11 +388,11 @@ struct TokenPacksView: View {
         let id = package.storeProduct.productIdentifier
         switch id {
         case "kickiq_tokens_small":
-            return ("100K Tokens", "~60 coaching messages", "bolt.fill", .blue, .small)
+            return ("1,000 Tokens", "~65 coaching messages", "bolt.fill", .blue, .small)
         case "kickiq_tokens_medium":
-            return ("500K Tokens", "~300 coaching messages", "bolt.badge.plus.fill", .purple, .medium)
+            return ("5,000 Tokens", "~330 coaching messages", "bolt.badge.plus.fill", .purple, .medium)
         case "kickiq_tokens_large":
-            return ("2M Tokens", "~1,200 coaching messages", "bolt.shield.fill", .orange, .large)
+            return ("20,000 Tokens", "~1,300 coaching messages", "bolt.shield.fill", .orange, .large)
         default:
             return (package.storeProduct.localizedTitle, "", "bolt.fill", .blue, .small)
         }
