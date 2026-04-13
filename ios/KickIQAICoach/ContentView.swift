@@ -92,7 +92,7 @@ struct ContentView: View {
     private var mainTabView: some View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: 0) {
-                HomeView(storage: storage, customContentService: customContentService, selectedTab: $selectedTab)
+                HomeView(storage: storage, customContentService: customContentService, selectedTab: $selectedTab, storeVM: storeVM)
             }
 
             Tab("Coach", systemImage: "brain.head.profile.fill", value: 1) {

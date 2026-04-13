@@ -12,6 +12,8 @@ struct HomeView: View {
     @State private var showReassessment = false
     @State private var showWeeklyGoal = false
     @State private var showTrainingPlan = false
+    @State private var showTokenPacks = false
+    var storeVM: StoreViewModel
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
@@ -94,6 +96,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showTrainingPlan) {
                 TrainingPlanView(storage: storage)
+            }
+            .sheet(isPresented: $showTokenPacks) {
+                TokenPacksView(storage: storage, storeVM: storeVM, showSubscriptionUpsell: !storeVM.isPremium)
             }
             .navigationDestination(for: String.self) { destination in
                 switch destination {
@@ -178,23 +183,42 @@ struct HomeView: View {
                         )
                 }
                 .overlay(alignment: .topTrailing) {
-                    Button {
-                        selectedTab = 1
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "brain.head.profile.fill")
-                                .font(.system(size: 14, weight: .bold))
-                            Text("AI Coach")
-                                .font(.caption.weight(.black))
+                    VStack(alignment: .trailing, spacing: 8) {
+                        Button {
+                            selectedTab = 1
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "brain.head.profile.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("AI Coach")
+                                    .font(.caption.weight(.black))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.white.opacity(0.2), in: Capsule())
+                            .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 1))
                         }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(.white.opacity(0.2), in: Capsule())
-                        .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 1))
+                        .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
+
+                        Button {
+                            showTokenPacks = true
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "bolt.fill")
+                                    .font(.system(size: 10, weight: .bold))
+                                Text(formattedHomeTokenBalance)
+                                    .font(.system(size: 11, weight: .black))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.white.opacity(0.15), in: Capsule())
+                            .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 1))
+                        }
+                        .sensoryFeedback(.impact(weight: .light), trigger: showTokenPacks)
                     }
                     .padding(KickIQAICoachTheme.Spacing.md)
-                    .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
                 }
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "soccerball")
@@ -778,6 +802,14 @@ struct HomeView: View {
     }
 
 
+
+    private var formattedHomeTokenBalance: String {
+        let balance = storage.tokenBalance
+        if balance >= 1_000 {
+            return String(format: "%.1fK", Double(balance) / 1_000.0)
+        }
+        return "\(balance)"
+    }
 
     private func checkReviewPrompt() {
         guard storage.shouldPromptReview else { return }

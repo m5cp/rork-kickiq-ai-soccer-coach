@@ -27,7 +27,7 @@ enum LegalPage {
         }
     }
 
-    var lastUpdated: String { "April 10, 2026" }
+    var lastUpdated: String { "April 12, 2026" }
 }
 
 struct LegalPageView: View {
@@ -85,7 +85,8 @@ struct LegalPageView: View {
             legalSection(title: "Information We Collect", body: """
 • Profile Information: Name, position, skill level, age range, and weakness preferences you provide during onboarding and profile setup.
 • Training Data: Video frames and images you upload for AI analysis. These are processed in real-time and are not stored on our servers after analysis is complete.
-• Usage Data: App interaction data including session counts, streak data, drill completion, and XP points stored locally on your device.
+• Usage Data: App interaction data including session counts, streak data, drill completion, XP points, and token balances stored locally on your device.
+• Purchase Data: Records of in-app purchases including subscriptions and token packs, managed through Apple's App Store.
 • Profile Photos: If you choose to upload a profile photo, it is stored locally on your device only.
 """)
 
@@ -96,11 +97,11 @@ struct LegalPageView: View {
 • To improve the quality and accuracy of our AI analysis over time.
 """)
 
-            legalSection(title: "Data Storage & Security", body: "Your profile data, training history, and preferences are stored locally on your device using iOS secure storage. Video frames sent for AI analysis are transmitted securely via HTTPS and are processed in real-time. We do not retain your video data after analysis is complete.")
+            legalSection(title: "Data Storage & Security", body: "Your profile data, training history, preferences, and token balances are stored locally on your device using iOS secure storage. Video frames sent for AI analysis are transmitted securely via HTTPS and are processed in real-time. We do not retain your video data after analysis is complete.")
 
             legalSection(title: "Third-Party Services", body: "We use AI services to analyze your training videos. These services process data in real-time and do not store your images. We do not sell, trade, or share your personal information with third parties for marketing purposes.")
 
-            legalSection(title: "Your Rights", body: "You can delete all your data at any time by using the \"Delete Account\" option in the app. This permanently removes all locally stored profile data, training history, and preferences.")
+            legalSection(title: "Your Rights", body: "You can delete all your data at any time by using the \"Delete Account\" option in the app. This permanently removes all locally stored profile data, training history, preferences, and token balances. Please note that deleting your account will forfeit any remaining bonus tokens.")
 
             legalSection(title: "Children's Privacy", body: "KickIQAICoach is suitable for users of all ages. For users under 13, we recommend parental supervision. We do not knowingly collect personally identifiable information from children under 13 without parental consent.")
 
@@ -121,6 +122,18 @@ struct LegalPageView: View {
 • Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.
 • You can manage and cancel subscriptions in your App Store account settings.
 • No refunds are provided for partial subscription periods.
+""")
+
+            legalSection(title: "Token Packs (Consumable Purchases)", body: """
+• KickIQAICoach offers consumable token packs that provide bonus AI coaching tokens: Small (1,000 tokens / $2.99), Medium (5,000 tokens / $9.99), and Large (20,000 tokens / $29.99).
+• Token packs are one-time, non-recurring purchases charged to your Apple ID account.
+• Purchased tokens are added to your bonus token balance immediately upon successful purchase.
+• Bonus tokens never expire and persist until used.
+• Tokens are consumed when you send messages to the AI Coach. Each message uses approximately 15 tokens.
+• If a message fails to send or the AI fails to respond, no tokens are deducted for that message.
+• Your daily token budget (included with your subscription tier or free plan) is used first; bonus tokens are only consumed after your daily budget is exhausted.
+• Token purchases are non-refundable once tokens have been added to your account.
+• Token balances are stored locally on your device. Deleting the app or your account will permanently remove your token balance.
 """)
 
             legalSection(title: "User Conduct", body: """

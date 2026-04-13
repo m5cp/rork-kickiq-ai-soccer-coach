@@ -15,6 +15,7 @@ struct ProfileView: View {
     @State private var restoreMessage = ""
     @State private var isRestoring = false
     @State private var showPaywall = false
+    @State private var showTokenPacks = false
 
     var body: some View {
         NavigationStack {
@@ -22,6 +23,7 @@ struct ProfileView: View {
                 VStack(spacing: KickIQAICoachTheme.Spacing.md + 4) {
                     avatarSection
                     statsRow
+                    tokenBalanceCard
                     myContentCard
                     coachReportCard
                     legalSection
@@ -57,6 +59,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView(store: storeVM)
+            }
+            .sheet(isPresented: $showTokenPacks) {
+                TokenPacksView(storage: storage, storeVM: storeVM, showSubscriptionUpsell: !storeVM.isPremium)
             }
         }
         .onAppear {
@@ -392,6 +397,65 @@ struct ProfileView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.5).delay(0.25), value: appeared)
+    }
+
+    private var tokenBalanceCard: some View {
+        Button {
+            showTokenPacks = true
+        } label: {
+            HStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(.orange.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "bolt.fill")
+                        .font(.title3)
+                        .foregroundStyle(.orange)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Token Balance")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    Text("\(storage.tokenBalance) bonus tokens available")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 11))
+                    Text(formattedTokenBalance)
+                        .font(.headline.weight(.black))
+                }
+                .foregroundStyle(.orange)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.orange.opacity(0.12), in: Capsule())
+            }
+            .padding(KickIQAICoachTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                    .fill(KickIQAICoachTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                            .stroke(.orange.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: showTokenPacks)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
+        .animation(.spring(response: 0.5).delay(0.06), value: appeared)
+    }
+
+    private var formattedTokenBalance: String {
+        if storage.tokenBalance >= 1_000 {
+            return String(format: "%.1fK", Double(storage.tokenBalance) / 1_000.0)
+        }
+        return "\(storage.tokenBalance)"
     }
 
     private var appFooter: some View {
