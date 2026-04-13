@@ -230,8 +230,9 @@ struct TrainingPlanView: View {
 
         let position = storage.profile?.position ?? .midfielder
         let weakness = storage.profile?.weakness ?? .firstTouch
-        let skillLevel = storage.profile?.skillLevel ?? .intermediate
         let goalSessions = storage.weeklyGoal?.sessionsPerWeek ?? 3
+
+        let context = PlayerContext.from(storage: storage)
 
         let weakSkills = storage.weakestSkills
         let focusAreas: [String]
@@ -249,7 +250,7 @@ struct TrainingPlanView: View {
             focusAreas: focusAreas
         )
 
-        let generated = AlgorithmicPlanBuilder.buildPlan(config: config, position: position, skillLevel: skillLevel)
+        let generated = AlgorithmicPlanBuilder.buildPlan(config: config, context: context)
 
         let days = generated.weeks.first?.days ?? []
         let plan = TrainingPlan(

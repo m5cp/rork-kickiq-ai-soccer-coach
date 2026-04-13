@@ -334,8 +334,6 @@ struct PlanGeneratorSheet: View {
     private func generatePlan() async {
         isGenerating = true
 
-        let position = storage.profile?.position ?? .midfielder
-        let skillLevel = storage.profile?.skillLevel ?? .intermediate
         let focuses = Array(selectedFocuses)
 
         let config = PlanConfig(
@@ -346,7 +344,8 @@ struct PlanGeneratorSheet: View {
             focusAreas: focuses
         )
 
-        let plan = AlgorithmicPlanBuilder.buildPlan(config: config, position: position, skillLevel: skillLevel)
+        let context = PlayerContext.from(storage: storage)
+        let plan = AlgorithmicPlanBuilder.buildPlan(config: config, context: context)
         storage.saveGeneratedPlan(plan)
         onPlanGenerated(plan)
 
