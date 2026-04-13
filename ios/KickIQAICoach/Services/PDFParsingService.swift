@@ -26,31 +26,31 @@ class PDFParsingService {
 
         defer { isProcessing = false }
 
-        let apiKey = Config.EXPO_PUBLIC_GEMINI_API_KEY
-        guard !apiKey.isEmpty else {
-            errorMessage = "AI not configured. Please add your Gemini API key."
+        let toolkitURL = Config.EXPO_PUBLIC_TOOLKIT_URL
+        guard !toolkitURL.isEmpty else {
+            errorMessage = "AI not configured. Please try again later."
             return
         }
 
         let prompt = buildPrompt(for: contentType, text: text)
+        let systemMsg = "You are a soccer training document parser. Extract drills, exercises, and benchmarks from documents into structured JSON. Always return valid JSON."
 
-        let urlString = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=\(apiKey)"
-        guard let url = URL(string: urlString) else {
+        let endpoint = toolkitURL.hasSuffix("/") ? "\(toolkitURL)agent/chat" : "\(toolkitURL)/agent/chat"
+        guard let url = URL(string: endpoint) else {
             errorMessage = "Invalid API configuration"
             return
         }
 
-        let request = GeminiRequest(
-            contents: [GeminiMessage(role: "user", parts: [GeminiPart(text: prompt)])],
-            systemInstruction: GeminiSystemInstruction(parts: [GeminiPart(text: "You are a soccer training document parser. Extract drills, exercises, and benchmarks from documents into structured JSON. Always return valid JSON.")]),
-            generationConfig: GeminiGenerationConfig(temperature: 0.2, maxOutputTokens: 4096)
-        )
+        let requestBody = ToolkitChatRequest(messages: [
+            ToolkitMessage(role: "system", content: systemMsg),
+            ToolkitMessage(role: "user", content: prompt)
+        ])
 
         do {
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = "POST"
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            urlRequest.httpBody = try JSONEncoder().encode(request)
+            urlRequest.httpBody = try JSONEncoder().encode(requestBody)
             urlRequest.timeoutInterval = 60
 
             let (data, response) = try await URLSession.shared.data(for: urlRequest)
@@ -60,9 +60,13 @@ class PDFParsingService {
                 return
             }
 
-            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
-
-            guard let responseText = geminiResponse.candidates?.first?.content?.parts?.first?.text else {
+            let responseText: String
+            if let toolkitResponse = try? JSONDecoder().decode(ToolkitChatResponse.self, from: data),
+               let txt = toolkitResponse.text, !txt.isEmpty {
+                responseText = txt
+            } else if let rawString = String(data: data, encoding: .utf8), !rawString.isEmpty {
+                responseText = rawString.trimmingCharacters(in: CharacterSet(charactersIn: "\"").union(.whitespacesAndNewlines))
+            } else {
                 errorMessage = "Could not extract content from document."
                 return
             }
