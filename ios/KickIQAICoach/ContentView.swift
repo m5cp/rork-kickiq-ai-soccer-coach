@@ -95,19 +95,23 @@ struct ContentView: View {
                 HomeView(storage: storage, customContentService: customContentService, selectedTab: $selectedTab)
             }
 
-            Tab("Benchmark", systemImage: "chart.bar.doc.horizontal.fill", value: 1) {
+            Tab("Coach", systemImage: "brain.head.profile.fill", value: 1) {
+                AICoachView(storage: storage, isPremium: storeVM.isPremium, storeVM: storeVM)
+            }
+
+            Tab("Benchmark", systemImage: "chart.bar.doc.horizontal.fill", value: 2) {
                 BenchmarkView(storage: storage, customContentService: customContentService)
             }
 
-            Tab("Drills", systemImage: "figure.soccer", value: 2) {
+            Tab("Drills", systemImage: "figure.soccer", value: 3) {
                 DrillsView(storage: storage, customContentService: customContentService)
             }
 
-            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 3) {
+            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 4) {
                 ProgressTabView(storage: storage)
             }
 
-            Tab("Profile", systemImage: "person.fill", value: 4) {
+            Tab("Profile", systemImage: "person.fill", value: 5) {
                 ProfileView(storage: storage, storeVM: storeVM, customContentService: customContentService)
             }
         }

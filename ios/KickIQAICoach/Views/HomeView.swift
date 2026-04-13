@@ -194,6 +194,7 @@ struct HomeView: View {
                         .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 1))
                     }
                     .padding(KickIQAICoachTheme.Spacing.md)
+                    .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
                 }
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "soccerball")
@@ -591,7 +592,7 @@ struct HomeView: View {
 
     private var benchmarkCTA: some View {
         Button {
-            selectedTab = 1
+            selectedTab = 2
         } label: {
             HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
                 Image(systemName: "chart.bar.doc.horizontal.fill")
@@ -712,7 +713,7 @@ struct HomeView: View {
                 .foregroundStyle(.red.opacity(0.8))
                 Spacer()
                 Button {
-                    selectedTab = 3
+                    selectedTab = 4
                 } label: {
                     Text("See All")
                         .font(.caption.weight(.semibold))

@@ -3,38 +3,26 @@ import SwiftUI
 struct AICoachView: View {
     let storage: StorageService
     let isPremium: Bool
+    var storeVM: StoreViewModel
     @State private var coachService: AICoachService
     @State private var inputText: String = ""
     @State private var appeared = false
+    @State private var showTokenPacks = false
+    @State private var showPaywall = false
     @FocusState private var isInputFocused: Bool
 
     private let quickPrompts = [
-        "How can I improve my weak foot?",
+        "What should I work on today?",
         "Give me a 20-min drill session",
-        "Tips for game day preparation",
-        "How do I read the game better?"
+        "How are my benchmark scores?",
+        "Tips for game day preparation"
     ]
 
-    init(storage: StorageService, isPremium: Bool = false) {
+    init(storage: StorageService, isPremium: Bool = false, storeVM: StoreViewModel) {
         self.storage = storage
         self.isPremium = isPremium
-        let profile = storage.profile
-        var benchmarkSummary = ""
-        if !storage.benchmarkResults.isEmpty {
-            let lines = storage.benchmarkResults.compactMap { result -> String? in
-                guard let latest = result.latestScore else { return nil }
-                return "- \(result.drillName) (\(result.category.rawValue)): \(BenchmarkView.formatScore(latest)) — \(result.trend.label)"
-            }
-            benchmarkSummary = lines.joined(separator: "\n")
-        }
-        _coachService = State(initialValue: AICoachService(
-            playerName: profile?.name ?? "Player",
-            position: profile?.position.rawValue ?? "Midfielder",
-            skillLevel: profile?.skillLevel.rawValue ?? "Intermediate",
-            weakness: profile?.weakness.rawValue ?? "First Touch",
-            benchmarkSummary: benchmarkSummary,
-            isPremium: isPremium
-        ))
+        self.storeVM = storeVM
+        _coachService = State(initialValue: AICoachService(storage: storage, isPremium: isPremium))
     }
 
     var body: some View {
@@ -73,16 +61,20 @@ struct AICoachView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 10) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "bubble.left.fill")
-                                .font(.system(size: 10))
-                            Text("\(coachService.dailyMessagesRemaining)")
-                                .font(.system(size: 11, weight: .black))
+                        Button {
+                            showTokenPacks = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "bolt.fill")
+                                    .font(.system(size: 10))
+                                Text(coachService.formattedTokensRemaining)
+                                    .font(.system(size: 11, weight: .black))
+                            }
+                            .foregroundStyle(coachService.tokensRemaining <= 3000 ? .red : .orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(KickIQAICoachTheme.surface, in: Capsule())
                         }
-                        .foregroundStyle(coachService.dailyMessagesRemaining <= 3 ? .red : KickIQAICoachTheme.accent)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(KickIQAICoachTheme.surface, in: Capsule())
 
                         if !coachService.messages.isEmpty {
                             Button {
@@ -97,6 +89,12 @@ struct AICoachView: View {
                         }
                     }
                 }
+            }
+            .sheet(isPresented: $showTokenPacks) {
+                TokenPacksView(storage: storage, storeVM: storeVM, showSubscriptionUpsell: !isPremium)
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(store: storeVM)
             }
         }
         .onAppear {
@@ -141,7 +139,7 @@ struct AICoachView: View {
                             .tracking(2)
                             .foregroundStyle(KickIQAICoachTheme.textPrimary)
 
-                        Text("Ask me anything about soccer training,\ntechnique, drills, or game strategy.")
+                        Text("I know your scores, your streaks, and\nyour weak spots. Ask me anything.")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(KickIQAICoachTheme.textSecondary)
                             .multilineTextAlignment(.center)
@@ -212,7 +210,7 @@ struct AICoachView: View {
                 infoChip(icon: "target", text: storage.profile?.weakness.rawValue ?? "First Touch")
             }
 
-            Text("Coach adapts to your profile automatically")
+            Text("Coach remembers your scores and adapts over time")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.5))
         }
@@ -353,6 +351,10 @@ struct AICoachView: View {
 
     private var inputBar: some View {
         VStack(spacing: 0) {
+            if coachService.isAtLimit {
+                tokenLimitBanner
+            }
+
             Divider()
                 .overlay(KickIQAICoachTheme.divider)
 
@@ -400,6 +402,47 @@ struct AICoachView: View {
             .padding(.vertical, KickIQAICoachTheme.Spacing.sm + 2)
         }
         .background(.ultraThinMaterial)
+    }
+
+    private var tokenLimitBanner: some View {
+        HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+            Image(systemName: "bolt.trianglebadge.exclamationmark.fill")
+                .font(.subheadline)
+                .foregroundStyle(.orange)
+
+            Text("Out of tokens")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+
+            Spacer()
+
+            Button {
+                showTokenPacks = true
+            } label: {
+                Text("Get Tokens")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.orange, in: Capsule())
+            }
+
+            if !isPremium {
+                Button {
+                    showPaywall = true
+                } label: {
+                    Text("Go Pro")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(KickIQAICoachTheme.onAccent)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(KickIQAICoachTheme.accent, in: Capsule())
+                }
+            }
+        }
+        .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
+        .padding(.vertical, KickIQAICoachTheme.Spacing.sm)
+        .background(.orange.opacity(0.1))
     }
 
     private var canSend: Bool {

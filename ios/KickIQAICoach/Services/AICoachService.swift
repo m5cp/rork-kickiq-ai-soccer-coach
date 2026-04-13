@@ -30,6 +30,7 @@ nonisolated struct GeminiGenerationConfig: Codable, Sendable {
 
 nonisolated struct GeminiResponse: Codable, Sendable {
     let candidates: [GeminiCandidate]?
+    let usageMetadata: GeminiUsageMetadata?
 }
 
 nonisolated struct GeminiCandidate: Codable, Sendable {
@@ -38,6 +39,12 @@ nonisolated struct GeminiCandidate: Codable, Sendable {
 
 nonisolated struct GeminiCandidateContent: Codable, Sendable {
     let parts: [GeminiPart]?
+}
+
+nonisolated struct GeminiUsageMetadata: Codable, Sendable {
+    let promptTokenCount: Int?
+    let candidatesTokenCount: Int?
+    let totalTokenCount: Int?
 }
 
 struct CoachMessage: Identifiable, Equatable {
@@ -59,6 +66,50 @@ enum CoachMessageRole: Equatable {
     case coach
 }
 
+nonisolated enum TokenTier: Sendable {
+    case free
+    case monthly
+    case annual
+
+    var dailyTokenBudget: Int {
+        switch self {
+        case .free: 10_000
+        case .monthly: 75_000
+        case .annual: 200_000
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .free: "Free"
+        case .monthly: "Monthly"
+        case .annual: "Annual"
+        }
+    }
+}
+
+nonisolated enum TokenPackSize: Sendable {
+    case small
+    case medium
+    case large
+
+    var tokenAmount: Int {
+        switch self {
+        case .small: 100_000
+        case .medium: 500_000
+        case .large: 2_000_000
+        }
+    }
+
+    var storeIdentifier: String {
+        switch self {
+        case .small: "kickiq_tokens_small"
+        case .medium: "kickiq_tokens_medium"
+        case .large: "kickiq_tokens_large"
+        }
+    }
+}
+
 @Observable
 @MainActor
 class AICoachService {
@@ -67,7 +118,7 @@ class AICoachService {
     var errorMessage: String?
     var isOffline = false
     var hasShownOnboarding = false
-    var dailyMessagesRemaining: Int = 0
+    var tokensRemaining: Int = 0
     var isAtLimit = false
 
     private var conversationHistory: [GeminiMessage] = []
@@ -76,12 +127,11 @@ class AICoachService {
     private let position: String
     private let weakness: String
     private let isPremium: Bool
+    private weak var storage: StorageService?
 
-    static let freeDailyLimit = 10
-    static let premiumDailyLimit = 50
     private static let cacheKey = "kickiq_coach_cache"
     private static let onboardingKey = "kickiq_coach_onboarded"
-    private static let dailyCountKey = "kickiq_coach_daily_count"
+    private static let dailyTokensUsedKey = "kickiq_coach_daily_tokens"
     private static let dailyDateKey = "kickiq_coach_daily_date"
 
     private static let offlineResponses: [String: String] = [
@@ -95,23 +145,21 @@ class AICoachService {
         "default": "Great question! While I need internet to give you a fully personalized answer, here's a universal tip: The best players practice with purpose every single day. Even 15 focused minutes beats 2 hours of unfocused kicking. Set a specific skill goal for each session."
     ]
 
-    private var benchmarkContext: String = ""
-
-    init(playerName: String = "Player", position: String = "Midfielder", skillLevel: String = "Intermediate", weakness: String = "First Touch", benchmarkSummary: String = "", isPremium: Bool = false) {
-        self.playerName = playerName
-        self.position = position
-        self.weakness = weakness
+    init(storage: StorageService, isPremium: Bool = false) {
+        self.storage = storage
         self.isPremium = isPremium
-        self.benchmarkContext = benchmarkSummary
+        let profile = storage.profile
+        self.playerName = profile?.name ?? "Player"
+        self.position = profile?.position.rawValue ?? "Midfielder"
+        self.weakness = profile?.weakness.rawValue ?? "First Touch"
+
+        let playerContext = storage.coachContextSummary
+
         self.systemPrompt = """
         You are KickIQ Coach, an elite AI soccer coaching assistant. You are knowledgeable, motivating, and direct — like a top-tier youth academy coach.
 
-        Player Profile:
-        - Name: \(playerName)
-        - Position: \(position)
-        - Skill Level: \(skillLevel)
-        - Focus Area: \(weakness)
-        \(benchmarkSummary.isEmpty ? "" : "\nBenchmark Results:\n\(benchmarkSummary)\n\nUse the benchmark results to prioritize training advice. Focus on the weakest categories first. Celebrate improvements when you see them.")
+        PLAYER DATA (this is real, live data from the player's app — use it):
+        \(playerContext)
 
         Guidelines:
         - Give specific, actionable soccer coaching advice
@@ -123,44 +171,80 @@ class AICoachService {
         - If asked about non-soccer topics, gently redirect to training
         - Address the player by name occasionally
         - Adapt advice to their position and skill level
-        - Compliment progress and improvements. Be positive and motivating.
-        - When the player does well on benchmarks, celebrate with them
-        - When areas need work, be constructive and suggest specific drills
+        - REMEMBER their benchmark scores, trends, and weaknesses — reference them proactively
+        - Track their progress across conversations. If they improved, celebrate. If declining, address it.
+        - When they mention completing a drill or hitting a score, acknowledge it and suggest what's next
+        - Be their personal coach who KNOWS their journey — not a generic chatbot
+        - If they're on a training streak, praise their consistency
+        - Suggest specific drills from their weak areas to keep them on track
         """
+
         hasShownOnboarding = UserDefaults.standard.bool(forKey: Self.onboardingKey)
         loadCachedMessages()
-        refreshDailyLimit()
+        refreshTokenBudget()
     }
 
-    private func refreshDailyLimit() {
+    var tokenTier: TokenTier {
+        isPremium ? .annual : .free
+    }
+
+    var dailyBudget: Int {
+        tokenTier.dailyTokenBudget
+    }
+
+    var totalAvailableTokens: Int {
+        let daily = max(0, dailyBudget - dailyTokensUsed)
+        let bonus = storage?.tokenBalance ?? 0
+        return daily + bonus
+    }
+
+    private var dailyTokensUsed: Int {
         let today = Calendar.current.startOfDay(for: .now)
         let storedDate = UserDefaults.standard.double(forKey: Self.dailyDateKey)
         let storedDay = Date(timeIntervalSince1970: storedDate)
 
         if storedDate == 0 || !Calendar.current.isDate(storedDay, inSameDayAs: today) {
-            UserDefaults.standard.set(0, forKey: Self.dailyCountKey)
+            return 0
+        }
+        return UserDefaults.standard.integer(forKey: Self.dailyTokensUsedKey)
+    }
+
+    private func refreshTokenBudget() {
+        let today = Calendar.current.startOfDay(for: .now)
+        let storedDate = UserDefaults.standard.double(forKey: Self.dailyDateKey)
+        let storedDay = Date(timeIntervalSince1970: storedDate)
+
+        if storedDate == 0 || !Calendar.current.isDate(storedDay, inSameDayAs: today) {
+            UserDefaults.standard.set(0, forKey: Self.dailyTokensUsedKey)
             UserDefaults.standard.set(today.timeIntervalSince1970, forKey: Self.dailyDateKey)
         }
 
-        let used = UserDefaults.standard.integer(forKey: Self.dailyCountKey)
-        let limit = isPremium ? Self.premiumDailyLimit : Self.freeDailyLimit
-        dailyMessagesRemaining = max(0, limit - used)
-        isAtLimit = dailyMessagesRemaining <= 0
+        tokensRemaining = totalAvailableTokens
+        isAtLimit = tokensRemaining <= 0
     }
 
-    private func recordMessageSent() {
+    private func recordTokensUsed(_ tokens: Int) {
         let today = Calendar.current.startOfDay(for: .now)
         let storedDate = UserDefaults.standard.double(forKey: Self.dailyDateKey)
         let storedDay = Date(timeIntervalSince1970: storedDate)
 
         if storedDate == 0 || !Calendar.current.isDate(storedDay, inSameDayAs: today) {
-            UserDefaults.standard.set(1, forKey: Self.dailyCountKey)
+            UserDefaults.standard.set(tokens, forKey: Self.dailyTokensUsedKey)
             UserDefaults.standard.set(today.timeIntervalSince1970, forKey: Self.dailyDateKey)
         } else {
-            let count = UserDefaults.standard.integer(forKey: Self.dailyCountKey) + 1
-            UserDefaults.standard.set(count, forKey: Self.dailyCountKey)
+            let current = UserDefaults.standard.integer(forKey: Self.dailyTokensUsedKey)
+            UserDefaults.standard.set(current + tokens, forKey: Self.dailyTokensUsedKey)
         }
-        refreshDailyLimit()
+
+        let dailyRemaining = max(0, dailyBudget - dailyTokensUsed - tokens)
+        if dailyRemaining <= 0 && tokens > 0 {
+            let overflow = tokens - max(0, dailyBudget - (UserDefaults.standard.integer(forKey: Self.dailyTokensUsedKey) - tokens))
+            if overflow > 0 {
+                storage?.deductTokens(overflow)
+            }
+        }
+
+        refreshTokenBudget()
     }
 
     func startOnboardingConversation() {
@@ -168,19 +252,17 @@ class AICoachService {
         hasShownOnboarding = true
         UserDefaults.standard.set(true, forKey: Self.onboardingKey)
 
-        let benchmarkNote = benchmarkContext.isEmpty ? "" : "\n\nI can see your benchmark results — ask me what to work on and I'll prioritize based on your scores."
         let greeting = CoachMessage(
             role: .coach,
-            content: "Hey \(playerName)! I'm your KickIQ AI Coach. I already know you play \(position) and want to work on \(weakness) — so I'm ready to help.\n\nYou can ask me anything: drill plans, technique tips, game-day advice, or how to improve a specific skill. I'll tailor everything to your level and position.\(benchmarkNote)\n\nTry asking something like \"Give me a 20-minute session for my \(weakness.lowercased())\" to get started!"
+            content: "Hey \(playerName)! I'm your KickIQ AI Coach. I already know you play \(position) and want to work on \(weakness) — so I'm ready to help.\n\nI keep track of your benchmark scores, training streaks, and progress — so the more you use the app, the better I can coach you.\n\nTry asking something like \"What should I work on today?\" or \"How can I improve my \(weakness.lowercased())?\" to get started!"
         )
         messages.append(greeting)
     }
 
     func sendMessage(_ text: String) async {
-        refreshDailyLimit()
+        refreshTokenBudget()
         guard !isAtLimit else {
-            let limit = isPremium ? Self.premiumDailyLimit : Self.freeDailyLimit
-            let capMsg = CoachMessage(role: .coach, content: "You've reached your daily limit of \(limit) messages. \(isPremium ? "Your limit resets at midnight — come back tomorrow!" : "Upgrade to Earned Pro for 50 messages per day.")")
+            let capMsg = CoachMessage(role: .coach, content: "You've used all your coaching tokens for today. \(isPremium ? "Your daily budget resets at midnight, or you can grab a token pack for extra coaching." : "Upgrade to Premium for 20x more daily coaching, or grab a token pack to keep going.")")
             messages.append(capMsg)
             return
         }
@@ -237,11 +319,14 @@ class AICoachService {
 
             let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
 
+            let tokensUsed = geminiResponse.usageMetadata?.totalTokenCount ?? 1500
+
             if let text = geminiResponse.candidates?.first?.content?.parts?.first?.text, !text.isEmpty {
                 let coachMessage = CoachMessage(role: .coach, content: text)
                 messages.append(coachMessage)
                 conversationHistory.append(GeminiMessage(role: "model", parts: [GeminiPart(text: text)]))
-                recordMessageSent()
+                recordTokensUsed(tokensUsed)
+                extractAndSaveMemory(userText: userMessage.content, coachText: text)
             } else {
                 let fallback = CoachMessage(role: .coach, content: "Let me think about that differently. Can you rephrase your question?")
                 messages.append(fallback)
@@ -262,6 +347,28 @@ class AICoachService {
         messages.removeAll()
         conversationHistory.removeAll()
         clearCache()
+    }
+
+    var formattedTokensRemaining: String {
+        if tokensRemaining >= 1_000_000 {
+            return String(format: "%.1fM", Double(tokensRemaining) / 1_000_000.0)
+        } else if tokensRemaining >= 1_000 {
+            return String(format: "%.0fK", Double(tokensRemaining) / 1_000.0)
+        }
+        return "\(tokensRemaining)"
+    }
+
+    private func extractAndSaveMemory(userText: String, coachText: String) {
+        let lower = userText.lowercased()
+        if lower.contains("scored") || lower.contains("goal") || lower.contains("hit") {
+            storage?.addCoachMemory(CoachMemoryEntry(type: .improvement, content: "Player reported: \(userText)"))
+        }
+        if lower.contains("struggling") || lower.contains("can't") || lower.contains("hard") || lower.contains("weak") {
+            storage?.addCoachMemory(CoachMemoryEntry(type: .weakness, content: "Player mentioned difficulty: \(userText)"))
+        }
+        if lower.contains("completed") || lower.contains("finished") || lower.contains("did") && lower.contains("drill") {
+            storage?.addCoachMemory(CoachMemoryEntry(type: .drillCompleted, content: "Player completed: \(userText)"))
+        }
     }
 
     private func getOfflineResponse(for query: String) -> String {

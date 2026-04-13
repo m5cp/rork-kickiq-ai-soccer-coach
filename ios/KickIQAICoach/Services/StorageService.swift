@@ -29,6 +29,8 @@ class StorageService {
     var skillsPlan: GeneratedPlan?
     var conditioningPlan: GeneratedPlan?
     var benchmarkResults: [BenchmarkResult] = []
+    var tokenBalance: Int = 0
+    var coachMemory: [CoachMemoryEntry] = []
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -54,6 +56,8 @@ class StorageService {
     private let skillsPlanKey = "kickiq_skills_plan"
     private let conditioningPlanKey = "kickiq_conditioning_plan"
     private let benchmarkResultsKey = "kickiq_benchmark_results"
+    private let tokenBalanceKey = "kickiq_token_balance"
+    private let coachMemoryKey = "kickiq_coach_memory"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -134,6 +138,11 @@ class StorageService {
         if let data = UserDefaults.standard.data(forKey: benchmarkResultsKey),
            let decoded = try? JSONDecoder().decode([BenchmarkResult].self, from: data) {
             benchmarkResults = decoded
+        }
+        tokenBalance = UserDefaults.standard.integer(forKey: tokenBalanceKey)
+        if let data = UserDefaults.standard.data(forKey: coachMemoryKey),
+           let decoded = try? JSONDecoder().decode([CoachMemoryEntry].self, from: data) {
+            coachMemory = decoded
         }
 
         updateDailyDrillSeed()
@@ -261,6 +270,7 @@ class StorageService {
     func recordDrillCompletion(_ drillID: String, drillName: String, duration: Int) {
         let completion = DrillCompletion(drillID: drillID, drillName: drillName, date: .now, durationSeconds: duration)
         drillCompletionHistory.insert(completion, at: 0)
+        addCoachMemory(CoachMemoryEntry(type: .drillCompleted, content: "Completed \(drillName) (\(duration / 60)m \(duration % 60)s)"))
         if drillCompletionHistory.count > 200 {
             drillCompletionHistory = Array(drillCompletionHistory.prefix(200))
         }
@@ -321,6 +331,58 @@ class StorageService {
         UserDefaults.standard.set(false, forKey: onboardingKey)
     }
 
+    func addTokens(_ amount: Int) {
+        tokenBalance += amount
+        UserDefaults.standard.set(tokenBalance, forKey: tokenBalanceKey)
+    }
+
+    func deductTokens(_ amount: Int) {
+        tokenBalance = max(0, tokenBalance - amount)
+        UserDefaults.standard.set(tokenBalance, forKey: tokenBalanceKey)
+    }
+
+    func addCoachMemory(_ entry: CoachMemoryEntry) {
+        coachMemory.append(entry)
+        if coachMemory.count > 50 {
+            coachMemory = Array(coachMemory.suffix(50))
+        }
+        if let data = try? JSONEncoder().encode(coachMemory) {
+            UserDefaults.standard.set(data, forKey: coachMemoryKey)
+        }
+    }
+
+    var coachContextSummary: String {
+        var lines: [String] = []
+        if let profile = profile {
+            lines.append("Player: \(profile.name), \(profile.position.rawValue), \(profile.skillLevel.rawValue), Focus: \(profile.weakness.rawValue)")
+        }
+        lines.append("Streak: \(streakCount) days, XP: \(xpPoints), Level: \(playerLevel.rawValue)")
+        lines.append("Drills completed: \(completedDrillIDs.count), Training minutes this week: \(thisWeekDrillMinutes)")
+        if !benchmarkResults.isEmpty {
+            lines.append("Benchmark rank: \(benchmarkPlayerRank.rawValue) (\(Int(benchmarkOverallScore))%)")
+            let weak = benchmarkWeakestCategories
+            if !weak.isEmpty {
+                lines.append("Weakest areas: \(weak.map(\.rawValue).joined(separator: ", "))")
+            }
+            for result in benchmarkResults where !result.isSkipped {
+                if let latest = result.latestScore {
+                    lines.append("  \(result.drillName): \(String(format: "%.1f", latest)) (\(result.trend.label))")
+                }
+            }
+        }
+        if !personalRecords.isEmpty {
+            lines.append("Personal records: \(personalRecords.map { "\($0.category): \($0.value)" }.joined(separator: ", "))")
+        }
+        let recentMemory = coachMemory.suffix(10)
+        if !recentMemory.isEmpty {
+            lines.append("\nRecent coaching notes:")
+            for entry in recentMemory {
+                lines.append("- [\(entry.type.rawValue)] \(entry.content)")
+            }
+        }
+        return lines.joined(separator: "\n")
+    }
+
     func deleteAccount() {
         let allKeys = [profileKey, sessionsKey, onboardingKey, streakKey, lastSessionKey,
                        drillsKey, xpKey, analysisCountKey, maxStreakKey, reviewDateKey,
@@ -328,6 +390,7 @@ class StorageService {
                        dailyDrillSeedKey, weeklyGoalKey, sessionNotesKey, trainingPlanKey,
                        favoriteDrillsKey, personalRecordsKey, drillCompletionHistoryKey,
                        skillsPlanKey, conditioningPlanKey, benchmarkResultsKey,
+                       tokenBalanceKey, coachMemoryKey,
                        "kickiq_drill_day",
                        "kickiq_pref_streak", "kickiq_pref_weekly", "kickiq_pref_monthly"]
         allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
@@ -356,6 +419,8 @@ class StorageService {
         skillsPlan = nil
         conditioningPlan = nil
         benchmarkResults = []
+        tokenBalance = 0
+        coachMemory = []
 
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
@@ -458,6 +523,7 @@ class StorageService {
         xpPoints += 15
         UserDefaults.standard.set(xpPoints, forKey: xpKey)
         recordSessionDate()
+        addCoachMemory(CoachMemoryEntry(type: .benchmarkScore, content: "\(drillName) (\(category.rawValue)): scored \(String(format: "%.1f", score))"))
         WidgetDataService.updateWidgetData(storage: self)
     }
 
