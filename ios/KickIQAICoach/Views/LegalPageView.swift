@@ -1,6 +1,8 @@
 import SwiftUI
 
-enum LegalPage {
+enum LegalPage: Identifiable {
+    var id: String { title }
+
     case privacyPolicy
     case termsOfUse
     case eula

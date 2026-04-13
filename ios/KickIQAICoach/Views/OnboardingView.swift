@@ -1,4 +1,5 @@
 import SwiftUI
+import RevenueCat
 
 struct OnboardingBackground: View {
     var body: some View {
@@ -26,6 +27,7 @@ struct OnboardingBackground: View {
 
 struct OnboardingView: View {
     let storage: StorageService
+    @State private var storeVM = StoreViewModel()
     @State private var currentStep: Int = 0
     @State private var name: String = ""
     @State private var position: PlayerPosition = .midfielder
@@ -34,8 +36,13 @@ struct OnboardingView: View {
     @State private var skillLevel: SkillLevel = .beginner
     @State private var weakness: WeaknessArea = .firstTouch
     @State private var stepAppeared: Bool = false
+    @State private var selectedPlanIndex: Int = 0
+    @State private var isPurchasing: Bool = false
+    @State private var isRestoring: Bool = false
+    @State private var showLegalPage: LegalPage?
+    @FocusState private var isNameFocused: Bool
 
-    private let totalSteps = 9
+    private let totalSteps = 10
 
     var body: some View {
         ZStack {
@@ -51,25 +58,37 @@ struct OnboardingView: View {
                 .padding(.horizontal, 20)
 
                 TabView(selection: $currentStep) {
-                    positionStep.tag(0)
-                    ageStep.tag(1)
-                    genderStep.tag(2)
-                    skillLevelStep.tag(3)
-                    weaknessStep.tag(4)
-                    painStep.tag(5)
-                    howItWorksStep.tag(6)
-                    socialProofStep.tag(7)
-                    paywallStep.tag(8)
+                    nameStep.tag(0)
+                    positionStep.tag(1)
+                    ageStep.tag(2)
+                    genderStep.tag(3)
+                    skillLevelStep.tag(4)
+                    weaknessStep.tag(5)
+                    painStep.tag(6)
+                    howItWorksStep.tag(7)
+                    socialProofStep.tag(8)
+                    paywallStep.tag(9)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 8 {
+                if currentStep < 9 {
                     continueButton
                 }
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(item: $showLegalPage) { page in
+            NavigationStack {
+                LegalPageView(page: page)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Done") { showLegalPage = nil }
+                                .fontWeight(.bold)
+                        }
+                    }
+            }
+        }
         .onChange(of: currentStep) { _, _ in
             stepAppeared = false
             withAnimation(.easeOut(duration: 0.4).delay(0.1)) {
@@ -115,6 +134,64 @@ struct OnboardingView: View {
         }
         .frame(height: 5)
         .padding(.trailing, 16)
+    }
+
+    // MARK: - Name Step
+
+    private var nameStep: some View {
+        VStack(spacing: 32) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(KickIQAICoachTheme.accent.opacity(0.08))
+                    .frame(width: 100, height: 100)
+
+                Image(systemName: "person.text.rectangle.fill")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                    .symbolEffect(.bounce, value: currentStep == 0)
+            }
+
+            VStack(spacing: 12) {
+                Text("WHAT'S YOUR NAME?")
+                    .font(.system(size: 24, weight: .black).width(.compressed))
+                    .tracking(3)
+                    .foregroundStyle(.white)
+
+                Text("Your coach needs to know who they're training")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .multilineTextAlignment(.center)
+            }
+
+            TextField("", text: $name, prompt: Text("Enter your name").foregroundStyle(.white.opacity(0.25)))
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.white.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(name.isEmpty ? Color.white.opacity(0.08) : KickIQAICoachTheme.accent.opacity(0.5), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal, 40)
+                .focused($isNameFocused)
+                .submitLabel(.continue)
+                .onSubmit {
+                    if !name.trimmingCharacters(in: .whitespaces).isEmpty {
+                        withAnimation(.spring(response: 0.4)) { currentStep += 1 }
+                    }
+                }
+
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .onAppear { isNameFocused = true }
     }
 
     // MARK: - Position Step
@@ -374,7 +451,7 @@ struct OnboardingView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 48, weight: .bold))
                     .foregroundStyle(KickIQAICoachTheme.accent)
-                    .symbolEffect(.bounce, value: currentStep == 4)
+                    .symbolEffect(.bounce, value: currentStep == 6)
             }
 
             VStack(spacing: 16) {
@@ -461,49 +538,74 @@ struct OnboardingView: View {
                 .padding(.top, 24)
 
                 VStack(spacing: 10) {
-                    pricingCard(title: "Annual", price: "$99.99/yr", perWeek: "$1.92/week", badge: "BEST VALUE", isHighlighted: true, trialText: "3-day free trial")
-                    pricingCard(title: "Monthly", price: "$19.99/mo", perWeek: "$4.99/week", badge: nil, isHighlighted: false, trialText: nil)
-                    pricingCard(title: "Weekly", price: "$6.99/wk", perWeek: nil, badge: nil, isHighlighted: false, trialText: nil)
+                    paywallPlanCard(index: 0, title: "Annual", price: "$99.99/yr", perWeek: "$1.92/week", badge: "BEST VALUE", trialText: "3-day free trial")
+                    paywallPlanCard(index: 1, title: "Monthly", price: "$19.99/mo", perWeek: "$4.99/week", badge: nil, trialText: nil)
+                    paywallPlanCard(index: 2, title: "Weekly", price: "$6.99/wk", perWeek: nil, badge: nil, trialText: nil)
                 }
                 .padding(.horizontal, 20)
 
                 Button {
-                    completeOnboarding()
+                    Task { await handleSubscribe() }
                 } label: {
-                    Text("Start Free Trial")
-                        .font(.headline.weight(.black))
-                        .foregroundStyle(KickIQAICoachTheme.onAccent)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: [KickIQAICoachTheme.accent, KickIQAICoachTheme.accent.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            in: .rect(cornerRadius: 16)
-                        )
-                        .shadow(color: KickIQAICoachTheme.accent.opacity(0.3), radius: 12, x: 0, y: 4)
+                    Group {
+                        if isPurchasing {
+                            ProgressView()
+                                .tint(KickIQAICoachTheme.onAccent)
+                        } else {
+                            Text(selectedPlanIndex == 0 ? "Start Free Trial" : "Subscribe")
+                                .font(.headline.weight(.black))
+                        }
+                    }
+                    .foregroundStyle(KickIQAICoachTheme.onAccent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        LinearGradient(
+                            colors: [KickIQAICoachTheme.accent, KickIQAICoachTheme.accent.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        in: .rect(cornerRadius: 16)
+                    )
+                    .shadow(color: KickIQAICoachTheme.accent.opacity(0.3), radius: 12, x: 0, y: 4)
                 }
+                .disabled(isPurchasing || isRestoring)
                 .padding(.horizontal, 20)
-                .sensoryFeedback(.impact(weight: .medium), trigger: currentStep)
+                .sensoryFeedback(.impact(weight: .medium), trigger: isPurchasing)
+
+                Button {
+                    Task { await handleRestore() }
+                } label: {
+                    Group {
+                        if isRestoring {
+                            ProgressView()
+                                .tint(.white.opacity(0.4))
+                        } else {
+                            Text("Restore Purchases")
+                        }
+                    }
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.4))
+                }
+                .disabled(isPurchasing || isRestoring)
 
                 Button {
                     completeOnboarding()
                 } label: {
-                    Text("Restore Purchases")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.white.opacity(0.4))
+                    Text("Continue without subscribing")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.25))
                 }
+                .disabled(isPurchasing || isRestoring)
 
                 VStack(spacing: 4) {
                     Text("Cancel anytime. No commitment.")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.3))
                     HStack(spacing: 12) {
-                        Link("Privacy Policy", destination: URL(string: "https://termly.io")!)
+                        Button("Privacy Policy") { showLegalPage = .privacyPolicy }
                         Text("·").foregroundStyle(.white.opacity(0.2))
-                        Link("Terms of Service", destination: URL(string: "https://termly.io")!)
+                        Button("Terms of Service") { showLegalPage = .termsOfUse }
                     }
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.3))
@@ -662,57 +764,105 @@ struct OnboardingView: View {
         )
     }
 
-    private func pricingCard(title: String, price: String, perWeek: String?, badge: String?, isHighlighted: Bool, trialText: String?) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 8) {
-                    Text(title)
-                        .font(.headline.weight(.black))
-                        .foregroundStyle(.white)
+    private func paywallPlanCard(index: Int, title: String, price: String, perWeek: String?, badge: String?, trialText: String?) -> some View {
+        let isSelected = selectedPlanIndex == index
+        return Button {
+            selectedPlanIndex = index
+        } label: {
+            HStack {
+                ZStack {
+                    Circle()
+                        .stroke(isSelected ? KickIQAICoachTheme.accent : Color.white.opacity(0.2), lineWidth: 2)
+                        .frame(width: 22, height: 22)
+                    if isSelected {
+                        Circle()
+                            .fill(KickIQAICoachTheme.accent)
+                            .frame(width: 14, height: 14)
+                            .transition(.scale)
+                    }
+                }
+                .animation(.spring(response: 0.25), value: isSelected)
 
-                    if let badge {
-                        Text(badge)
-                            .font(.system(size: 9, weight: .black))
-                            .foregroundStyle(KickIQAICoachTheme.onAccent)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(KickIQAICoachTheme.accent, in: Capsule())
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 8) {
+                        Text(title)
+                            .font(.headline.weight(.black))
+                            .foregroundStyle(.white)
+
+                        if let badge {
+                            Text(badge)
+                                .font(.system(size: 9, weight: .black))
+                                .foregroundStyle(KickIQAICoachTheme.onAccent)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(KickIQAICoachTheme.accent, in: Capsule())
+                        }
+                    }
+
+                    if let perWeek {
+                        Text(perWeek)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+
+                    if let trialText {
+                        Text(trialText)
+                            .font(.caption2.weight(.black))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
                     }
                 }
 
-                if let perWeek {
-                    Text(perWeek)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.4))
-                }
+                Spacer()
 
-                if let trialText {
-                    Text(trialText)
-                        .font(.caption2.weight(.black))
-                        .foregroundStyle(KickIQAICoachTheme.accent)
-                }
+                Text(price)
+                    .font(.title3.weight(.black))
+                    .foregroundStyle(.white)
             }
-
-            Spacer()
-
-            Text(price)
-                .font(.title3.weight(.black))
-                .foregroundStyle(.white)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(isSelected ? KickIQAICoachTheme.accent.opacity(0.1) : Color.white.opacity(0.04))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(isSelected ? KickIQAICoachTheme.accent.opacity(0.5) : Color.white.opacity(0.06), lineWidth: isSelected ? 1.5 : 0.5)
+                    )
+            )
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(isHighlighted ? KickIQAICoachTheme.accent.opacity(0.1) : Color.white.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(isHighlighted ? KickIQAICoachTheme.accent.opacity(0.5) : Color.white.opacity(0.06), lineWidth: isHighlighted ? 1.5 : 0.5)
-                )
-        )
+        .sensoryFeedback(.selection, trigger: selectedPlanIndex)
+    }
+
+    private func handleSubscribe() async {
+        guard let offerings = storeVM.offerings,
+              let defaultOffering = offerings.current else {
+            completeOnboarding()
+            return
+        }
+
+        let planIdentifiers = ["$rc_annual", "$rc_monthly", "$rc_weekly"]
+        let targetID = planIdentifiers[selectedPlanIndex]
+        guard let package = defaultOffering.availablePackages.first(where: { $0.identifier == targetID }) else {
+            completeOnboarding()
+            return
+        }
+
+        isPurchasing = true
+        await storeVM.purchase(package: package)
+        isPurchasing = false
+        completeOnboarding()
+    }
+
+    private func handleRestore() async {
+        isRestoring = true
+        await storeVM.restore()
+        isRestoring = false
+        if storeVM.isPremium {
+            completeOnboarding()
+        }
     }
 
     private func completeOnboarding() {
         let profile = PlayerProfile(
-            name: name.isEmpty ? "Player" : name.trimmingCharacters(in: .whitespaces),
+            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? "Player" : name.trimmingCharacters(in: .whitespaces),
             position: position,
             ageRange: ageRange,
             skillLevel: skillLevel,
