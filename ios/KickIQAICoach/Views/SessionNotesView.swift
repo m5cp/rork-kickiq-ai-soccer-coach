@@ -96,6 +96,13 @@ struct SessionNotesSheet: View {
                 .foregroundStyle(KickIQAICoachTheme.textPrimary)
                 .lineLimit(1...4)
                 .focused($isFocused)
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") { isFocused = false }
+                            .fontWeight(.semibold)
+                    }
+                }
                 .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
                 .padding(.vertical, KickIQAICoachTheme.Spacing.sm + 2)
                 .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))

@@ -5,6 +5,7 @@ struct ProfileEditSheet: View {
     let storage: StorageService
     @Environment(\.dismiss) private var dismiss
     @State private var name: String = ""
+    @FocusState private var isNameFocused: Bool
     @State private var position: PlayerPosition = .midfielder
     @State private var skillLevel: SkillLevel = .beginner
     @State private var weakness: WeaknessArea = .firstTouch
@@ -200,6 +201,14 @@ struct ProfileEditSheet: View {
 
             TextField("Your name", text: $name)
                 .font(.body)
+                .focused($isNameFocused)
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") { isNameFocused = false }
+                            .fontWeight(.semibold)
+                    }
+                }
                 .padding(KickIQAICoachTheme.Spacing.md)
                 .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
                 .foregroundStyle(KickIQAICoachTheme.textPrimary)

@@ -350,6 +350,13 @@ struct AICoachView: View {
                     .onSubmit {
                         Task { await sendMessage() }
                     }
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") { isInputFocused = false }
+                                .fontWeight(.semibold)
+                        }
+                    }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(KickIQAICoachTheme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))

@@ -509,6 +509,13 @@ struct BenchmarkTestHistoryView: View {
                     .font(.title3.weight(.bold))
                     .foregroundStyle(KickIQAICoachTheme.textPrimary)
                     .focused($isScoreFocused)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") { isScoreFocused = false }
+                                .fontWeight(.semibold)
+                        }
+                    }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .background(KickIQAICoachTheme.surface, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
