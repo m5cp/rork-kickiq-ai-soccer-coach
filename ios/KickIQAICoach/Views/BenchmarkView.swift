@@ -8,6 +8,7 @@ struct BenchmarkView: View {
     @State private var selectedDrill: BenchmarkDrill?
     @State private var scoreAnimated = false
     @State private var showImport = false
+    @State private var showResults = false
 
     private var playerGender: PlayerGender {
         storage.profile?.gender ?? .male
@@ -52,7 +53,15 @@ struct BenchmarkView: View {
             .navigationTitle("Benchmark")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    if !storage.benchmarkResults.isEmpty {
+                        Button {
+                            showResults = true
+                        } label: {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                        }
+                    }
                     Button {
                         showImport = true
                     } label: {
@@ -63,6 +72,9 @@ struct BenchmarkView: View {
             }
             .sheet(isPresented: $showImport) {
                 PDFImportView(customContentService: customContentService)
+            }
+            .sheet(isPresented: $showResults) {
+                BenchmarkResultsView(storage: storage)
             }
             .sheet(item: $selectedDrill) { drill in
                 BenchmarkDrillDetailView(

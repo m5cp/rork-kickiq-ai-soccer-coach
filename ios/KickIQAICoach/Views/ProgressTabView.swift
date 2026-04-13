@@ -8,6 +8,8 @@ struct ProgressTabView: View {
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var showComparison = false
+    @State private var showBenchmarkResults = false
+    @State private var benchmarkService = BenchmarkService()
 
     private var position: PlayerPosition {
         storage.profile?.position ?? .midfielder
@@ -66,8 +68,14 @@ struct ProgressTabView: View {
             .sheet(isPresented: $showComparison) {
                 ComparisonView(storage: storage)
             }
+            .sheet(isPresented: $showBenchmarkResults) {
+                BenchmarkResultsView(storage: storage)
+            }
         }
         .onAppear {
+            let age = storage.profile?.ageRange ?? .fifteen18
+            let gender = storage.profile?.gender ?? .male
+            benchmarkService.loadDrills(for: age, gender: gender)
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
         }
     }
@@ -171,6 +179,7 @@ struct ProgressTabView: View {
         let results = storage.benchmarkResults
         let rank = storage.benchmarkPlayerRank
         let overall = storage.benchmarkOverallScore
+        let recentAttempts = recentBenchmarkAttempts
 
         return VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm + 2) {
             HStack {
@@ -242,6 +251,55 @@ struct ProgressTabView: View {
                         }
                     }
                 }
+            }
+
+            if !recentAttempts.isEmpty {
+                VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.xs) {
+                    Text("RECENT ACTIVITY")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.8)
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.6))
+                        .padding(.top, KickIQAICoachTheme.Spacing.xs)
+
+                    ForEach(recentAttempts.prefix(3), id: \.id) { entry in
+                        HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                            Image(systemName: entry.category.icon)
+                                .font(.system(size: 9))
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                                .frame(width: 14)
+                            Text(entry.drillName)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(BenchmarkView.formatScore(entry.score))
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                            Text(entry.date, style: .relative)
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.5))
+                                .frame(width: 50, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+
+            Button {
+                showBenchmarkResults = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 11))
+                    Text("View Full Results")
+                        .font(.caption.weight(.bold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(KickIQAICoachTheme.accent)
+                .padding(.vertical, KickIQAICoachTheme.Spacing.sm)
+                .padding(.horizontal, KickIQAICoachTheme.Spacing.sm)
+                .background(KickIQAICoachTheme.accent.opacity(0.1), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
             }
         }
         .padding(KickIQAICoachTheme.Spacing.md)
@@ -806,6 +864,22 @@ struct ProgressTabView: View {
         }
     }
 
+    private var recentBenchmarkAttempts: [RecentBenchmarkEntry] {
+        var entries: [RecentBenchmarkEntry] = []
+        for result in storage.benchmarkResults {
+            for attempt in result.attempts {
+                entries.append(RecentBenchmarkEntry(
+                    id: "\(result.benchmarkDrillID)_\(attempt.date.timeIntervalSince1970)",
+                    drillName: result.drillName,
+                    category: result.category,
+                    score: attempt.score,
+                    date: attempt.date
+                ))
+            }
+        }
+        return entries.sorted { $0.date > $1.date }
+    }
+
     @MainActor
     private func generateProgressCard() {
         guard let first = storage.sessions.last, let latest = storage.sessions.first else { return }
@@ -823,4 +897,12 @@ struct ProgressTabView: View {
             showShareSheet = true
         }
     }
+}
+
+private struct RecentBenchmarkEntry: Identifiable {
+    let id: String
+    let drillName: String
+    let category: BenchmarkCategory
+    let score: Double
+    let date: Date
 }

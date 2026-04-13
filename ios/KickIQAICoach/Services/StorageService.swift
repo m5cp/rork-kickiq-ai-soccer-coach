@@ -492,6 +492,21 @@ class StorageService {
         return service.weakestCategories(results: benchmarkResults, gender: gender)
     }
 
+    var totalBenchmarkAttempts: Int {
+        benchmarkResults.reduce(0) { $0 + $1.attempts.count }
+    }
+
+    var benchmarkTestingDays: Int {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dates = Set(benchmarkResults.flatMap { $0.attempts.map { formatter.string(from: $0.date) } })
+        return dates.count
+    }
+
+    var benchmarkXPTotal: Int {
+        totalBenchmarkAttempts * 15
+    }
+
     func hasSessionOnDate(_ date: Date) -> Bool {
         let dateStr = dateFormatter.string(from: date)
         return sessionDates.contains(dateStr)
