@@ -118,6 +118,7 @@ class AICoachService {
     var errorMessage: String?
     var isOffline = false
     var hasShownOnboarding = false
+    var lastFailedUserText: String?
     var tokensRemaining: Int = 0
     var isAtLimit = false
 
@@ -281,10 +282,13 @@ class AICoachService {
             cacheMessages()
         }
 
+        lastFailedUserText = nil
+
         let apiKey = Config.EXPO_PUBLIC_GEMINI_API_KEY
         guard !apiKey.isEmpty else {
             let fallback = CoachMessage(role: .coach, content: "AI Coach is not configured yet. Please add your Gemini API key to use this feature.")
             messages.append(fallback)
+            conversationHistory.removeLast()
             return
         }
 
@@ -312,7 +316,9 @@ class AICoachService {
             guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                 let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
                 errorMessage = "Coach unavailable (error \(statusCode)). Try again."
-                let errorMsg = CoachMessage(role: .coach, content: "I'm having trouble connecting right now. Give me a moment and try again.")
+                conversationHistory.removeLast()
+                lastFailedUserText = text
+                let errorMsg = CoachMessage(role: .coach, content: "Message failed — no tokens used. Tap retry or send again.")
                 messages.append(errorMsg)
                 return
             }
@@ -329,19 +335,36 @@ class AICoachService {
                 recordTokensUsed(tokensUsed)
                 extractAndSaveMemory(userText: userMessage.content, coachText: text)
             } else {
-                let fallback = CoachMessage(role: .coach, content: "Let me think about that differently. Can you rephrase your question?")
+                conversationHistory.removeLast()
+                lastFailedUserText = text
+                let fallback = CoachMessage(role: .coach, content: "Message failed — no tokens used. Tap retry or send again.")
                 messages.append(fallback)
             }
         } catch is URLError {
             isOffline = true
+            conversationHistory.removeLast()
+            lastFailedUserText = text
             let offlineResponse = getOfflineResponse(for: text)
-            let offlineMsg = CoachMessage(role: .coach, content: "\(offlineResponse)\n\n_\u{1F4F6} Offline mode — connect to the internet for personalized coaching._")
+            let offlineMsg = CoachMessage(role: .coach, content: "\(offlineResponse)\n\n_\u{1F4F6} Offline mode — no tokens used. Connect to the internet for personalized coaching._")
             messages.append(offlineMsg)
         } catch {
             errorMessage = "Connection error. Check your internet and try again."
-            let errorMsg = CoachMessage(role: .coach, content: "Looks like we lost connection. Make sure you're online and try sending that again.")
+            conversationHistory.removeLast()
+            lastFailedUserText = text
+            let errorMsg = CoachMessage(role: .coach, content: "Message failed — no tokens used. Check your connection and tap retry.")
             messages.append(errorMsg)
         }
+    }
+
+    func retryLastMessage() async {
+        guard let text = lastFailedUserText else { return }
+        if let lastMsg = messages.last, lastMsg.role == .coach, lastMsg.content.contains("no tokens used") {
+            messages.removeLast()
+        }
+        if let lastUserMsg = messages.last, lastUserMsg.role == .user {
+            messages.removeLast()
+        }
+        await sendMessage(text)
     }
 
     func clearHistory() {

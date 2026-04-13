@@ -301,9 +301,26 @@ struct AICoachView: View {
                         )
                     }
 
-                Text(message.timestamp, style: .time)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.4))
+                if message.role == .coach && message.content.contains("no tokens used") && coachService.lastFailedUserText != nil {
+                    Button {
+                        Task { await coachService.retryLastMessage() }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("Retry")
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(KickIQAICoachTheme.accent.opacity(0.15), in: Capsule())
+                    }
+                } else {
+                    Text(message.timestamp, style: .time)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.4))
+                }
             }
             .frame(maxWidth: 300, alignment: message.role == .user ? .trailing : .leading)
 
