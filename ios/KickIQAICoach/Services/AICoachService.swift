@@ -67,15 +67,22 @@ class AICoachService {
     var errorMessage: String?
     var isOffline = false
     var hasShownOnboarding = false
+    var dailyMessagesRemaining: Int = 0
+    var isAtLimit = false
 
     private var conversationHistory: [GeminiMessage] = []
     private let systemPrompt: String
     private let playerName: String
     private let position: String
     private let weakness: String
+    private let isPremium: Bool
 
+    static let freeDailyLimit = 10
+    static let premiumDailyLimit = 50
     private static let cacheKey = "kickiq_coach_cache"
     private static let onboardingKey = "kickiq_coach_onboarded"
+    private static let dailyCountKey = "kickiq_coach_daily_count"
+    private static let dailyDateKey = "kickiq_coach_daily_date"
 
     private static let offlineResponses: [String: String] = [
         "weak foot": "To improve your weak foot, start with wall passes — 50 reps each foot daily. Then progress to dribbling figure-8s using only your weak foot. Within 2 weeks of consistent practice you'll notice a big difference. Focus on striking through the center of the ball with your laces.",
@@ -90,10 +97,11 @@ class AICoachService {
 
     private var benchmarkContext: String = ""
 
-    init(playerName: String = "Player", position: String = "Midfielder", skillLevel: String = "Intermediate", weakness: String = "First Touch", benchmarkSummary: String = "") {
+    init(playerName: String = "Player", position: String = "Midfielder", skillLevel: String = "Intermediate", weakness: String = "First Touch", benchmarkSummary: String = "", isPremium: Bool = false) {
         self.playerName = playerName
         self.position = position
         self.weakness = weakness
+        self.isPremium = isPremium
         self.benchmarkContext = benchmarkSummary
         self.systemPrompt = """
         You are KickIQ Coach, an elite AI soccer coaching assistant. You are knowledgeable, motivating, and direct — like a top-tier youth academy coach.
@@ -121,6 +129,38 @@ class AICoachService {
         """
         hasShownOnboarding = UserDefaults.standard.bool(forKey: Self.onboardingKey)
         loadCachedMessages()
+        refreshDailyLimit()
+    }
+
+    private func refreshDailyLimit() {
+        let today = Calendar.current.startOfDay(for: .now)
+        let storedDate = UserDefaults.standard.double(forKey: Self.dailyDateKey)
+        let storedDay = Date(timeIntervalSince1970: storedDate)
+
+        if storedDate == 0 || !Calendar.current.isDate(storedDay, inSameDayAs: today) {
+            UserDefaults.standard.set(0, forKey: Self.dailyCountKey)
+            UserDefaults.standard.set(today.timeIntervalSince1970, forKey: Self.dailyDateKey)
+        }
+
+        let used = UserDefaults.standard.integer(forKey: Self.dailyCountKey)
+        let limit = isPremium ? Self.premiumDailyLimit : Self.freeDailyLimit
+        dailyMessagesRemaining = max(0, limit - used)
+        isAtLimit = dailyMessagesRemaining <= 0
+    }
+
+    private func recordMessageSent() {
+        let today = Calendar.current.startOfDay(for: .now)
+        let storedDate = UserDefaults.standard.double(forKey: Self.dailyDateKey)
+        let storedDay = Date(timeIntervalSince1970: storedDate)
+
+        if storedDate == 0 || !Calendar.current.isDate(storedDay, inSameDayAs: today) {
+            UserDefaults.standard.set(1, forKey: Self.dailyCountKey)
+            UserDefaults.standard.set(today.timeIntervalSince1970, forKey: Self.dailyDateKey)
+        } else {
+            let count = UserDefaults.standard.integer(forKey: Self.dailyCountKey) + 1
+            UserDefaults.standard.set(count, forKey: Self.dailyCountKey)
+        }
+        refreshDailyLimit()
     }
 
     func startOnboardingConversation() {
@@ -137,6 +177,14 @@ class AICoachService {
     }
 
     func sendMessage(_ text: String) async {
+        refreshDailyLimit()
+        guard !isAtLimit else {
+            let limit = isPremium ? Self.premiumDailyLimit : Self.freeDailyLimit
+            let capMsg = CoachMessage(role: .coach, content: "You've reached your daily limit of \(limit) messages. \(isPremium ? "Your limit resets at midnight — come back tomorrow!" : "Upgrade to Earned Pro for 50 messages per day.")")
+            messages.append(capMsg)
+            return
+        }
+
         let userMessage = CoachMessage(role: .user, content: text)
         messages.append(userMessage)
 
@@ -193,6 +241,7 @@ class AICoachService {
                 let coachMessage = CoachMessage(role: .coach, content: text)
                 messages.append(coachMessage)
                 conversationHistory.append(GeminiMessage(role: "model", parts: [GeminiPart(text: text)]))
+                recordMessageSent()
             } else {
                 let fallback = CoachMessage(role: .coach, content: "Let me think about that differently. Can you rephrase your question?")
                 messages.append(fallback)

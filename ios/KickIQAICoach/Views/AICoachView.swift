@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AICoachView: View {
     let storage: StorageService
+    let isPremium: Bool
     @State private var coachService: AICoachService
     @State private var inputText: String = ""
     @State private var appeared = false
@@ -14,8 +15,9 @@ struct AICoachView: View {
         "How do I read the game better?"
     ]
 
-    init(storage: StorageService) {
+    init(storage: StorageService, isPremium: Bool = false) {
         self.storage = storage
+        self.isPremium = isPremium
         let profile = storage.profile
         var benchmarkSummary = ""
         if !storage.benchmarkResults.isEmpty {
@@ -30,7 +32,8 @@ struct AICoachView: View {
             position: profile?.position.rawValue ?? "Midfielder",
             skillLevel: profile?.skillLevel.rawValue ?? "Intermediate",
             weakness: profile?.weakness.rawValue ?? "First Touch",
-            benchmarkSummary: benchmarkSummary
+            benchmarkSummary: benchmarkSummary,
+            isPremium: isPremium
         ))
     }
 
@@ -69,15 +72,28 @@ struct AICoachView: View {
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    if !coachService.messages.isEmpty {
-                        Button {
-                            withAnimation(.spring(response: 0.3)) {
-                                coachService.clearHistory()
+                    HStack(spacing: 10) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "bubble.left.fill")
+                                .font(.system(size: 10))
+                            Text("\(coachService.dailyMessagesRemaining)")
+                                .font(.system(size: 11, weight: .black))
+                        }
+                        .foregroundStyle(coachService.dailyMessagesRemaining <= 3 ? .red : KickIQAICoachTheme.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(KickIQAICoachTheme.surface, in: Capsule())
+
+                        if !coachService.messages.isEmpty {
+                            Button {
+                                withAnimation(.spring(response: 0.3)) {
+                                    coachService.clearHistory()
+                                }
+                            } label: {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
                             }
-                        } label: {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(KickIQAICoachTheme.textSecondary)
                         }
                     }
                 }
@@ -387,7 +403,7 @@ struct AICoachView: View {
     }
 
     private var canSend: Bool {
-        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !coachService.isLoading
+        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !coachService.isLoading && !coachService.isAtLimit
     }
 
     private func sendMessage() async {

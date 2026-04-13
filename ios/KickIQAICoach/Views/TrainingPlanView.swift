@@ -189,9 +189,9 @@ struct TrainingPlanView: View {
                     ProgressView()
                         .tint(KickIQAICoachTheme.onAccent)
                 } else {
-                    Image(systemName: "sparkles")
+                    Image(systemName: "calendar.badge.plus")
                 }
-                Text(isGenerating ? "Generating Plan..." : "Generate AI Training Plan")
+                Text(isGenerating ? "Generating Plan..." : "Generate Training Plan")
             }
             .font(.headline)
             .foregroundStyle(KickIQAICoachTheme.onAccent)
@@ -231,156 +231,33 @@ struct TrainingPlanView: View {
         let position = storage.profile?.position ?? .midfielder
         let weakness = storage.profile?.weakness ?? .firstTouch
         let skillLevel = storage.profile?.skillLevel ?? .intermediate
-        let weakSkills = storage.weakestSkills
-        let latestScore = storage.sessions.first?.overallScore ?? 0
         let goalSessions = storage.weeklyGoal?.sessionsPerWeek ?? 3
 
-        let weakSkillNames = weakSkills.map(\.rawValue).joined(separator: ", ")
-
-        let prompt = """
-        You are an expert soccer coach creating a personalized 7-day training plan.
-
-        Player Profile:
-        - Position: \(position.rawValue)
-        - Skill Level: \(skillLevel.rawValue)
-        - Weakness: \(weakness.rawValue)
-        - Weakest Skills: \(weakSkillNames.isEmpty ? "Not assessed yet" : weakSkillNames)
-        - Current Score: \(latestScore)/100
-        - Weekly Goal: \(goalSessions) sessions per week
-
-        Create a 7-day training plan (Monday-Sunday). Include \(goalSessions) training days and \(7 - goalSessions) rest/recovery days.
-
-        Respond ONLY with valid JSON:
-        {
-            "summary": "Brief overview of the plan focus",
-            "days": [
-                {
-                    "dayLabel": "Monday",
-                    "focus": "Ball Control & First Touch",
-                    "restDay": false,
-                    "drills": [
-                        {"name": "Drill Name", "description": "How to do it", "duration": "15 min", "difficulty": "Intermediate", "targetSkill": "Ball Control", "reps": "3x10"}
-                    ]
-                },
-                {
-                    "dayLabel": "Tuesday",
-                    "focus": "Rest & Recovery",
-                    "restDay": true,
-                    "drills": []
-                }
-            ]
+        let weakSkills = storage.weakestSkills
+        let focusAreas: [String]
+        if !weakSkills.isEmpty {
+            focusAreas = weakSkills.map(\.rawValue)
+        } else {
+            focusAreas = position.skills.map(\.rawValue)
         }
 
-        Each training day should have 3-4 drills. Target the weakest skills more heavily.
-        """
+        let config = PlanConfig(
+            planType: .skills,
+            weeks: 1,
+            daysPerWeek: goalSessions,
+            minutesPerSession: 45,
+            focusAreas: focusAreas
+        )
 
-        do {
-            let toolkitURL = Config.EXPO_PUBLIC_TOOLKIT_URL
-            guard !toolkitURL.isEmpty else {
-                generateFallbackPlan(position: position, weakness: weakness, goalSessions: goalSessions)
-                isGenerating = false
-                return
-            }
+        let generated = AlgorithmicPlanBuilder.buildPlan(config: config, position: position, skillLevel: skillLevel)
 
-            let url = URL(string: "\(toolkitURL)/agent/chat")!
-            let messages: [[String: Any]] = [
-                ["role": "user", "content": prompt]
-            ]
-            let body: [String: Any] = ["messages": messages]
-            let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = jsonData
-            request.timeoutInterval = 60
-
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                generateFallbackPlan(position: position, weakness: weakness, goalSessions: goalSessions)
-                isGenerating = false
-                return
-            }
-
-            let responseText = String(data: data, encoding: .utf8) ?? ""
-            let jsonString = extractJSON(from: responseText)
-
-            guard let jsonResponseData = jsonString.data(using: .utf8) else {
-                generateFallbackPlan(position: position, weakness: weakness, goalSessions: goalSessions)
-                isGenerating = false
-                return
-            }
-
-            let aiPlan = try JSONDecoder().decode(AIPlanResponse.self, from: jsonResponseData)
-
-            let days = aiPlan.days.map { day in
-                TrainingPlanDay(
-                    dayLabel: day.dayLabel,
-                    focus: day.focus,
-                    drills: (day.drills ?? []).map { d in
-                        Drill(name: d.name, description: d.description, duration: d.duration, targetSkill: d.targetSkill, reps: d.reps ?? "")
-                    },
-                    restDay: day.restDay
-                )
-            }
-
-            let plan = TrainingPlan(days: days, summary: aiPlan.summary)
-            storage.saveTrainingPlan(plan)
-        } catch {
-            generateFallbackPlan(position: position, weakness: weakness, goalSessions: goalSessions)
-        }
+        let days = generated.weeks.first?.days ?? []
+        let plan = TrainingPlan(
+            days: days,
+            summary: "A balanced \(goalSessions)-day training week focused on improving your \(weakness.rawValue.lowercased()) as a \(position.rawValue.lowercased()). Each session pulls from real, tested drills with coaching cues and progressive reps."
+        )
+        storage.saveTrainingPlan(plan)
 
         isGenerating = false
     }
-
-    private func extractJSON(from text: String) -> String {
-        if let start = text.firstIndex(of: "{"),
-           let end = text.lastIndex(of: "}") {
-            return String(text[start...end])
-        }
-        return text
-    }
-
-    private func generateFallbackPlan(position: PlayerPosition, weakness: WeaknessArea, goalSessions: Int) {
-        let dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-        let trainingDays = Set((0..<goalSessions).map { $0 * (7 / max(goalSessions, 1)) }.map { min($0, 6) })
-
-        let days = dayNames.enumerated().map { index, name in
-            let isTraining = trainingDays.contains(index)
-            return TrainingPlanDay(
-                dayLabel: name,
-                focus: isTraining ? "\(weakness.rawValue) Focus" : "Rest & Recovery",
-                drills: isTraining ? [
-                    Drill(name: "\(weakness.rawValue) Builder", description: "Focused practice on your weakest area with progressive difficulty.", duration: "15 min", targetSkill: weakness.rawValue, reps: "3x10"),
-                    Drill(name: "Position-Specific Work", description: "Drills tailored to your \(position.rawValue) role.", duration: "20 min", targetSkill: position.skills.first?.rawValue ?? "Movement", reps: "4x8"),
-                    Drill(name: "Conditioning Circuit", description: "High intensity interval training with ball work.", duration: "10 min", targetSkill: "Movement", reps: "4 intervals")
-                ] : [],
-                restDay: !isTraining
-            )
-        }
-
-        let plan = TrainingPlan(days: days, summary: "A balanced \(goalSessions)-day training week focused on improving your \(weakness.rawValue.lowercased()) as a \(position.rawValue.lowercased()).")
-        storage.saveTrainingPlan(plan)
-    }
-}
-
-nonisolated struct AIPlanResponse: Codable, Sendable {
-    let summary: String
-    let days: [AIPlanDay]
-}
-
-nonisolated struct AIPlanDay: Codable, Sendable {
-    let dayLabel: String
-    let focus: String
-    let restDay: Bool
-    let drills: [AIPlanDrill]?
-}
-
-nonisolated struct AIPlanDrill: Codable, Sendable {
-    let name: String
-    let description: String
-    let duration: String
-    let targetSkill: String
-    let reps: String?
 }
