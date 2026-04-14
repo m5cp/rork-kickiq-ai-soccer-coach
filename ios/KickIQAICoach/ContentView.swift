@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var celebratingBadge: MilestoneBadge?
     @State private var previousBadgeCount: Int = 0
     @State private var appPhase: AppPhase = .welcome
+    @State private var showAICoach: Bool = false
 
     var body: some View {
         ZStack {
@@ -28,8 +29,12 @@ struct ContentView: View {
                     OnboardingView(storage: storage)
                         .transition(.opacity)
                 case .main:
-                    mainTabView
-                        .transition(.opacity)
+                    ZStack(alignment: .bottomTrailing) {
+                        mainTabView
+
+                        floatingChatButton
+                    }
+                    .transition(.opacity)
                 }
             }
             .animation(.easeInOut(duration: 0.8), value: appPhase)
@@ -95,23 +100,19 @@ struct ContentView: View {
                 HomeView(storage: storage, customContentService: customContentService, selectedTab: $selectedTab, storeVM: storeVM)
             }
 
-            Tab("Coach", systemImage: "brain.head.profile.fill", value: 1) {
-                AICoachView(storage: storage, isPremium: storeVM.isPremium, storeVM: storeVM)
-            }
-
-            Tab("Benchmark", systemImage: "chart.bar.doc.horizontal.fill", value: 2) {
+            Tab("Benchmark", systemImage: "chart.bar.doc.horizontal.fill", value: 1) {
                 BenchmarkView(storage: storage, customContentService: customContentService)
             }
 
-            Tab("Drills", systemImage: "figure.soccer", value: 3) {
+            Tab("Drills", systemImage: "figure.soccer", value: 2) {
                 DrillsView(storage: storage, customContentService: customContentService)
             }
 
-            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 4) {
+            Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 3) {
                 ProgressTabView(storage: storage)
             }
 
-            Tab("Profile", systemImage: "person.fill", value: 5) {
+            Tab("Profile", systemImage: "person.fill", value: 4) {
                 ProfileView(storage: storage, storeVM: storeVM, customContentService: customContentService)
             }
         }
@@ -125,5 +126,33 @@ struct ContentView: View {
             }
             notificationService.pendingDeepLink = nil
         }
+        .sheet(isPresented: $showAICoach) {
+            AICoachView(storage: storage, isPremium: storeVM.isPremium, storeVM: storeVM)
+        }
+    }
+
+    private var floatingChatButton: some View {
+        Button {
+            showAICoach = true
+        } label: {
+            Image(systemName: "message.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [KickIQAICoachTheme.accent, KickIQAICoachTheme.accent.opacity(0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: KickIQAICoachTheme.accent.opacity(0.4), radius: 12, x: 0, y: 4)
+                )
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 90)
+        .sensoryFeedback(.impact(weight: .medium), trigger: showAICoach)
     }
 }

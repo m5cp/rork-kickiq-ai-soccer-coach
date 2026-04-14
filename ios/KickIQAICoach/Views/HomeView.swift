@@ -185,23 +185,6 @@ struct HomeView: View {
                 .overlay(alignment: .topTrailing) {
                     VStack(alignment: .trailing, spacing: 8) {
                         Button {
-                            selectedTab = 1
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "brain.head.profile.fill")
-                                    .font(.system(size: 14, weight: .bold))
-                                Text("AI Coach")
-                                    .font(.caption.weight(.black))
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(.white.opacity(0.2), in: Capsule())
-                            .overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 1))
-                        }
-                        .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
-
-                        Button {
                             showTokenPacks = true
                         } label: {
                             HStack(spacing: 5) {
@@ -629,7 +612,7 @@ struct HomeView: View {
 
     private var benchmarkCTA: some View {
         Button {
-            selectedTab = 2
+            selectedTab = 1
         } label: {
             HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
                 Image(systemName: "chart.bar.doc.horizontal.fill")
@@ -750,7 +733,7 @@ struct HomeView: View {
                 .foregroundStyle(.red.opacity(0.8))
                 Spacer()
                 Button {
-                    selectedTab = 4
+                    selectedTab = 3
                 } label: {
                     Text("See All")
                         .font(.caption.weight(.semibold))

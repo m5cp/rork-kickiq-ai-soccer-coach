@@ -42,7 +42,7 @@ struct OnboardingView: View {
     @State private var showLegalPage: LegalPage?
     @FocusState private var isNameFocused: Bool
 
-    private let totalSteps = 10
+    private let totalSteps = 9
 
     var body: some View {
         ZStack {
@@ -65,14 +65,13 @@ struct OnboardingView: View {
                     skillLevelStep.tag(4)
                     weaknessStep.tag(5)
                     painStep.tag(6)
-                    howItWorksStep.tag(7)
-                    socialProofStep.tag(8)
-                    paywallStep.tag(9)
+                    socialProofStep.tag(7)
+                    paywallStep.tag(8)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 9 {
+                if currentStep < 8 {
                     continueButton
                 }
             }
@@ -478,29 +477,6 @@ struct OnboardingView: View {
         .padding(.horizontal, 32)
     }
 
-    // MARK: - How It Works Step
-
-    private var howItWorksStep: some View {
-        VStack(spacing: 32) {
-            Spacer()
-
-            Text("HOW IT WORKS")
-                .font(.system(size: 24, weight: .black).width(.compressed))
-                .tracking(3)
-                .foregroundStyle(.white)
-
-            VStack(spacing: 16) {
-                howItWorksRow(step: "1", icon: "video.fill", title: "RECORD", subtitle: "Film your training session")
-                howItWorksRow(step: "2", icon: "brain.head.profile.fill", title: "ANALYZE", subtitle: "AI breaks down your technique")
-                howItWorksRow(step: "3", icon: "chart.line.uptrend.xyaxis", title: "IMPROVE", subtitle: "Follow personalized drills")
-            }
-
-            Spacer()
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-    }
-
     // MARK: - Social Proof Step
 
     private var socialProofStep: some View {
@@ -679,44 +655,6 @@ struct OnboardingView: View {
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(isSelected ? KickIQAICoachTheme.accent.opacity(0.6) : Color.white.opacity(0.06), lineWidth: isSelected ? 1.5 : 0.5)
                 )
-        )
-    }
-
-    private func howItWorksRow(step: String, icon: String, title: String, subtitle: String) -> some View {
-        HStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(KickIQAICoachTheme.accent.opacity(0.12))
-                    .frame(width: 56, height: 56)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(KickIQAICoachTheme.accent.opacity(0.2), lineWidth: 1)
-                    )
-
-                Image(systemName: icon)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(KickIQAICoachTheme.accent)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("STEP \(step)")
-                    .font(.system(size: 11, weight: .black))
-                    .tracking(1.5)
-                    .foregroundStyle(KickIQAICoachTheme.accent)
-                Text(title)
-                    .font(.headline.weight(.black))
-                    .foregroundStyle(.white)
-                Text(subtitle)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.45))
-            }
-            Spacer()
-        }
-        .padding(16)
-        .background(Color.white.opacity(0.04), in: .rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
         )
     }
 
