@@ -26,7 +26,7 @@ class PDFParsingService {
 
         defer { isProcessing = false }
 
-        let apiKey = Config.EXPO_PUBLIC_GEMINI_API_KEY
+        let apiKey = Config.EXPO_PUBLIC_GROQ_API_KEY
         guard !apiKey.isEmpty else {
             errorMessage = "AI not configured. Please try again later."
             return
@@ -35,22 +35,27 @@ class PDFParsingService {
         let prompt = buildPrompt(for: contentType, text: text)
         let systemMsg = "You are a soccer training document parser. Extract drills, exercises, and benchmarks from documents into structured JSON. Always return valid JSON."
 
-        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=\(apiKey)"
+        let endpoint = "https://api.groq.com/openai/v1/chat/completions"
         guard let url = URL(string: endpoint) else {
             errorMessage = "Invalid API configuration"
             return
         }
 
-        let requestBody = GeminiRequest(
-            contents: [GeminiContent(role: "user", parts: [GeminiPart(text: prompt)])],
-            systemInstruction: GeminiContent(role: "user", parts: [GeminiPart(text: systemMsg)]),
-            generationConfig: GeminiGenerationConfig(temperature: 0.2, maxOutputTokens: 4096)
+        let requestBody = GroqRequest(
+            model: "llama-3.3-70b-versatile",
+            messages: [
+                GroqMessage(role: "system", content: systemMsg),
+                GroqMessage(role: "user", content: prompt)
+            ],
+            temperature: 0.2,
+            max_tokens: 4096
         )
 
         do {
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = "POST"
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             urlRequest.httpBody = try JSONEncoder().encode(requestBody)
             urlRequest.timeoutInterval = 60
 
@@ -61,10 +66,10 @@ class PDFParsingService {
                 return
             }
 
-            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+            let groqResponse = try JSONDecoder().decode(GroqResponse.self, from: data)
 
             let responseText: String
-            if let txt = geminiResponse.candidates?.first?.content?.parts?.first?.text, !txt.isEmpty {
+            if let txt = groqResponse.choices?.first?.message?.content, !txt.isEmpty {
                 responseText = txt
             } else {
                 errorMessage = "Could not extract content from document."

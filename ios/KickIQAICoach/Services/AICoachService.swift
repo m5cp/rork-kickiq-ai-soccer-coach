@@ -1,41 +1,34 @@
 import Foundation
 
-nonisolated struct GeminiContent: Codable, Sendable {
+nonisolated struct GroqMessage: Codable, Sendable {
     let role: String
-    let parts: [GeminiPart]
+    let content: String
 }
 
-nonisolated struct GeminiPart: Codable, Sendable {
-    let text: String
-}
-
-nonisolated struct GeminiRequest: Codable, Sendable {
-    let contents: [GeminiContent]
-    let systemInstruction: GeminiContent?
-    let generationConfig: GeminiGenerationConfig?
-}
-
-nonisolated struct GeminiGenerationConfig: Codable, Sendable {
+nonisolated struct GroqRequest: Codable, Sendable {
+    let model: String
+    let messages: [GroqMessage]
     let temperature: Double?
-    let maxOutputTokens: Int?
+    let max_tokens: Int?
 }
 
-nonisolated struct GeminiResponse: Codable, Sendable {
-    let candidates: [GeminiCandidate]?
-    let error: GeminiError?
+nonisolated struct GroqResponse: Codable, Sendable {
+    let choices: [GroqChoice]?
+    let error: GroqError?
 }
 
-nonisolated struct GeminiCandidate: Codable, Sendable {
-    let content: GeminiCandidateContent?
+nonisolated struct GroqChoice: Codable, Sendable {
+    let message: GroqChoiceMessage?
 }
 
-nonisolated struct GeminiCandidateContent: Codable, Sendable {
-    let parts: [GeminiPart]?
+nonisolated struct GroqChoiceMessage: Codable, Sendable {
+    let role: String?
+    let content: String?
 }
 
-nonisolated struct GeminiError: Codable, Sendable {
+nonisolated struct GroqError: Codable, Sendable {
     let message: String?
-    let code: Int?
+    let type: String?
 }
 
 struct CoachMessage: Identifiable, Equatable {
@@ -113,7 +106,7 @@ class AICoachService {
     var tokensRemaining: Int = 0
     var isAtLimit = false
 
-    private var conversationHistory: [GeminiContent] = []
+    private var conversationHistory: [GroqMessage] = []
     private let systemPrompt: String
     private let playerName: String
     private let position: String
@@ -262,7 +255,7 @@ class AICoachService {
         let userMessage = CoachMessage(role: .user, content: text)
         messages.append(userMessage)
 
-        conversationHistory.append(GeminiContent(role: "user", parts: [GeminiPart(text: text)]))
+        conversationHistory.append(GroqMessage(role: "user", content: text))
 
         isLoading = true
         errorMessage = nil
@@ -275,7 +268,7 @@ class AICoachService {
 
         lastFailedUserText = nil
 
-        let apiKey = Config.EXPO_PUBLIC_GEMINI_API_KEY
+        let apiKey = Config.EXPO_PUBLIC_GROQ_API_KEY
         guard !apiKey.isEmpty else {
             let fallback = CoachMessage(role: .coach, content: "AI Coach is not configured yet. Please try again later.")
             messages.append(fallback)
@@ -283,23 +276,27 @@ class AICoachService {
             return
         }
 
-        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+        let endpoint = "https://api.groq.com/openai/v1/chat/completions"
         guard let url = URL(string: endpoint) else {
             errorMessage = "Invalid API configuration"
             return
         }
 
-        let requestBody = GeminiRequest(
-            contents: conversationHistory,
-            systemInstruction: GeminiContent(role: "user", parts: [GeminiPart(text: systemPrompt)]),
-            generationConfig: GeminiGenerationConfig(temperature: 0.8, maxOutputTokens: 1024)
+        var allMessages = [GroqMessage(role: "system", content: systemPrompt)]
+        allMessages.append(contentsOf: conversationHistory)
+
+        let requestBody = GroqRequest(
+            model: "llama-3.3-70b-versatile",
+            messages: allMessages,
+            temperature: 0.8,
+            max_tokens: 1024
         )
 
         do {
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = "POST"
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            urlRequest.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
+            urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
             urlRequest.httpBody = try JSONEncoder().encode(requestBody)
             urlRequest.timeoutInterval = 30
 
@@ -307,10 +304,9 @@ class AICoachService {
 
             guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                 let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-                let rawBody = String(data: data, encoding: .utf8) ?? "no body"
                 var detail = "error \(statusCode)"
-                if let geminiResp = try? JSONDecoder().decode(GeminiResponse.self, from: data),
-                   let errMsg = geminiResp.error?.message {
+                if let groqResp = try? JSONDecoder().decode(GroqResponse.self, from: data),
+                   let errMsg = groqResp.error?.message {
                     detail = errMsg
                 }
                 errorMessage = detail
@@ -321,9 +317,9 @@ class AICoachService {
                 return
             }
 
-            let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+            let groqResponse = try JSONDecoder().decode(GroqResponse.self, from: data)
 
-            guard let responseText = geminiResponse.candidates?.first?.content?.parts?.first?.text,
+            guard let responseText = groqResponse.choices?.first?.message?.content,
                   !responseText.isEmpty else {
                 conversationHistory.removeLast()
                 lastFailedUserText = text
@@ -335,7 +331,7 @@ class AICoachService {
             let tokensUsed = max(1, responseText.count / 40)
             let coachMessage = CoachMessage(role: .coach, content: responseText)
             messages.append(coachMessage)
-            conversationHistory.append(GeminiContent(role: "model", parts: [GeminiPart(text: responseText)]))
+            conversationHistory.append(GroqMessage(role: "assistant", content: responseText))
             recordTokensUsed(tokensUsed)
             extractAndSaveMemory(userText: userMessage.content, coachText: responseText)
         } catch is URLError {
