@@ -29,7 +29,6 @@ struct OnboardingView: View {
     let storage: StorageService
     @State private var storeVM = StoreViewModel()
     @State private var currentStep: Int = 0
-    @State private var name: String = ""
     @State private var position: PlayerPosition = .midfielder
     @State private var ageRange: AgeRange = .fifteen18
     @State private var gender: PlayerGender = .male
@@ -40,9 +39,8 @@ struct OnboardingView: View {
     @State private var isPurchasing: Bool = false
     @State private var isRestoring: Bool = false
     @State private var showLegalPage: LegalPage?
-    @FocusState private var isNameFocused: Bool
 
-    private let totalSteps = 9
+    private let totalSteps = 8
 
     var body: some View {
         ZStack {
@@ -58,20 +56,19 @@ struct OnboardingView: View {
                 .padding(.horizontal, 20)
 
                 TabView(selection: $currentStep) {
-                    nameStep.tag(0)
-                    positionStep.tag(1)
-                    ageStep.tag(2)
-                    genderStep.tag(3)
-                    skillLevelStep.tag(4)
-                    weaknessStep.tag(5)
-                    painStep.tag(6)
-                    socialProofStep.tag(7)
-                    paywallStep.tag(8)
+                    positionStep.tag(0)
+                    ageStep.tag(1)
+                    genderStep.tag(2)
+                    skillLevelStep.tag(3)
+                    weaknessStep.tag(4)
+                    painStep.tag(5)
+                    socialProofStep.tag(6)
+                    paywallStep.tag(7)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 8 {
+                if currentStep < 7 {
                     continueButton
                 }
             }
@@ -133,64 +130,6 @@ struct OnboardingView: View {
         }
         .frame(height: 5)
         .padding(.trailing, 16)
-    }
-
-    // MARK: - Name Step
-
-    private var nameStep: some View {
-        VStack(spacing: 32) {
-            Spacer()
-
-            ZStack {
-                Circle()
-                    .fill(KickIQAICoachTheme.accent.opacity(0.08))
-                    .frame(width: 100, height: 100)
-
-                Image(systemName: "person.text.rectangle.fill")
-                    .font(.system(size: 40, weight: .bold))
-                    .foregroundStyle(KickIQAICoachTheme.accent)
-                    .symbolEffect(.bounce, value: currentStep == 0)
-            }
-
-            VStack(spacing: 12) {
-                Text("WHAT'S YOUR NAME?")
-                    .font(.system(size: 24, weight: .black).width(.compressed))
-                    .tracking(3)
-                    .foregroundStyle(.white)
-
-                Text("Your coach needs to know who they're training")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.5))
-                    .multilineTextAlignment(.center)
-            }
-
-            TextField("", text: $name, prompt: Text("Enter your name").foregroundStyle(.white.opacity(0.25)))
-                .font(.title3.weight(.bold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.white.opacity(0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(name.isEmpty ? Color.white.opacity(0.08) : KickIQAICoachTheme.accent.opacity(0.5), lineWidth: 1)
-                        )
-                )
-                .padding(.horizontal, 40)
-                .focused($isNameFocused)
-                .submitLabel(.continue)
-                .onSubmit {
-                    if !name.trimmingCharacters(in: .whitespaces).isEmpty {
-                        withAnimation(.spring(response: 0.4)) { currentStep += 1 }
-                    }
-                }
-
-            Spacer()
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .onAppear { isNameFocused = true }
     }
 
     // MARK: - Position Step
@@ -800,7 +739,7 @@ struct OnboardingView: View {
 
     private func completeOnboarding() {
         let profile = PlayerProfile(
-            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? "Player" : name.trimmingCharacters(in: .whitespaces),
+            name: "Player",
             position: position,
             ageRange: ageRange,
             skillLevel: skillLevel,

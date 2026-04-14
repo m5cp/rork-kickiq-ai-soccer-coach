@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModels
 
 nonisolated struct GroqMessage: Codable, Sendable {
     let role: String
@@ -244,6 +245,8 @@ class AICoachService {
         messages.append(greeting)
     }
 
+    private let appleSessionHolder = AppleAISessionHolder()
+
     func sendMessage(_ text: String) async {
         refreshTokenBudget()
         guard !isAtLimit else {
@@ -268,9 +271,42 @@ class AICoachService {
 
         lastFailedUserText = nil
 
+        if #available(iOS 26.0, *), SystemLanguageModel.default.isAvailable {
+            await sendViaAppleIntelligence(text: text, userMessage: userMessage)
+        } else {
+            await sendViaGroq(text: text, userMessage: userMessage)
+        }
+    }
+
+    @available(iOS 26.0, *)
+    private func sendViaAppleIntelligence(text: String, userMessage: CoachMessage) async {
+        let session = appleSessionHolder.getOrCreate(instructions: systemPrompt)
+        do {
+            let response = try await session.respond(to: text)
+            let responseText = response.content
+            guard !responseText.isEmpty else {
+                conversationHistory.removeLast()
+                lastFailedUserText = text
+                let fallback = CoachMessage(role: .coach, content: "Coach couldn't generate a response. Tap retry to try again.")
+                messages.append(fallback)
+                return
+            }
+            let tokensUsed = max(1, responseText.count / 40)
+            let coachMessage = CoachMessage(role: .coach, content: responseText)
+            messages.append(coachMessage)
+            conversationHistory.append(GroqMessage(role: "assistant", content: responseText))
+            recordTokensUsed(tokensUsed)
+            extractAndSaveMemory(userText: userMessage.content, coachText: responseText)
+        } catch {
+            await sendViaGroq(text: text, userMessage: userMessage)
+        }
+    }
+
+    private func sendViaGroq(text: String, userMessage: CoachMessage) async {
         let apiKey = Config.EXPO_PUBLIC_GROQ_API_KEY
         guard !apiKey.isEmpty else {
-            let fallback = CoachMessage(role: .coach, content: "AI Coach is not configured yet. Please try again later.")
+            let offlineResponse = getOfflineResponse(for: text)
+            let fallback = CoachMessage(role: .coach, content: offlineResponse)
             messages.append(fallback)
             conversationHistory.removeLast()
             return
@@ -323,7 +359,7 @@ class AICoachService {
                   !responseText.isEmpty else {
                 conversationHistory.removeLast()
                 lastFailedUserText = text
-                let fallback = CoachMessage(role: .coach, content: "Message failed (empty response from AI). No tokens used — tap retry or send again.")
+                let fallback = CoachMessage(role: .coach, content: "Message failed (empty response). No tokens used — tap retry or send again.")
                 messages.append(fallback)
                 return
             }
@@ -364,6 +400,7 @@ class AICoachService {
     func clearHistory() {
         messages.removeAll()
         conversationHistory.removeAll()
+        appleSessionHolder.reset()
         clearCache()
     }
 
@@ -422,4 +459,25 @@ class AICoachService {
 nonisolated struct CachedMessage: Codable, Sendable {
     let role: String
     let content: String
+}
+
+@MainActor
+final class AppleAISessionHolder {
+    private var session: Any?
+
+    @available(iOS 26.0, *)
+    func getOrCreate(instructions: String) -> LanguageModelSession {
+        if let existing = session as? LanguageModelSession {
+            return existing
+        }
+        let newSession = LanguageModelSession {
+            instructions
+        }
+        session = newSession
+        return newSession
+    }
+
+    func reset() {
+        session = nil
+    }
 }
