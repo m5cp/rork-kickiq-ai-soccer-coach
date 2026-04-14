@@ -283,7 +283,7 @@ class AICoachService {
             return
         }
 
-        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=\(apiKey)"
+        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
         guard let url = URL(string: endpoint) else {
             errorMessage = "Invalid API configuration"
             return
@@ -299,6 +299,7 @@ class AICoachService {
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = "POST"
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            urlRequest.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
             urlRequest.httpBody = try JSONEncoder().encode(requestBody)
             urlRequest.timeoutInterval = 30
 
@@ -306,15 +307,16 @@ class AICoachService {
 
             guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
                 let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                let rawBody = String(data: data, encoding: .utf8) ?? "no body"
+                var detail = "error \(statusCode)"
                 if let geminiResp = try? JSONDecoder().decode(GeminiResponse.self, from: data),
                    let errMsg = geminiResp.error?.message {
-                    errorMessage = "Coach error: \(errMsg)"
-                } else {
-                    errorMessage = "Coach unavailable (error \(statusCode)). Try again."
+                    detail = errMsg
                 }
+                errorMessage = detail
                 conversationHistory.removeLast()
                 lastFailedUserText = text
-                let errorMsg = CoachMessage(role: .coach, content: "Message failed — no tokens used. Tap retry or send again.")
+                let errorMsg = CoachMessage(role: .coach, content: "Message failed (\(detail)). No tokens used — tap retry or send again.")
                 messages.append(errorMsg)
                 return
             }
@@ -325,7 +327,7 @@ class AICoachService {
                   !responseText.isEmpty else {
                 conversationHistory.removeLast()
                 lastFailedUserText = text
-                let fallback = CoachMessage(role: .coach, content: "Message failed — no tokens used. Tap retry or send again.")
+                let fallback = CoachMessage(role: .coach, content: "Message failed (empty response from AI). No tokens used — tap retry or send again.")
                 messages.append(fallback)
                 return
             }
