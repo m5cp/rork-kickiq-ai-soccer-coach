@@ -1,35 +1,51 @@
-# KickIQ: AI Soccer Coach — Premium Dark Training App
+# KickIQ Overhaul — Phase 1: Home Redesign, Drills Page Fixes, Calendar & AI Summaries
 
-## Features
 
-- **Onboarding flow** — Enter your name, select your position (Goalkeeper, Defender, Midfielder, Forward), choose skill level (Beginner, Intermediate, Advanced), and set a training goal
-- **AI video analysis** — Pick a training video from your photo library, the app extracts key frames and sends them to AI for real coaching feedback with per-skill scoring (e.g. Ball Control 7/10, Positioning 8/10)
-- **Position-specific feedback** — AI tailors its analysis and drill recommendations based on your selected position
-- **Skill score tracking** — Every analysis session saves scores, viewable over time as progress charts
-- **Daily training streak** — Tracks consecutive days you've analyzed a session, with a flame icon and streak counter on the home dashboard
-- **Shareable progress cards** — Generate a bold, branded image card showing your latest scores to share with friends or coaches
-- **Drill recommendations** — After each analysis, receive 3–5 position-specific drills to improve weak areas
-- **Home dashboard** — See your streak, latest session scores, overall skill rating, and quick-start button to analyze a new video
+This is a comprehensive update split into two phases, both delivered back-to-back without pause.
 
-## Design
+---
 
-- **Dark theme throughout** — Deep black/charcoal backgrounds inspired by Whoop and Nike Training Club
-- **Bold orange accent color** — Used for primary buttons, progress indicators, highlights, and the streak flame
-- **Typography** — SF Pro with heavy/bold weights for headings, creating an athletic, premium feel. Compressed width for large titles
-- **Cards** — Dark charcoal cards (`Color(white: 0.12)`) with subtle rounded corners and orange accent borders or highlights
-- **Progress charts** — Custom-drawn skill radar/bar charts in orange gradients against dark backgrounds
-- **Animations** — Spring animations on score reveals, bounce effects on streak milestones, symbol effects on navigation icons
-- **Haptics** — Impact feedback on video upload, success feedback on analysis complete, selection feedback on position picker
+## Phase 1 — UI Fixes, Home Redesign & Drills Page
 
-## Screens
+### Naming Fixes
+- Home page "DRILLS" card → renamed to **"SKILLS"**
+- Home page "FITNESS" card → renamed to **"CONDITIONING"**
+- Drills tab title stays "Drills" but the Skills/Conditioning toggle labels are consistent
 
-1. **Onboarding (3 steps)** — Welcome screen with app name and tagline → Position & skill level picker → Name and training goal input. Bold orange accents on dark background, large athletic typography
-2. **Home (Dashboard)** — Training streak with flame icon, overall skill rating circle, latest session summary card, "Analyze New Session" prominent button, quick stats row
-3. **Analyze** — Video picker from photo library, position confirmation, loading state with athletic animation while AI processes, results screen with per-skill scores and drill recommendations
-4. **Progress** — Skill score history as bar charts over time, filterable by skill category, overall rating trend line
-5. **Profile** — Player name, position badge, skill level, total sessions analyzed, settings (reset onboarding, about)
+### Home Screen Redesign
+- **Remove** the two generator cards (Skills Generator / Conditioning Generator) from the Home screen — they're redundant
+- **Replace with "Today's Training"** section:
+  - If the user has an active plan, show today's scheduled drills and conditioning with a quick-glance card (drill names, focus area, estimated time)
+  - If no plan exists, auto-suggest drills based on the player's weakest areas (3–4 drills + 1–2 conditioning exercises), with a nudge to generate a full plan from the Drills tab
+  - Each drill in the Today's Training section is tappable to see details
+- Keep all other Home sections (Progress, Training, Benchmark, Focus Areas) as-is
 
-## App Icon
+### Drills Tab Enhancements
+- **Add plan generator access** directly on the Drills page — "Generate Skills Plan" and "Generate Conditioning Plan" buttons are now accessible from the Drills tab itself (within each Skills/Conditioning segment)
+- **Add "Reset Plan" option** — a button on the Drills page to clear/reset the active Skills or Conditioning plan, with a confirmation prompt
 
-- Dark background with a bold orange soccer ball silhouette combined with a subtle AI/brain circuit pattern, creating a tech-meets-sport feel. Clean and recognizable at small sizes.
+---
 
+## Phase 2 — Training Calendar & AI Weekly Summaries
+
+### Training Calendar (Progress Tab)
+- **Calendar button** in the Progress tab toolbar that opens a full calendar view
+- Calendar shows color-coded dots on days: past training days (completed), today, future planned days
+- **Tap any day** to see a detail sheet showing:
+  - Drills and conditioning completed that day
+  - Duration, reps, or other stats recorded
+  - A notes field where the user can annotate what they did, how long, speed, perceived effort, or any freeform text
+  - Annotations are saved and visible when revisiting that day
+
+### AI Weekly Training Summary
+- **Auto-generated every week** (Sunday evening) — appears as a card on the Home screen
+- **Also available on demand** — "Weekly Summary" button in the Progress tab
+- Uses **Groq (cloud AI)** for consistent, high-quality output — same engine as the coach chat
+- The summary reads like a **coach's weekly report**: natural language covering training volume, skills practiced, benchmark improvements, streak status, and encouragement
+- Apple Intelligence is used where appropriate (e.g., on-device text refinement if available on iOS 26+ devices)
+- The AI has access to **coach chat history** (via the existing coach memory system) so it can reference topics the player discussed and weave them into the summary
+
+### Design
+- Calendar view uses a clean month-grid layout with the app's accent color for training days
+- Weekly summary card on Home has a distinct coach-style design — quote-like layout with a subtle accent border
+- All new UI follows the existing KickIQ theme (accent colors, card styles, typography)

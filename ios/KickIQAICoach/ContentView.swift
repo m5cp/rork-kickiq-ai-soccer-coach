@@ -98,6 +98,7 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: 0) {
                 HomeView(storage: storage, customContentService: customContentService, selectedTab: $selectedTab, storeVM: storeVM)
+                    .environment(customContentService)
             }
 
             Tab("Benchmark", systemImage: "chart.bar.doc.horizontal.fill", value: 1) {

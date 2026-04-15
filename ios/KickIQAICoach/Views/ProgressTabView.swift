@@ -10,6 +10,10 @@ struct ProgressTabView: View {
     @State private var showComparison = false
     @State private var showBenchmarkResults = false
     @State private var benchmarkService = BenchmarkService()
+    @State private var showCalendar = false
+    @State private var showWeeklySummary = false
+    @State private var summaryService = WeeklySummaryService()
+    @State private var generatedSummary: String?
 
     private var position: PlayerPosition {
         storage.profile?.position ?? .midfielder
@@ -19,6 +23,8 @@ struct ProgressTabView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: KickIQAICoachTheme.Spacing.md + 4) {
+                    weeklySummaryButton
+
                     if storage.sessions.isEmpty && storage.benchmarkResults.isEmpty {
                         emptyState
                     } else {
@@ -51,6 +57,22 @@ struct ProgressTabView: View {
             .background(KickIQAICoachTheme.background.ignoresSafeArea())
             .navigationTitle("Progress")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showCalendar = true
+                    } label: {
+                        Image(systemName: "calendar")
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                    }
+                }
+            }
+            .sheet(isPresented: $showCalendar) {
+                TrainingCalendarView(storage: storage)
+            }
+            .sheet(isPresented: $showWeeklySummary) {
+                WeeklySummarySheet(storage: storage, summaryService: summaryService)
+            }
             .sheet(item: $selectedSession) { session in
                 NavigationStack {
                     AnalysisResultView(session: session, storage: storage) {
@@ -841,6 +863,50 @@ struct ProgressTabView: View {
         }
         .padding(KickIQAICoachTheme.Spacing.sm + 2)
         .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
+    }
+
+    // MARK: - Weekly Summary Button
+    private var weeklySummaryButton: some View {
+        Button {
+            showWeeklySummary = true
+        } label: {
+            HStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(KickIQAICoachTheme.accent.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "brain.head.profile.fill")
+                        .font(.title3)
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Weekly Summary")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    Text(storage.weeklySummary != nil ? "Tap to view or regenerate" : "Generate an AI coaching report")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
+            }
+            .padding(KickIQAICoachTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                    .fill(KickIQAICoachTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                            .stroke(KickIQAICoachTheme.accent.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 15)
     }
 
     // MARK: - Share Progress

@@ -31,6 +31,9 @@ class StorageService {
     var benchmarkResults: [BenchmarkResult] = []
     var tokenBalance: Int = 0
     var coachMemory: [CoachMemoryEntry] = []
+    var weeklySummary: String?
+    var weeklySummaryDate: Date?
+    var trainingAnnotations: [TrainingAnnotation] = []
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -58,6 +61,9 @@ class StorageService {
     private let benchmarkResultsKey = "kickiq_benchmark_results"
     private let tokenBalanceKey = "kickiq_token_balance"
     private let coachMemoryKey = "kickiq_coach_memory"
+    private let weeklySummaryKey = "kickiq_weekly_summary"
+    private let weeklySummaryDateKey = "kickiq_weekly_summary_date"
+    private let trainingAnnotationsKey = "kickiq_training_annotations"
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -144,6 +150,14 @@ class StorageService {
            let decoded = try? JSONDecoder().decode([CoachMemoryEntry].self, from: data) {
             coachMemory = decoded
         }
+        weeklySummary = UserDefaults.standard.string(forKey: weeklySummaryKey)
+        if let interval = UserDefaults.standard.object(forKey: weeklySummaryDateKey) as? TimeInterval {
+            weeklySummaryDate = Date(timeIntervalSince1970: interval)
+        }
+        if let data = UserDefaults.standard.data(forKey: trainingAnnotationsKey),
+           let decoded = try? JSONDecoder().decode([TrainingAnnotation].self, from: data) {
+            trainingAnnotations = decoded
+        }
 
         updateDailyDrillSeed()
         updateStreak()
@@ -223,6 +237,17 @@ class StorageService {
             if let data = try? JSONEncoder().encode(plan) {
                 UserDefaults.standard.set(data, forKey: conditioningPlanKey)
             }
+        }
+    }
+
+    func clearPlan(_ planType: GeneratedPlanType) {
+        switch planType {
+        case .skills:
+            skillsPlan = nil
+            UserDefaults.standard.removeObject(forKey: skillsPlanKey)
+        case .conditioning:
+            conditioningPlan = nil
+            UserDefaults.standard.removeObject(forKey: conditioningPlanKey)
         }
     }
 
@@ -339,6 +364,32 @@ class StorageService {
     func deductTokens(_ amount: Int) {
         tokenBalance = max(0, tokenBalance - amount)
         UserDefaults.standard.set(tokenBalance, forKey: tokenBalanceKey)
+    }
+
+    func saveWeeklySummary(_ summary: String) {
+        weeklySummary = summary
+        weeklySummaryDate = .now
+        UserDefaults.standard.set(summary, forKey: weeklySummaryKey)
+        UserDefaults.standard.set(Date.now.timeIntervalSince1970, forKey: weeklySummaryDateKey)
+    }
+
+    func saveAnnotation(_ annotation: TrainingAnnotation) {
+        if let index = trainingAnnotations.firstIndex(where: { Calendar.current.isDate($0.date, inSameDayAs: annotation.date) }) {
+            trainingAnnotations[index] = annotation
+        } else {
+            trainingAnnotations.append(annotation)
+        }
+        if let data = try? JSONEncoder().encode(trainingAnnotations) {
+            UserDefaults.standard.set(data, forKey: trainingAnnotationsKey)
+        }
+    }
+
+    func annotationForDate(_ date: Date) -> TrainingAnnotation? {
+        trainingAnnotations.first(where: { Calendar.current.isDate($0.date, inSameDayAs: date) })
+    }
+
+    func drillCompletionsForDate(_ date: Date) -> [DrillCompletion] {
+        drillCompletionHistory.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
     }
 
     func addCoachMemory(_ entry: CoachMemoryEntry) {

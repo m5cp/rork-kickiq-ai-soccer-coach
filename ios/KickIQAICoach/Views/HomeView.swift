@@ -13,6 +13,10 @@ struct HomeView: View {
     @State private var showWeeklyGoal = false
     @State private var showTrainingPlan = false
     @State private var showTokenPacks = false
+    @State private var selectedDrill: Drill?
+    @State private var completedTrigger: Int = 0
+    @State private var drillsService = DrillsService()
+    @State private var conditioningService = ConditioningDrillsService()
     var storeVM: StoreViewModel
 
     private var greeting: String {
@@ -31,11 +35,15 @@ struct HomeView: View {
                     headerSection
                         .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
 
-                    VStack(spacing: KickIQAICoachTheme.Spacing.md) {
-                        trainingCategoryCards
+                    sectionBlock(title: "TODAY'S TRAINING", icon: "calendar.badge.clock") {
+                        todaysTrainingContent
                     }
-                    .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
-                    .padding(.top, KickIQAICoachTheme.Spacing.md)
+
+                    if let summary = storage.weeklySummary, !summary.isEmpty {
+                        sectionBlock(title: "COACH'S WEEKLY REPORT", icon: "quote.opening") {
+                            weeklySummaryCard(summary)
+                        }
+                    }
 
                     sectionBlock(title: "YOUR PROGRESS", icon: "chart.bar.fill") {
                         VStack(spacing: KickIQAICoachTheme.Spacing.sm + 4) {
@@ -100,20 +108,12 @@ struct HomeView: View {
             .sheet(isPresented: $showTokenPacks) {
                 TokenPacksView(storage: storage, storeVM: storeVM, showSubscriptionUpsell: !storeVM.isPremium)
             }
-            .navigationDestination(for: String.self) { destination in
-                switch destination {
-                case "skills":
-                    SkillsDrillsView(storage: storage, customContentService: customContentService)
-                case "conditioning":
-                    ConditioningDrillsView(storage: storage, customContentService: customContentService)
-                case "myContent":
-                    CustomContentLibraryView(customContentService: customContentService, storage: storage)
-                default:
-                    EmptyView()
-                }
+            .sheet(item: $selectedDrill) { drill in
+                DrillDetailSheet(drill: drill, storage: storage, drillsService: drillsService, completedTrigger: $completedTrigger)
             }
         }
         .onAppear {
+            loadDrillsIfNeeded()
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 withAnimation(.spring(response: 1.0, dampingFraction: 0.7)) { scoreAnimated = true }
@@ -126,6 +126,251 @@ struct HomeView: View {
             checkReviewPrompt()
         }
     }
+
+    private func loadDrillsIfNeeded() {
+        guard let profile = storage.profile else { return }
+        if drillsService.allDrills.isEmpty {
+            drillsService.loadDrills(for: profile.position, weakness: profile.weakness, skillLevel: profile.skillLevel)
+        }
+        if conditioningService.conditioningDrills.isEmpty {
+            conditioningService.loadDrills(for: profile.skillLevel)
+        }
+    }
+
+    // MARK: - Today's Training
+
+    @ViewBuilder
+    private var todaysTrainingContent: some View {
+        if let skillsPlan = storage.skillsPlan, let conditioningPlan = storage.conditioningPlan {
+            todaysPlannedTraining(skillsPlan: skillsPlan, conditioningPlan: conditioningPlan)
+        } else if let skillsPlan = storage.skillsPlan {
+            todaysPlannedTraining(skillsPlan: skillsPlan, conditioningPlan: nil)
+        } else if let conditioningPlan = storage.conditioningPlan {
+            todaysPlannedTraining(skillsPlan: nil, conditioningPlan: conditioningPlan)
+        } else {
+            todaysSuggestedTraining
+        }
+    }
+
+    private func todaysPlannedTraining(skillsPlan: GeneratedPlan?, conditioningPlan: GeneratedPlan?) -> some View {
+        let calendar = Calendar.current
+        let dayOfWeek = calendar.component(.weekday, from: .now)
+        let dayIndex = (dayOfWeek + 5) % 7
+
+        var todaysDrills: [Drill] = []
+        var focusLabel = ""
+
+        if let plan = skillsPlan, let week = plan.weeks.first {
+            let days = week.days.filter { !$0.restDay }
+            if !days.isEmpty {
+                let day = days[dayIndex % days.count]
+                todaysDrills.append(contentsOf: day.drills)
+                focusLabel = day.focus
+            }
+        }
+
+        if let plan = conditioningPlan, let week = plan.weeks.first {
+            let days = week.days.filter { !$0.restDay }
+            if !days.isEmpty {
+                let day = days[dayIndex % days.count]
+                todaysDrills.append(contentsOf: day.drills)
+                if focusLabel.isEmpty {
+                    focusLabel = day.focus
+                } else {
+                    focusLabel += " + \(day.focus)"
+                }
+            }
+        }
+
+        let totalMinutes = todaysDrills.reduce(0) { $0 + parseDrillMinutes($1.duration) }
+
+        return VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(focusLabel)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    Text("\(todaysDrills.count) exercises · ~\(totalMinutes) min")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: "doc.text.fill")
+                        .font(.system(size: 10))
+                    Text("From Plan")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .foregroundStyle(.green)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(.green.opacity(0.12), in: Capsule())
+            }
+
+            ForEach(todaysDrills.prefix(6)) { drill in
+                Button {
+                    selectedDrill = drill
+                } label: {
+                    todayDrillRow(drill)
+                }
+            }
+
+            if todaysDrills.count > 6 {
+                Text("+\(todaysDrills.count - 6) more")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+    }
+
+    private var todaysSuggestedTraining: some View {
+        let suggestedSkills = Array(drillsService.filteredDrills(weakestSkills: storage.weakestSkills).prefix(3))
+        let suggestedConditioning = Array(conditioningService.conditioningDrills.prefix(2))
+        let allSuggested = suggestedSkills + suggestedConditioning
+        let totalMinutes = allSuggested.reduce(0) { $0 + parseDrillMinutes($1.duration) }
+
+        return VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+            if allSuggested.isEmpty {
+                VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                    Image(systemName: "figure.soccer")
+                        .font(.system(size: 32))
+                        .foregroundStyle(KickIQAICoachTheme.accent.opacity(0.5))
+                    Text("Complete your profile to see\npersonalized training suggestions")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, KickIQAICoachTheme.Spacing.md)
+            } else {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Suggested for You")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                        Text("\(allSuggested.count) exercises · ~\(totalMinutes) min")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 10))
+                        Text("Auto")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(KickIQAICoachTheme.accent.opacity(0.12), in: Capsule())
+                }
+
+                ForEach(allSuggested) { drill in
+                    Button {
+                        selectedDrill = drill
+                    } label: {
+                        todayDrillRow(drill)
+                    }
+                }
+
+                Button {
+                    selectedTab = 2
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12))
+                        Text("Generate a Full Plan")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(KickIQAICoachTheme.accent.opacity(0.1), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                }
+                .padding(.top, KickIQAICoachTheme.Spacing.xs)
+            }
+        }
+    }
+
+    private func todayDrillRow(_ drill: Drill) -> some View {
+        let isCompleted = storage.completedDrillIDs.contains(drill.id)
+
+        return HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isCompleted ? Color.green.opacity(0.12) : KickIQAICoachTheme.accent.opacity(0.1))
+                    .frame(width: 36, height: 36)
+                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 16))
+                    .foregroundStyle(isCompleted ? .green : KickIQAICoachTheme.accent.opacity(0.5))
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(drill.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isCompleted ? KickIQAICoachTheme.textSecondary : KickIQAICoachTheme.textPrimary)
+                    .lineLimit(1)
+                    .strikethrough(isCompleted, color: KickIQAICoachTheme.textSecondary)
+                HStack(spacing: 6) {
+                    Text(drill.targetSkill)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                    Text("·")
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.4))
+                    Text(drill.duration)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
+        }
+        .padding(KickIQAICoachTheme.Spacing.sm)
+        .background(Color(.tertiarySystemGroupedBackground), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
+    }
+
+    // MARK: - Weekly Summary Card
+
+    private func weeklySummaryCard(_ summary: String) -> some View {
+        VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+            HStack(spacing: 8) {
+                Image(systemName: "brain.head.profile.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                Text("AI Coach")
+                    .font(.caption.weight(.black))
+                    .tracking(0.5)
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                Spacer()
+                if let date = storage.weeklySummaryDate {
+                    Text(date, style: .relative)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.5))
+                }
+            }
+
+            Text(summary)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(KickIQAICoachTheme.textPrimary.opacity(0.85))
+                .lineSpacing(4)
+                .lineLimit(6)
+        }
+        .padding(2)
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(KickIQAICoachTheme.accent)
+                .frame(width: 3)
+                .padding(.vertical, 4)
+                .offset(x: -KickIQAICoachTheme.Spacing.md - 2)
+        }
+    }
+
+    // MARK: - Section Block
 
     private func sectionBlock<Content: View>(title: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm + 2) {
@@ -149,6 +394,8 @@ struct HomeView: View {
         }
         .padding(.top, KickIQAICoachTheme.Spacing.lg)
     }
+
+    // MARK: - Header
 
     private var headerSection: some View {
         ZStack(alignment: .bottomLeading) {
@@ -265,130 +512,7 @@ struct HomeView: View {
         .offset(y: appeared ? 0 : 10)
     }
 
-    private var trainingCategoryCards: some View {
-        HStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
-            NavigationLink(value: "skills") {
-                VStack(alignment: .leading, spacing: 0) {
-                    ZStack {
-                        Circle()
-                            .fill(KickIQAICoachTheme.accent.opacity(0.2))
-                            .frame(width: 48, height: 48)
-                        Image(systemName: "figure.soccer")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.accent)
-                    }
-                    .padding(.bottom, 12)
-
-                    Text("DRILLS")
-                        .font(.system(.headline, design: .default, weight: .black))
-                        .tracking(1)
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                        .padding(.bottom, 2)
-
-                    Text("GENERATOR")
-                        .font(.system(.caption, design: .default, weight: .black))
-                        .tracking(1)
-                        .foregroundStyle(KickIQAICoachTheme.accent)
-                        .padding(.bottom, 8)
-
-                    if storage.skillsPlan != nil {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 9))
-                                .foregroundStyle(.green)
-                            Text("Active Plan")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.green)
-                        }
-                    } else {
-                        Text("Tap to explore")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(KickIQAICoachTheme.Spacing.md)
-                .frame(height: 170)
-                .background(
-                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                        .fill(
-                            LinearGradient(
-                                colors: [KickIQAICoachTheme.accent.opacity(0.15), KickIQAICoachTheme.accent.opacity(0.05)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                                .stroke(KickIQAICoachTheme.accent.opacity(0.25), lineWidth: 1)
-                        )
-                )
-            }
-            .sensoryFeedback(.impact(weight: .light), trigger: appeared)
-
-            NavigationLink(value: "conditioning") {
-                VStack(alignment: .leading, spacing: 0) {
-                    ZStack {
-                        Circle()
-                            .fill(KickIQAICoachTheme.accent.opacity(0.2))
-                            .frame(width: 48, height: 48)
-                        Image(systemName: "heart.circle.fill")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.accent)
-                    }
-                    .padding(.bottom, 12)
-
-                    Text("FITNESS")
-                        .font(.system(.headline, design: .default, weight: .black))
-                        .tracking(1)
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                        .padding(.bottom, 2)
-
-                    Text("GENERATOR")
-                        .font(.system(.caption, design: .default, weight: .black))
-                        .tracking(1)
-                        .foregroundStyle(KickIQAICoachTheme.accent)
-                        .padding(.bottom, 8)
-
-                    if storage.conditioningPlan != nil {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 9))
-                                .foregroundStyle(.green)
-                            Text("Active Plan")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.green)
-                        }
-                    } else {
-                        Text("Tap to explore")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(KickIQAICoachTheme.Spacing.md)
-                .frame(height: 170)
-                .background(
-                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                        .fill(
-                            LinearGradient(
-                                colors: [KickIQAICoachTheme.accent.opacity(0.15), KickIQAICoachTheme.accent.opacity(0.05)],
-                                startPoint: .topTrailing,
-                                endPoint: .bottomLeading
-                            )
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.xl)
-                                .stroke(KickIQAICoachTheme.accent.opacity(0.25), lineWidth: 1)
-                        )
-                )
-            }
-            .sensoryFeedback(.impact(weight: .light), trigger: appeared)
-        }
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.spring(response: 0.5).delay(0.03), value: appeared)
-    }
+    // MARK: - Progress Cards
 
     private var skillScoreCard: some View {
         let score = storage.skillScore
@@ -797,7 +921,7 @@ struct HomeView: View {
         }
     }
 
-
+    // MARK: - Helpers
 
     private var formattedHomeTokenBalance: String {
         let balance = storage.tokenBalance
@@ -805,6 +929,11 @@ struct HomeView: View {
             return String(format: "%.1fK", Double(balance) / 1_000.0)
         }
         return "\(balance)"
+    }
+
+    private func parseDrillMinutes(_ duration: String) -> Int {
+        let numbers = duration.components(separatedBy: CharacterSet.decimalDigits.inverted).compactMap { Int($0) }
+        return numbers.first ?? 10
     }
 
     private func checkReviewPrompt() {

@@ -7,6 +7,12 @@ struct DrillsView: View {
     @State private var conditioningService = ConditioningDrillsService()
     @State private var appeared = false
     @State private var selectedCategory: DrillCategory = .skills
+    @State private var showGenerateSkillsPlan = false
+    @State private var showGenerateConditioningPlan = false
+    @State private var showSkillsPlanDetail = false
+    @State private var showConditioningPlanDetail = false
+    @State private var showResetConfirmation = false
+    @State private var resetPlanType: GeneratedPlanType = .skills
 
     private let cardGradients: [Color] = [
         Color(hex: 0x1A6B4A),
@@ -28,8 +34,10 @@ struct DrillsView: View {
                     categoryPicker
 
                     if selectedCategory == .skills {
+                        skillsPlanSection
                         skillsHeroCards
                     } else {
+                        conditioningPlanSection
                         conditioningHeroCards
                     }
                 }
@@ -40,6 +48,34 @@ struct DrillsView: View {
             .background(KickIQAICoachTheme.background.ignoresSafeArea())
             .navigationTitle("Drills")
             .navigationBarTitleDisplayMode(.large)
+            .sheet(isPresented: $showGenerateSkillsPlan) {
+                PlanGeneratorSheet(storage: storage, planType: .skills) { _ in
+                    showSkillsPlanDetail = true
+                }
+            }
+            .sheet(isPresented: $showGenerateConditioningPlan) {
+                PlanGeneratorSheet(storage: storage, planType: .conditioning) { _ in
+                    showConditioningPlanDetail = true
+                }
+            }
+            .sheet(isPresented: $showSkillsPlanDetail) {
+                if let plan = storage.skillsPlan {
+                    GeneratedPlanDetailView(storage: storage, plan: plan)
+                }
+            }
+            .sheet(isPresented: $showConditioningPlanDetail) {
+                if let plan = storage.conditioningPlan {
+                    GeneratedPlanDetailView(storage: storage, plan: plan)
+                }
+            }
+            .alert("Reset Plan?", isPresented: $showResetConfirmation) {
+                Button("Reset", role: .destructive) {
+                    storage.clearPlan(resetPlanType)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will remove your active \(resetPlanType.rawValue.lowercased()) plan. You can generate a new one anytime.")
+            }
         }
         .onAppear {
             loadDrills()
@@ -70,6 +106,234 @@ struct DrillsView: View {
         }
         .sensoryFeedback(.selection, trigger: selectedCategory)
         .opacity(appeared ? 1 : 0)
+    }
+
+    // MARK: - Plan Sections
+
+    private var skillsPlanSection: some View {
+        VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+            if let plan = storage.skillsPlan {
+                Button {
+                    showSkillsPlanDetail = true
+                } label: {
+                    HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(KickIQAICoachTheme.accent.opacity(0.15))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: "doc.text.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Active Skills Plan")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                            Text("\(plan.config.weeks)w · \(plan.config.daysPerWeek)d/wk · \(plan.config.minutesPerSession)m")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
+                    }
+                    .padding(KickIQAICoachTheme.Spacing.sm + 2)
+                    .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+                }
+
+                HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                    Button {
+                        showGenerateSkillsPlan = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 11))
+                            Text("Regenerate")
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(KickIQAICoachTheme.accent.opacity(0.1), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                    }
+
+                    Button {
+                        resetPlanType = .skills
+                        showResetConfirmation = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                            Text("Reset")
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.08), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                    }
+                }
+            } else {
+                Button {
+                    showGenerateSkillsPlan = true
+                } label: {
+                    HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                        ZStack {
+                            Circle()
+                                .fill(KickIQAICoachTheme.accent.opacity(0.2))
+                                .frame(width: 40, height: 40)
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Generate Skills Plan")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                            Text("1-12 weeks · Custom focus · AI powered")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                    }
+                    .padding(KickIQAICoachTheme.Spacing.sm + 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                            .fill(KickIQAICoachTheme.card)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                                    .stroke(KickIQAICoachTheme.accent.opacity(0.3), lineWidth: 1.5)
+                            )
+                    )
+                }
+            }
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .animation(.spring(response: 0.4), value: appeared)
+    }
+
+    private var conditioningPlanSection: some View {
+        VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+            if let plan = storage.conditioningPlan {
+                Button {
+                    showConditioningPlanDetail = true
+                } label: {
+                    HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(KickIQAICoachTheme.accent.opacity(0.15))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: "doc.text.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Active Conditioning Plan")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                            Text("\(plan.config.weeks)w · \(plan.config.daysPerWeek)d/wk · \(plan.config.minutesPerSession)m")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.3))
+                    }
+                    .padding(KickIQAICoachTheme.Spacing.sm + 2)
+                    .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+                }
+
+                HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                    Button {
+                        showGenerateConditioningPlan = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 11))
+                            Text("Regenerate")
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(KickIQAICoachTheme.accent.opacity(0.1), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                    }
+
+                    Button {
+                        resetPlanType = .conditioning
+                        showResetConfirmation = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                            Text("Reset")
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.08), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                    }
+                }
+            } else {
+                Button {
+                    showGenerateConditioningPlan = true
+                } label: {
+                    HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                        ZStack {
+                            Circle()
+                                .fill(KickIQAICoachTheme.accent.opacity(0.2))
+                                .frame(width: 40, height: 40)
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Generate Conditioning Plan")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                            Text("1-12 weeks · Custom focus · AI powered")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                    }
+                    .padding(KickIQAICoachTheme.Spacing.sm + 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                            .fill(KickIQAICoachTheme.card)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                                    .stroke(KickIQAICoachTheme.accent.opacity(0.3), lineWidth: 1.5)
+                            )
+                    )
+                }
+            }
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .animation(.spring(response: 0.4), value: appeared)
     }
 
     // MARK: - Skills Hero Cards
