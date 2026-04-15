@@ -352,15 +352,13 @@ struct BenchmarkView: View {
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(KickIQAICoachTheme.accent)
 
-                            let comparison = BenchmarkService.averageComparison(score: score, drill: drill, gender: playerGender)
-                            if !comparison.isEmpty {
-                                Text(comparison)
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(comparison == "Above Average" ? .green : comparison == "Below Average" ? .orange : KickIQAICoachTheme.textSecondary)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2)
-                                    .background((comparison == "Above Average" ? Color.green : comparison == "Below Average" ? Color.orange : KickIQAICoachTheme.textSecondary).opacity(0.12), in: Capsule())
-                            }
+                            let tier = BenchmarkService.tierForScore(score: score, drill: drill, gender: playerGender)
+                            Text(tier.shortLabel)
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(tierColor(tier))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(tierColor(tier).opacity(0.12), in: Capsule())
 
                             if result?.attempts.count ?? 0 >= 2 {
                                 HStack(spacing: 2) {
@@ -433,6 +431,15 @@ struct BenchmarkView: View {
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.spring(response: 0.4).delay(0.3), value: appeared)
+    }
+
+    private func tierColor(_ tier: BenchmarkTier) -> Color {
+        switch tier {
+        case .recreational: .gray
+        case .competitive: .orange
+        case .academy: .cyan
+        case .elite: .purple
+        }
     }
 
     static func formatScore(_ score: Double) -> String {

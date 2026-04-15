@@ -74,16 +74,28 @@ class BenchmarkService {
     }
 
     static func averageComparison(score: Double, drill: BenchmarkDrill, gender: PlayerGender) -> String {
-        guard let gt = drill.genderThresholds else { return "" }
+        return tierForScore(score: score, drill: drill, gender: gender).shortLabel
+    }
+
+    static func tierForScore(score: Double, drill: BenchmarkDrill, gender: PlayerGender) -> BenchmarkTier {
+        guard let gt = drill.genderThresholds else { return .competitive }
         let avg = gt.average(for: gender)
+        let elite = gt.elite(for: gender)
+        let aboveAvgThreshold = drill.higherIsBetter
+            ? avg + (elite - avg) * 0.5
+            : avg - (avg - elite) * 0.5
+
         if drill.higherIsBetter {
-            if score > avg * 1.1 { return "Above Average" }
-            if score < avg * 0.9 { return "Below Average" }
+            if score >= elite { return .elite }
+            if score >= aboveAvgThreshold { return .academy }
+            if score >= avg * 0.9 { return .competitive }
+            return .recreational
         } else {
-            if score < avg * 0.9 { return "Above Average" }
-            if score > avg * 1.1 { return "Below Average" }
+            if score <= elite { return .elite }
+            if score <= aboveAvgThreshold { return .academy }
+            if score <= avg * 1.1 { return .competitive }
+            return .recreational
         }
-        return "Average"
     }
 
     // MARK: - US Soccer DA-Aligned Benchmark Drills

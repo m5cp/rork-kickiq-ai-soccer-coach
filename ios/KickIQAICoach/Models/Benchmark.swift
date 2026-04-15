@@ -142,6 +142,33 @@ nonisolated struct BenchmarkResult: Codable, Sendable, Identifiable {
     }
 }
 
+nonisolated enum BenchmarkTier: String, Codable, CaseIterable, Sendable {
+    case recreational = "Recreational"
+    case competitive = "Competitive"
+    case academy = "Academy"
+    case elite = "Elite"
+
+    var shortLabel: String { rawValue }
+
+    var fullDescription: String {
+        switch self {
+        case .recreational: "Rec / House League"
+        case .competitive: "Travel Team"
+        case .academy: "High-Level / Academy"
+        case .elite: "Elite / Pre-Pro"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .recreational: "gray"
+        case .competitive: "orange"
+        case .academy: "cyan"
+        case .elite: "purple"
+        }
+    }
+}
+
 nonisolated enum BenchmarkTrend: String, Codable, Sendable {
     case improving
     case declining

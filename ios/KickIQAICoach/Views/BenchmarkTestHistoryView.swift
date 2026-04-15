@@ -293,9 +293,9 @@ struct BenchmarkTestHistoryView: View {
 
                 HStack(spacing: 0) {
                     VStack(spacing: 3) {
-                        Text("Average")
+                        Text("Competitive")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                            .foregroundStyle(.orange)
                         Text(formatThreshold(avgVal))
                             .font(.subheadline.weight(.black))
                             .foregroundStyle(KickIQAICoachTheme.textPrimary)
@@ -307,10 +307,10 @@ struct BenchmarkTestHistoryView: View {
                     VStack(spacing: 3) {
                         Text("Elite")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.accent)
+                            .foregroundStyle(.purple)
                         Text(formatThreshold(eliteVal))
                             .font(.subheadline.weight(.black))
-                            .foregroundStyle(KickIQAICoachTheme.accent)
+                            .foregroundStyle(.purple)
                     }
                     .frame(maxWidth: .infinity)
 
@@ -355,36 +355,50 @@ struct BenchmarkTestHistoryView: View {
     private func comparisonBar(latest: Double, average: Double, elite: Double) -> some View {
         GeometryReader { geo in
             let width = geo.size.width
-            let range = drill.higherIsBetter
-                ? (0.0...elite * 1.2)
-                : (elite * 0.8...average * 1.3)
-            let rangeWidth = range.upperBound - range.lowerBound
+            let minBound = drill.higherIsBetter ? 0.0 : elite
+            let maxBound = drill.higherIsBetter ? elite : average * 1.3
+            let rangeWidth = maxBound - minBound
             guard rangeWidth > 0 else { return AnyView(EmptyView()) }
 
-            func xPos(_ val: Double) -> CGFloat {
-                CGFloat((val - range.lowerBound) / rangeWidth) * width
+            let academyVal = drill.higherIsBetter
+                ? average + (elite - average) * 0.5
+                : average - (average - elite) * 0.5
+
+            func norm(_ val: Double) -> CGFloat {
+                min(max(CGFloat((val - minBound) / rangeWidth), 0), 1)
             }
+
+            let recEnd = drill.higherIsBetter ? norm(average * 0.9) : norm(average * 1.1)
+            let compEnd = norm(average)
+            let acadEnd = norm(academyVal)
 
             return AnyView(
                 ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(KickIQAICoachTheme.divider)
-                        .frame(height: 6)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: width * recEnd, height: 8)
 
-                    Circle()
-                        .fill(.orange)
-                        .frame(width: 8, height: 8)
-                        .position(x: xPos(average), y: 3)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.orange.opacity(0.4))
+                        .frame(width: max(0, width * (compEnd - recEnd)), height: 8)
+                        .offset(x: width * recEnd)
 
-                    Circle()
-                        .fill(KickIQAICoachTheme.accent)
-                        .frame(width: 8, height: 8)
-                        .position(x: xPos(elite), y: 3)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.cyan.opacity(0.5))
+                        .frame(width: max(0, width * (acadEnd - compEnd)), height: 8)
+                        .offset(x: width * compEnd)
 
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.purple)
+                        .frame(width: max(0, width * (1.0 - acadEnd)), height: 8)
+                        .offset(x: width * acadEnd)
+
+                    let scoreNorm = norm(latest)
                     Circle()
                         .fill(.green)
                         .frame(width: 10, height: 10)
-                        .position(x: xPos(latest), y: 3)
+                        .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                        .position(x: min(max(width * scoreNorm, 5), width - 5), y: 4)
                 }
             )
         }

@@ -235,22 +235,24 @@ struct BenchmarkDrillDetailView: View {
         let maxBound: Double
         if drill.higherIsBetter {
             minBound = 0
-            maxBound = eliteVal * 1.2
+            maxBound = eliteVal
         } else {
-            minBound = eliteVal * 0.8
-            maxBound = avgVal * 1.2
+            minBound = eliteVal
+            maxBound = avgVal * 1.3
         }
         let range = maxBound - minBound
+        let academyVal = drill.higherIsBetter
+            ? avgVal + (eliteVal - avgVal) * 0.5
+            : avgVal - (avgVal - eliteVal) * 0.5
 
         func normalized(_ value: Double) -> CGFloat {
             guard range > 0 else { return 0 }
             return min(max(CGFloat((value - minBound) / range), 0), 1)
         }
 
-        let avgNorm = normalized(avgVal)
-        let eliteNorm = normalized(eliteVal)
-        let barStart = min(avgNorm, eliteNorm)
-        let barEnd = max(avgNorm, eliteNorm)
+        let recEnd = drill.higherIsBetter ? normalized(avgVal * 0.9) : normalized(avgVal * 1.1)
+        let compEnd = normalized(avgVal)
+        let acadEnd = normalized(academyVal)
 
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
@@ -263,12 +265,13 @@ struct BenchmarkDrillDetailView: View {
 
                 Spacer()
 
-                Text("Avg \(formatThreshold(avgVal))")
+                Text("\(formatThreshold(avgVal))")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                Text("·")
+                Text("→")
+                    .font(.system(size: 8))
                     .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.4))
-                Text("Elite \(formatThreshold(eliteVal))")
+                Text("\(formatThreshold(eliteVal))")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(color)
             }
@@ -276,45 +279,55 @@ struct BenchmarkDrillDetailView: View {
             GeometryReader { geo in
                 let width = geo.size.width
                 ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(KickIQAICoachTheme.divider)
-                        .frame(height: 8)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: width * recEnd, height: 10)
 
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [color.opacity(0.4), color],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: max(4, width * (barEnd - barStart)), height: 8)
-                        .offset(x: width * barStart)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.orange.opacity(0.4))
+                        .frame(width: max(0, width * (compEnd - recEnd)), height: 10)
+                        .offset(x: width * recEnd)
 
-                    let avgX = width * avgNorm
-                    Text("AVG")
-                        .font(.system(size: 7, weight: .black))
-                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                        .position(x: avgX, y: -4)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(color.opacity(0.5))
+                        .frame(width: max(0, width * (acadEnd - compEnd)), height: 10)
+                        .offset(x: width * compEnd)
 
-                    let eliteX = width * eliteNorm
-                    Text("ELITE")
-                        .font(.system(size: 7, weight: .black))
-                        .foregroundStyle(color)
-                        .position(x: eliteX, y: -4)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(color)
+                        .frame(width: max(0, width * (1.0 - acadEnd)), height: 10)
+                        .offset(x: width * acadEnd)
 
                     if let score = userScore, !isSkipped {
                         let scoreNorm = normalized(score)
                         let scoreX = width * scoreNorm
                         Circle()
                             .fill(.green)
-                            .frame(width: 10, height: 10)
+                            .frame(width: 12, height: 12)
                             .overlay(Circle().stroke(.white, lineWidth: 1.5))
-                            .position(x: scoreX, y: 4)
+                            .position(x: min(max(scoreX, 6), width - 6), y: 5)
                     }
                 }
             }
-            .frame(height: 20)
+            .frame(height: 12)
+
+            HStack(spacing: 0) {
+                ForEach(BenchmarkTier.allCases, id: \.self) { tier in
+                    Text(tier.shortLabel)
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(tierDisplayColor(tier))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    private func tierDisplayColor(_ tier: BenchmarkTier) -> Color {
+        switch tier {
+        case .recreational: .gray
+        case .competitive: .orange
+        case .academy: .cyan
+        case .elite: .purple
         }
     }
 
