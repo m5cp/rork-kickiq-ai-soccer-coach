@@ -8,7 +8,8 @@ struct ProfileEditSheet: View {
     @FocusState private var isNameFocused: Bool
     @State private var position: PlayerPosition = .midfielder
     @State private var skillLevel: SkillLevel = .beginner
-    @State private var weakness: WeaknessArea = .firstTouch
+    @State private var selectedWeaknesses: Set<WeaknessArea> = [.firstTouch]
+    @State private var selectedConditioning: Set<ConditioningFocus> = []
     @State private var gender: PlayerGender = .male
     @State private var usesFootball: Bool = false
     @State private var selectedAvatarType: AvatarType = .symbol
@@ -36,11 +37,11 @@ struct ProfileEditSheet: View {
                 VStack(spacing: KickIQAICoachTheme.Spacing.lg) {
                     avatarSection
                     nameSection
-                    genderSection
                     terminologySection
                     positionSection
                     skillLevelSection
                     weaknessSection
+                    conditioningSection
                 }
                 .padding(KickIQAICoachTheme.Spacing.md + 4)
             }
@@ -84,7 +85,8 @@ struct ProfileEditSheet: View {
                 name = profile.name
                 position = profile.position
                 skillLevel = profile.skillLevel
-                weakness = profile.weakness
+                selectedWeaknesses = Set(profile.weaknesses)
+                selectedConditioning = Set(profile.conditioningPreferences)
                 gender = profile.gender
                 usesFootball = profile.usesFootballTerminology
                 if let avatar = profile.avatar {
@@ -363,30 +365,97 @@ struct ProfileEditSheet: View {
 
     private var weaknessSection: some View {
         VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
-            Text("WEAKNESS")
+            Text("WEAKNESSES")
                 .font(.caption.weight(.bold))
                 .tracking(1)
                 .foregroundStyle(KickIQAICoachTheme.accent)
 
+            Text("Select all that apply")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+
             ForEach(WeaknessArea.allCases) { area in
+                let isSelected = selectedWeaknesses.contains(area)
                 Button {
-                    weakness = area
+                    if isSelected {
+                        selectedWeaknesses.remove(area)
+                    } else {
+                        selectedWeaknesses.insert(area)
+                    }
                 } label: {
                     HStack {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(isSelected ? KickIQAICoachTheme.accent : KickIQAICoachTheme.textSecondary.opacity(0.3), lineWidth: 1.5)
+                                .frame(width: 20, height: 20)
+                            if isSelected {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(KickIQAICoachTheme.accent)
+                                    .frame(width: 20, height: 20)
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 10, weight: .black))
+                                    .foregroundStyle(.white)
+                            }
+                        }
                         Image(systemName: area.icon)
-                            .foregroundStyle(weakness == area ? KickIQAICoachTheme.accent : KickIQAICoachTheme.textSecondary)
+                            .foregroundStyle(isSelected ? KickIQAICoachTheme.accent : KickIQAICoachTheme.textSecondary)
                             .frame(width: 24)
                         Text(area.rawValue)
-                            .foregroundStyle(weakness == area ? KickIQAICoachTheme.textPrimary : KickIQAICoachTheme.textSecondary)
+                            .foregroundStyle(isSelected ? KickIQAICoachTheme.textPrimary : KickIQAICoachTheme.textSecondary)
                         Spacer()
-                        if weakness == area {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(KickIQAICoachTheme.accent)
-                        }
                     }
                     .font(.subheadline.weight(.medium))
                     .padding(KickIQAICoachTheme.Spacing.sm + 2)
-                    .background(weakness == area ? KickIQAICoachTheme.accent.opacity(0.1) : KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                    .background(isSelected ? KickIQAICoachTheme.accent.opacity(0.1) : KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
+                }
+            }
+        }
+    }
+
+    private var conditioningSection: some View {
+        VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+            Text("CONDITIONING")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(KickIQAICoachTheme.accent)
+
+            Text("Select all that apply")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+
+            ForEach(ConditioningFocus.allCases) { focus in
+                let isSelected = selectedConditioning.contains(focus)
+                Button {
+                    if isSelected {
+                        selectedConditioning.remove(focus)
+                    } else {
+                        selectedConditioning.insert(focus)
+                    }
+                } label: {
+                    HStack {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(isSelected ? KickIQAICoachTheme.accent : KickIQAICoachTheme.textSecondary.opacity(0.3), lineWidth: 1.5)
+                                .frame(width: 20, height: 20)
+                            if isSelected {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(KickIQAICoachTheme.accent)
+                                    .frame(width: 20, height: 20)
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 10, weight: .black))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        Image(systemName: focus.icon)
+                            .foregroundStyle(isSelected ? KickIQAICoachTheme.accent : KickIQAICoachTheme.textSecondary)
+                            .frame(width: 24)
+                        Text(focus.rawValue)
+                            .foregroundStyle(isSelected ? KickIQAICoachTheme.textPrimary : KickIQAICoachTheme.textSecondary)
+                        Spacer()
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .padding(KickIQAICoachTheme.Spacing.sm + 2)
+                    .background(isSelected ? KickIQAICoachTheme.accent.opacity(0.1) : KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.sm))
                 }
             }
         }
@@ -400,12 +469,16 @@ struct ProfileEditSheet: View {
             avatar = .symbol(selectedSymbol)
         }
 
+        let weaknessArray = Array(selectedWeaknesses)
+        let conditioningArray = Array(selectedConditioning)
         let profile = PlayerProfile(
             name: name.trimmingCharacters(in: .whitespaces),
             position: position,
             ageRange: storage.profile?.ageRange ?? .fifteen18,
             skillLevel: skillLevel,
-            weakness: weakness,
+            weakness: weaknessArray.first ?? .firstTouch,
+            weaknesses: weaknessArray.isEmpty ? [.firstTouch] : weaknessArray,
+            conditioningPreferences: conditioningArray,
             gender: gender,
             usesFootballTerminology: usesFootball,
             avatar: avatar

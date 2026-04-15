@@ -167,6 +167,8 @@ nonisolated struct PlayerProfile: Codable, Sendable {
     var ageRange: AgeRange
     var skillLevel: SkillLevel
     var weakness: WeaknessArea
+    var weaknesses: [WeaknessArea]
+    var conditioningPreferences: [ConditioningFocus]
     var gender: PlayerGender
     var usesFootballTerminology: Bool
     var createdAt: Date
@@ -178,6 +180,8 @@ nonisolated struct PlayerProfile: Codable, Sendable {
         ageRange: AgeRange = .fifteen18,
         skillLevel: SkillLevel = .beginner,
         weakness: WeaknessArea = .firstTouch,
+        weaknesses: [WeaknessArea]? = nil,
+        conditioningPreferences: [ConditioningFocus] = [],
         gender: PlayerGender = .male,
         usesFootballTerminology: Bool = false,
         createdAt: Date = .now,
@@ -188,13 +192,34 @@ nonisolated struct PlayerProfile: Codable, Sendable {
         self.ageRange = ageRange
         self.skillLevel = skillLevel
         self.weakness = weakness
+        self.weaknesses = weaknesses ?? [weakness]
+        self.conditioningPreferences = conditioningPreferences
         self.gender = gender
         self.usesFootballTerminology = usesFootballTerminology
         self.createdAt = createdAt
         self.avatar = avatar
     }
 
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        position = try container.decode(PlayerPosition.self, forKey: .position)
+        ageRange = try container.decode(AgeRange.self, forKey: .ageRange)
+        skillLevel = try container.decode(SkillLevel.self, forKey: .skillLevel)
+        weakness = try container.decode(WeaknessArea.self, forKey: .weakness)
+        weaknesses = (try? container.decode([WeaknessArea].self, forKey: .weaknesses)) ?? [weakness]
+        conditioningPreferences = (try? container.decode([ConditioningFocus].self, forKey: .conditioningPreferences)) ?? []
+        gender = try container.decode(PlayerGender.self, forKey: .gender)
+        usesFootballTerminology = try container.decode(Bool.self, forKey: .usesFootballTerminology)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        avatar = try container.decodeIfPresent(ProfileAvatar.self, forKey: .avatar)
+    }
+
     var sportName: String {
         usesFootballTerminology ? "Football" : "Soccer"
+    }
+
+    var primaryWeakness: WeaknessArea {
+        weaknesses.first ?? weakness
     }
 }

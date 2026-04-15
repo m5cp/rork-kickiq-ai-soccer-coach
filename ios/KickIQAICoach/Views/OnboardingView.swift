@@ -31,9 +31,9 @@ struct OnboardingView: View {
     @State private var currentStep: Int = 0
     @State private var position: PlayerPosition = .midfielder
     @State private var ageRange: AgeRange = .fifteen18
-    @State private var gender: PlayerGender = .male
     @State private var skillLevel: SkillLevel = .beginner
-    @State private var weakness: WeaknessArea = .firstTouch
+    @State private var selectedWeaknesses: Set<WeaknessArea> = [.firstTouch]
+    @State private var selectedConditioning: Set<ConditioningFocus> = []
     @State private var stepAppeared: Bool = false
     @State private var selectedPlanIndex: Int = 0
     @State private var isPurchasing: Bool = false
@@ -48,6 +48,9 @@ struct OnboardingView: View {
 
             VStack(spacing: 0) {
                 HStack(alignment: .center) {
+                    if currentStep > 0 {
+                        backButton
+                    }
                     progressBar
                     Spacer()
                     skipButton
@@ -58,9 +61,9 @@ struct OnboardingView: View {
                 TabView(selection: $currentStep) {
                     positionStep.tag(0)
                     ageStep.tag(1)
-                    genderStep.tag(2)
-                    skillLevelStep.tag(3)
-                    weaknessStep.tag(4)
+                    skillLevelStep.tag(2)
+                    weaknessStep.tag(3)
+                    conditioningStep.tag(4)
                     painStep.tag(5)
                     socialProofStep.tag(6)
                     paywallStep.tag(7)
@@ -96,6 +99,19 @@ struct OnboardingView: View {
         }
     }
 
+    private var backButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.4)) { currentStep -= 1 }
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white.opacity(0.6))
+                .frame(width: 36, height: 36)
+                .background(Color.white.opacity(0.06), in: Circle())
+        }
+        .sensoryFeedback(.selection, trigger: currentStep)
+    }
+
     private var skipButton: some View {
         Button {
             completeOnboarding()
@@ -129,7 +145,7 @@ struct OnboardingView: View {
             }
         }
         .frame(height: 5)
-        .padding(.trailing, 16)
+        .padding(.horizontal, 8)
     }
 
     // MARK: - Position Step
@@ -204,70 +220,6 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Gender Step
-
-    private var genderStep: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                stepHeader(title: "GENDER", subtitle: "Used for benchmark comparisons")
-
-                VStack(spacing: 10) {
-                    ForEach(PlayerGender.allCases) { g in
-                        Button {
-                            gender = g
-                        } label: {
-                            HStack(spacing: 14) {
-                                ZStack {
-                                    Circle()
-                                        .fill(gender == g ? KickIQAICoachTheme.accent.opacity(0.15) : Color.white.opacity(0.04))
-                                        .frame(width: 40, height: 40)
-
-                                    Image(systemName: g.icon)
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundStyle(gender == g ? KickIQAICoachTheme.accent : .white.opacity(0.4))
-                                }
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(g.rawValue)
-                                        .font(.headline.weight(.black))
-                                        .foregroundStyle(gender == g ? .white : .white.opacity(0.5))
-                                    if g == .nonBinary {
-                                        Text("Benchmarks default to male standards")
-                                            .font(.caption2.weight(.semibold))
-                                            .foregroundStyle(.white.opacity(0.35))
-                                    }
-                                }
-
-                                Spacer()
-
-                                if gender == g {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(KickIQAICoachTheme.accent)
-                                        .font(.title3.weight(.bold))
-                                        .transition(.scale.combined(with: .opacity))
-                                }
-                            }
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(gender == g ? KickIQAICoachTheme.accent.opacity(0.12) : Color.white.opacity(0.04))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .stroke(gender == g ? KickIQAICoachTheme.accent.opacity(0.6) : Color.white.opacity(0.06), lineWidth: gender == g ? 1.5 : 0.5)
-                                    )
-                            )
-                        }
-                        .sensoryFeedback(.selection, trigger: gender)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .animation(.spring(response: 0.3), value: gender)
-            }
-            .padding(.bottom, 24)
-        }
-        .scrollIndicators(.hidden)
-    }
-
     // MARK: - Skill Level Step
 
     private var skillLevelStep: some View {
@@ -318,57 +270,132 @@ struct OnboardingView: View {
         .scrollIndicators(.hidden)
     }
 
-    // MARK: - Weakness Step
+    // MARK: - Weakness Step (Multi-Select)
 
     private var weaknessStep: some View {
         ScrollView {
             VStack(spacing: 24) {
-                stepHeader(title: "BIGGEST WEAKNESS", subtitle: "What do you want to improve most?")
+                stepHeader(title: "SKILL WEAKNESSES", subtitle: "Select all that apply")
 
                 VStack(spacing: 10) {
                     ForEach(WeaknessArea.allCases) { area in
+                        let isSelected = selectedWeaknesses.contains(area)
                         Button {
-                            weakness = area
+                            if isSelected {
+                                selectedWeaknesses.remove(area)
+                            } else {
+                                selectedWeaknesses.insert(area)
+                            }
                         } label: {
                             HStack(spacing: 14) {
                                 ZStack {
-                                    Circle()
-                                        .fill(weakness == area ? KickIQAICoachTheme.accent.opacity(0.15) : Color.white.opacity(0.04))
-                                        .frame(width: 40, height: 40)
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(isSelected ? KickIQAICoachTheme.accent : .white.opacity(0.25), lineWidth: 2)
+                                        .frame(width: 24, height: 24)
 
-                                    Image(systemName: area.icon)
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundStyle(weakness == area ? KickIQAICoachTheme.accent : .white.opacity(0.4))
+                                    if isSelected {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(KickIQAICoachTheme.accent)
+                                            .frame(width: 24, height: 24)
+
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 12, weight: .black))
+                                            .foregroundStyle(.white)
+                                    }
                                 }
+
+                                Image(systemName: area.icon)
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(isSelected ? KickIQAICoachTheme.accent : .white.opacity(0.4))
+                                    .frame(width: 24)
 
                                 Text(area.rawValue)
                                     .font(.headline.weight(.black))
-                                    .foregroundStyle(weakness == area ? .white : .white.opacity(0.5))
+                                    .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
 
                                 Spacer()
-
-                                if weakness == area {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(KickIQAICoachTheme.accent)
-                                        .font(.title3.weight(.bold))
-                                        .transition(.scale.combined(with: .opacity))
-                                }
                             }
                             .padding(16)
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .fill(weakness == area ? KickIQAICoachTheme.accent.opacity(0.12) : Color.white.opacity(0.04))
+                                    .fill(isSelected ? KickIQAICoachTheme.accent.opacity(0.12) : Color.white.opacity(0.04))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14)
-                                            .stroke(weakness == area ? KickIQAICoachTheme.accent.opacity(0.6) : Color.white.opacity(0.06), lineWidth: weakness == area ? 1.5 : 0.5)
+                                            .stroke(isSelected ? KickIQAICoachTheme.accent.opacity(0.6) : Color.white.opacity(0.06), lineWidth: isSelected ? 1.5 : 0.5)
                                     )
                             )
                         }
-                        .sensoryFeedback(.selection, trigger: weakness)
+                        .sensoryFeedback(.selection, trigger: selectedWeaknesses.count)
                     }
                 }
                 .padding(.horizontal, 20)
-                .animation(.spring(response: 0.3), value: weakness)
+                .animation(.spring(response: 0.3), value: selectedWeaknesses)
+            }
+            .padding(.bottom, 24)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    // MARK: - Conditioning Step (Multi-Select)
+
+    private var conditioningStep: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                stepHeader(title: "CONDITIONING", subtitle: "Select all that apply")
+
+                VStack(spacing: 10) {
+                    ForEach(ConditioningFocus.allCases) { focus in
+                        let isSelected = selectedConditioning.contains(focus)
+                        Button {
+                            if isSelected {
+                                selectedConditioning.remove(focus)
+                            } else {
+                                selectedConditioning.insert(focus)
+                            }
+                        } label: {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(isSelected ? KickIQAICoachTheme.accent : .white.opacity(0.25), lineWidth: 2)
+                                        .frame(width: 24, height: 24)
+
+                                    if isSelected {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(KickIQAICoachTheme.accent)
+                                            .frame(width: 24, height: 24)
+
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 12, weight: .black))
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+
+                                Image(systemName: focus.icon)
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(isSelected ? KickIQAICoachTheme.accent : .white.opacity(0.4))
+                                    .frame(width: 24)
+
+                                Text(focus.rawValue)
+                                    .font(.headline.weight(.black))
+                                    .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
+
+                                Spacer()
+                            }
+                            .padding(16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(isSelected ? KickIQAICoachTheme.accent.opacity(0.12) : Color.white.opacity(0.04))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(isSelected ? KickIQAICoachTheme.accent.opacity(0.6) : Color.white.opacity(0.06), lineWidth: isSelected ? 1.5 : 0.5)
+                                    )
+                            )
+                        }
+                        .sensoryFeedback(.selection, trigger: selectedConditioning.count)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .animation(.spring(response: 0.3), value: selectedConditioning)
             }
             .padding(.bottom, 24)
         }
@@ -389,7 +416,7 @@ struct OnboardingView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 48, weight: .bold))
                     .foregroundStyle(KickIQAICoachTheme.accent)
-                    .symbolEffect(.bounce, value: currentStep == 6)
+                    .symbolEffect(.bounce, value: currentStep == 5)
             }
 
             VStack(spacing: 16) {
@@ -534,24 +561,34 @@ struct OnboardingView: View {
     // MARK: - Continue Button
 
     private var continueButton: some View {
-        Button {
+        let isDisabled: Bool = {
+            switch currentStep {
+            case 3: return selectedWeaknesses.isEmpty
+            default: return false
+            }
+        }()
+
+        return Button {
             withAnimation(.spring(response: 0.4)) { currentStep += 1 }
         } label: {
             Text("Continue")
                 .font(.headline.weight(.black))
-                .foregroundStyle(KickIQAICoachTheme.onAccent)
+                .foregroundStyle(isDisabled ? .white.opacity(0.3) : KickIQAICoachTheme.onAccent)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
                     LinearGradient(
-                        colors: [KickIQAICoachTheme.accent, KickIQAICoachTheme.accent.opacity(0.8)],
+                        colors: isDisabled
+                            ? [Color.white.opacity(0.1), Color.white.opacity(0.06)]
+                            : [KickIQAICoachTheme.accent, KickIQAICoachTheme.accent.opacity(0.8)],
                         startPoint: .leading,
                         endPoint: .trailing
                     ),
                     in: .rect(cornerRadius: 16)
                 )
-                .shadow(color: KickIQAICoachTheme.accent.opacity(0.3), radius: 12, x: 0, y: 4)
+                .shadow(color: isDisabled ? .clear : KickIQAICoachTheme.accent.opacity(0.3), radius: 12, x: 0, y: 4)
         }
+        .disabled(isDisabled)
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
         .sensoryFeedback(.impact(weight: .medium), trigger: currentStep)
@@ -738,13 +775,17 @@ struct OnboardingView: View {
     }
 
     private func completeOnboarding() {
+        let weaknessArray = Array(selectedWeaknesses)
+        let conditioningArray = Array(selectedConditioning)
         let profile = PlayerProfile(
             name: "Player",
             position: position,
             ageRange: ageRange,
             skillLevel: skillLevel,
-            weakness: weakness,
-            gender: gender
+            weakness: weaknessArray.first ?? .firstTouch,
+            weaknesses: weaknessArray.isEmpty ? [.firstTouch] : weaknessArray,
+            conditioningPreferences: conditioningArray,
+            gender: .male
         )
         storage.saveProfile(profile)
         storage.completeOnboarding()

@@ -172,72 +172,45 @@ struct BenchmarkDrillDetailView: View {
     @ViewBuilder
     private var comparisonSection: some View {
         if let gt = drill.genderThresholds {
-            let genderLabel = playerGender == .female ? "Female" : "Male"
-            let eliteVal = gt.elite(for: playerGender)
-            let avgVal = gt.average(for: playerGender)
-
-            VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+            VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.md) {
                 HStack(spacing: 6) {
-                    Image(systemName: "person.2.fill")
+                    Image(systemName: "chart.bar.fill")
                         .font(.caption)
-                    Text("\(genderLabel.uppercased()) STANDARDS")
+                    Text("BENCHMARK STANDARDS")
                         .font(.caption.weight(.bold))
                         .tracking(1)
                 }
                 .foregroundStyle(.cyan)
 
-                HStack(spacing: 0) {
-                    VStack(spacing: 4) {
-                        Text("Average")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                        Text(formatThreshold(avgVal))
-                            .font(.headline.weight(.black))
-                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                        Text(drill.unit)
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.6))
+                benchmarkRangeBar(
+                    label: "Male",
+                    icon: "figure.stand",
+                    color: .cyan,
+                    avgVal: gt.maleAverage,
+                    eliteVal: gt.maleElite,
+                    userScore: existingResult?.latestScore
+                )
+
+                benchmarkRangeBar(
+                    label: "Female",
+                    icon: "figure.stand.dress",
+                    color: Color(hex: 0xE87DB5),
+                    avgVal: gt.femaleAverage,
+                    eliteVal: gt.femaleElite,
+                    userScore: existingResult?.latestScore
+                )
+
+                if let latest = existingResult?.latestScore, !isSkipped {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 8, height: 8)
+                        Text("Your score: \(formatThreshold(latest)) \(drill.unit)")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.green)
                     }
-                    .frame(maxWidth: .infinity)
-
-                    Rectangle()
-                        .fill(KickIQAICoachTheme.divider)
-                        .frame(width: 1, height: 40)
-
-                    VStack(spacing: 4) {
-                        Text("Elite")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.accent)
-                        Text(formatThreshold(eliteVal))
-                            .font(.headline.weight(.black))
-                            .foregroundStyle(KickIQAICoachTheme.accent)
-                        Text(drill.unit)
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.6))
-                    }
-                    .frame(maxWidth: .infinity)
-
-                    if let latest = existingResult?.latestScore, !isSkipped {
-                        Rectangle()
-                            .fill(KickIQAICoachTheme.divider)
-                            .frame(width: 1, height: 40)
-
-                        VStack(spacing: 4) {
-                            Text("You")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.green)
-                            Text(formatThreshold(latest))
-                                .font(.headline.weight(.black))
-                                .foregroundStyle(.green)
-                            let comp = BenchmarkService.averageComparison(score: latest, drill: drill, gender: playerGender)
-                            Text(comp)
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(comp == "Above Average" ? .green : comp == "Below Average" ? .orange : KickIQAICoachTheme.textSecondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
+                    .padding(.top, 2)
                 }
-                .padding(.vertical, KickIQAICoachTheme.Spacing.sm)
             }
             .padding(KickIQAICoachTheme.Spacing.md)
             .background(Color.cyan.opacity(0.05), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
@@ -247,6 +220,101 @@ struct BenchmarkDrillDetailView: View {
             )
             .opacity(appeared ? 1 : 0)
             .animation(.spring(response: 0.4).delay(0.12), value: appeared)
+        }
+    }
+
+    private func benchmarkRangeBar(
+        label: String,
+        icon: String,
+        color: Color,
+        avgVal: Double,
+        eliteVal: Double,
+        userScore: Double?
+    ) -> some View {
+        let minBound: Double
+        let maxBound: Double
+        if drill.higherIsBetter {
+            minBound = 0
+            maxBound = eliteVal * 1.2
+        } else {
+            minBound = eliteVal * 0.8
+            maxBound = avgVal * 1.2
+        }
+        let range = maxBound - minBound
+
+        func normalized(_ value: Double) -> CGFloat {
+            guard range > 0 else { return 0 }
+            return min(max(CGFloat((value - minBound) / range), 0), 1)
+        }
+
+        let avgNorm = normalized(avgVal)
+        let eliteNorm = normalized(eliteVal)
+        let barStart = min(avgNorm, eliteNorm)
+        let barEnd = max(avgNorm, eliteNorm)
+
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+
+                Spacer()
+
+                Text("Avg \(formatThreshold(avgVal))")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                Text("·")
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.4))
+                Text("Elite \(formatThreshold(eliteVal))")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(color)
+            }
+
+            GeometryReader { geo in
+                let width = geo.size.width
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(KickIQAICoachTheme.divider)
+                        .frame(height: 8)
+
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [color.opacity(0.4), color],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: max(4, width * (barEnd - barStart)), height: 8)
+                        .offset(x: width * barStart)
+
+                    let avgX = width * avgNorm
+                    Text("AVG")
+                        .font(.system(size: 7, weight: .black))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        .position(x: avgX, y: -4)
+
+                    let eliteX = width * eliteNorm
+                    Text("ELITE")
+                        .font(.system(size: 7, weight: .black))
+                        .foregroundStyle(color)
+                        .position(x: eliteX, y: -4)
+
+                    if let score = userScore, !isSkipped {
+                        let scoreNorm = normalized(score)
+                        let scoreX = width * scoreNorm
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                            .position(x: scoreX, y: 4)
+                    }
+                }
+            }
+            .frame(height: 20)
         }
     }
 
