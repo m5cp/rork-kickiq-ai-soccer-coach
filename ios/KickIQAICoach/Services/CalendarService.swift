@@ -74,4 +74,31 @@ class CalendarService {
 
         return addedCount
     }
+
+    func removeKickIQEvents() async -> Int {
+        guard isAuthorized else {
+            await requestAccess()
+            guard isAuthorized else { return 0 }
+            return await removeKickIQEvents()
+        }
+
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .month, value: -1, to: .now) ?? .now
+        let endDate = calendar.date(byAdding: .month, value: 6, to: .now) ?? .now
+
+        let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: nil)
+        let events = eventStore.events(matching: predicate)
+
+        var removedCount = 0
+        for event in events where event.title?.hasPrefix("KickIQAICoach:") == true || event.title?.contains("Skills:") == true || event.title?.contains("Conditioning:") == true {
+            do {
+                try eventStore.remove(event, span: .thisEvent)
+                removedCount += 1
+            } catch {
+                continue
+            }
+        }
+
+        return removedCount
+    }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct DrillsView: View {
     let storage: StorageService
     let customContentService: CustomContentService
+    var storeVM: StoreViewModel
     @State private var drillsService = DrillsService()
     @State private var conditioningService = ConditioningDrillsService()
     @State private var appeared = false
@@ -13,6 +14,8 @@ struct DrillsView: View {
     @State private var showConditioningPlanDetail = false
     @State private var showResetConfirmation = false
     @State private var resetPlanType: GeneratedPlanType = .skills
+    @State private var calendarService = CalendarService()
+    @State private var showPaywall = false
 
     private let cardGradients: [Color] = [
         Color(hex: 0x1A6B4A),
@@ -58,6 +61,7 @@ struct DrillsView: View {
                     showConditioningPlanDetail = true
                 }
             }
+
             .sheet(isPresented: $showSkillsPlanDetail) {
                 if let plan = storage.skillsPlan {
                     GeneratedPlanDetailView(storage: storage, plan: plan)
@@ -70,11 +74,14 @@ struct DrillsView: View {
             }
             .alert("Reset Plan?", isPresented: $showResetConfirmation) {
                 Button("Reset", role: .destructive) {
-                    storage.clearPlan(resetPlanType)
+                    storage.clearPlanWithCalendar(resetPlanType, calendarService: calendarService)
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will remove your active \(resetPlanType.rawValue.lowercased()) plan. You can generate a new one anytime.")
+                Text("This will remove your active \(resetPlanType.rawValue.lowercased()) plan and any synced calendar events. You can generate a new one anytime.")
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(store: storeVM)
             }
         }
         .onAppear {
@@ -179,7 +186,11 @@ struct DrillsView: View {
                 }
             } else {
                 Button {
-                    showGenerateSkillsPlan = true
+                    if storeVM.isPremium {
+                        showGenerateSkillsPlan = true
+                    } else {
+                        showPaywall = true
+                    }
                 } label: {
                     HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
                         ZStack {
@@ -192,10 +203,17 @@ struct DrillsView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Generate Skills Plan")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                            Text("1-12 weeks · Custom focus · AI powered")
+                            HStack(spacing: 6) {
+                                Text("Generate Skills Plan")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                                if !storeVM.isPremium {
+                                    Image(systemName: "crown.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(.yellow)
+                                }
+                            }
+                            Text(storeVM.isPremium ? "1-12 weeks · Custom focus · AI powered" : "Start free trial to unlock")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(KickIQAICoachTheme.textSecondary)
                         }
@@ -292,7 +310,11 @@ struct DrillsView: View {
                 }
             } else {
                 Button {
-                    showGenerateConditioningPlan = true
+                    if storeVM.isPremium {
+                        showGenerateConditioningPlan = true
+                    } else {
+                        showPaywall = true
+                    }
                 } label: {
                     HStack(spacing: KickIQAICoachTheme.Spacing.sm) {
                         ZStack {
@@ -305,10 +327,17 @@ struct DrillsView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Generate Conditioning Plan")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                            Text("1-12 weeks · Custom focus · AI powered")
+                            HStack(spacing: 6) {
+                                Text("Generate Conditioning Plan")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                                if !storeVM.isPremium {
+                                    Image(systemName: "crown.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(.yellow)
+                                }
+                            }
+                            Text(storeVM.isPremium ? "1-12 weeks · Custom focus · AI powered" : "Start free trial to unlock")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(KickIQAICoachTheme.textSecondary)
                         }

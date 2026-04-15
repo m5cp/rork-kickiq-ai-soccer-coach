@@ -106,7 +106,7 @@ struct ContentView: View {
             }
 
             Tab("Drills", systemImage: "figure.soccer", value: 2) {
-                DrillsView(storage: storage, customContentService: customContentService)
+                DrillsView(storage: storage, customContentService: customContentService, storeVM: storeVM)
             }
 
             Tab("Progress", systemImage: "chart.line.uptrend.xyaxis", value: 3) {

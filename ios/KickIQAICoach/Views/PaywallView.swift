@@ -258,6 +258,17 @@ struct PaywallView: View {
     private var footerSection: some View {
         VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
             Button {
+                dismiss()
+            } label: {
+                Text("Continue with Free Version")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, KickIQAICoachTheme.Spacing.md)
+                    .background(KickIQAICoachTheme.surface, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+            }
+
+            Button {
                 Task { await store.restore() }
             } label: {
                 Text("Restore Purchases")

@@ -251,6 +251,24 @@ class StorageService {
         }
     }
 
+    func clearPlanWithCalendar(_ planType: GeneratedPlanType, calendarService: CalendarService) {
+        let wasSynced: Bool
+        switch planType {
+        case .skills:
+            wasSynced = skillsPlan?.isSynced == true
+        case .conditioning:
+            wasSynced = conditioningPlan?.isSynced == true
+        }
+
+        clearPlan(planType)
+
+        if wasSynced {
+            Task {
+                _ = await calendarService.removeKickIQEvents()
+            }
+        }
+    }
+
     func markPlanSynced(_ planType: GeneratedPlanType) {
         switch planType {
         case .skills:
