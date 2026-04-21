@@ -40,7 +40,7 @@ struct OnboardingView: View {
     @State private var isRestoring: Bool = false
     @State private var showLegalPage: LegalPage?
 
-    private let totalSteps = 8
+    private let totalSteps = 7
 
     var body: some View {
         ZStack {
@@ -65,13 +65,12 @@ struct OnboardingView: View {
                     weaknessStep.tag(3)
                     conditioningStep.tag(4)
                     painStep.tag(5)
-                    socialProofStep.tag(6)
-                    paywallStep.tag(7)
+                    paywallStep.tag(6)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 7 {
+                if currentStep < 6 {
                     continueButton
                 }
             }
@@ -443,25 +442,6 @@ struct OnboardingView: View {
         .padding(.horizontal, 32)
     }
 
-    // MARK: - Social Proof Step
-
-    private var socialProofStep: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                stepHeader(title: "PLAYERS LIKE YOU", subtitle: "See what KickIQ has done for them")
-
-                VStack(spacing: 12) {
-                    testimonialCard(name: "Marcus J.", age: "16", result: "Made varsity after 6 weeks of KickIQ training")
-                    testimonialCard(name: "Sofia R.", age: "14", result: "Improved my first touch score from 4 to 8 in one month")
-                    testimonialCard(name: "Aiden K.", age: "19", result: "Got scouted at a showcase after using KickIQ daily")
-                }
-                .padding(.horizontal, 20)
-            }
-            .padding(.bottom, 24)
-        }
-        .scrollIndicators(.hidden)
-    }
-
     // MARK: - Paywall Step
 
     private var paywallStep: some View {
@@ -631,50 +611,6 @@ struct OnboardingView: View {
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(isSelected ? KickIQAICoachTheme.accent.opacity(0.6) : Color.white.opacity(0.06), lineWidth: isSelected ? 1.5 : 0.5)
                 )
-        )
-    }
-
-    private func testimonialCard(name: String, age: String, result: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(KickIQAICoachTheme.accent.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Text(String(name.prefix(1)))
-                        .font(.headline.weight(.black))
-                        .foregroundStyle(KickIQAICoachTheme.accent)
-                }
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(name)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.white)
-                    Text("Age \(age)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.4))
-                }
-                Spacer()
-
-                HStack(spacing: 2) {
-                    ForEach(0..<5, id: \.self) { _ in
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(KickIQAICoachTheme.accent)
-                    }
-                }
-            }
-
-            Text("\"\(result)\"")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.7))
-                .italic()
-        }
-        .padding(16)
-        .background(Color.white.opacity(0.04), in: .rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
         )
     }
 

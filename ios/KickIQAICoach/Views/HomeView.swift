@@ -17,6 +17,8 @@ struct HomeView: View {
     @State private var completedTrigger: Int = 0
     @State private var drillsService = DrillsService()
     @State private var conditioningService = ConditioningDrillsService()
+    @State private var workoutExpanded: Bool = true
+    @State private var suggestedExpanded: Bool = true
     var storeVM: StoreViewModel
 
     private var greeting: String {
@@ -148,17 +150,73 @@ struct HomeView: View {
 
     @ViewBuilder
     private var todaysTrainingContent: some View {
-        if let skillsPlan = storage.skillsPlan, let conditioningPlan = storage.conditioningPlan {
-            todaysPlannedTraining(skillsPlan: skillsPlan, conditioningPlan: conditioningPlan)
-        } else if let skillsPlan = storage.skillsPlan {
-            todaysPlannedTraining(skillsPlan: skillsPlan, conditioningPlan: nil)
-        } else if let conditioningPlan = storage.conditioningPlan {
-            todaysPlannedTraining(skillsPlan: nil, conditioningPlan: conditioningPlan)
-        } else {
-            todaysSuggestedTraining
+        let hasPlan = storage.skillsPlan != nil || storage.conditioningPlan != nil
+        VStack(spacing: KickIQAICoachTheme.Spacing.sm + 4) {
+            if hasPlan {
+                collapsibleSection(
+                    title: "Your Workout",
+                    icon: "doc.text.fill",
+                    accent: .green,
+                    isExpanded: $workoutExpanded
+                ) {
+                    todaysPlannedTraining(skillsPlan: storage.skillsPlan, conditioningPlan: storage.conditioningPlan)
+                }
+            }
+            collapsibleSection(
+                title: "Suggested for You",
+                icon: "sparkles",
+                accent: KickIQAICoachTheme.accent,
+                isExpanded: $suggestedExpanded
+            ) {
+                todaysSuggestedTraining
+            }
+        }
+        .onAppear {
+            if hasPlan { suggestedExpanded = false }
         }
     }
 
+    private func collapsibleSection<Content: View>(title: String, icon: String, accent: Color, isExpanded: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: KickIQAICoachTheme.Spacing.sm) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    isExpanded.wrappedValue.toggle()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(accent.opacity(0.12))
+                            .frame(width: 28, height: 28)
+                        Image(systemName: icon)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(accent)
+                    }
+                    Text(title)
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        .rotationEffect(.degrees(isExpanded.wrappedValue ? 0 : -90))
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: isExpanded.wrappedValue)
+
+            if isExpanded.wrappedValue {
+                content()
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .top)),
+                        removal: .opacity
+                    ))
+            }
+        }
+    }
+
+    @ViewBuilder
     private func todaysPlannedTraining(skillsPlan: GeneratedPlan?, conditioningPlan: GeneratedPlan?) -> some View {
         let calendar = Calendar.current
         let dayOfWeek = calendar.component(.weekday, from: .now)
