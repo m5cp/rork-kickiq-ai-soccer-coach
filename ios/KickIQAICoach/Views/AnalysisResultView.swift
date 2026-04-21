@@ -477,9 +477,20 @@ struct AnalysisResultView: View {
 
 struct ShareSheetView: UIViewControllerRepresentable {
     let image: UIImage
+    var caption: String? = nil
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [image], applicationActivities: nil)
+        var items: [Any] = [image]
+        if let caption { items.append(caption) }
+        let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        vc.completionWithItemsHandler = { _, completed, _, _ in
+            if completed {
+                Task { @MainActor in
+                    AnalyticsService.shared.track(.shareCompleted)
+                }
+            }
+        }
+        return vc
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

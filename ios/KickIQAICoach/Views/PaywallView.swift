@@ -4,16 +4,41 @@ import RevenueCat
 struct PaywallView: View {
     var store: StoreViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedPackageIndex: Int = 1
+    @State private var selectedPackageIndex: Int = 0
     @State private var appeared = false
 
     private var sortedPackages: [Package] {
         guard let current = store.offerings?.current else { return [] }
-        let order = ["$rc_weekly", "$rc_monthly", "$rc_annual"]
+        let order = ["$rc_annual", "$rc_monthly", "$rc_weekly"]
         return current.availablePackages.sorted { a, b in
             let aIdx = order.firstIndex(of: a.identifier) ?? 99
             let bIdx = order.firstIndex(of: b.identifier) ?? 99
             return aIdx < bIdx
+        }
+    }
+
+    private func weeklyPriceString(for package: Package) -> String? {
+        let product = package.storeProduct
+        let price = product.price as NSDecimalNumber
+        let divisor: NSDecimalNumber
+        switch package.identifier {
+        case "$rc_annual": divisor = NSDecimalNumber(value: 52)
+        case "$rc_monthly": divisor = NSDecimalNumber(value: 4.345)
+        default: return nil
+        }
+        let weekly = price.dividing(by: divisor)
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = product.priceFormatter?.locale ?? .current
+        formatter.currencyCode = product.currencyCode
+        return formatter.string(from: weekly)
+    }
+
+    private func savingsBadge(for package: Package) -> String? {
+        switch package.identifier {
+        case "$rc_annual": return "SAVE 60%"
+        case "$rc_monthly": return "SAVE 30%"
+        default: return nil
         }
     }
 
@@ -63,6 +88,12 @@ struct PaywallView: View {
         .presentationDragIndicator(.visible)
         .onAppear {
             withAnimation(.easeOut(duration: 0.6)) { appeared = true }
+            AnalyticsService.shared.track(.paywallShown)
+        }
+        .onDisappear {
+            if !store.isPremium {
+                AnalyticsService.shared.track(.paywallDismissed)
+            }
         }
     }
 
@@ -198,7 +229,21 @@ struct PaywallView: View {
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(KickIQAICoachTheme.accent, in: Capsule())
+                        } else if let savings = savingsBadge(for: package) {
+                            Text(savings)
+                                .font(.system(size: 9, weight: .black))
+                                .tracking(0.5)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.green, in: Capsule())
                         }
+                    }
+
+                    if let weekly = weeklyPriceString(for: package) {
+                        Text("Just \(weekly)/week")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
                     }
 
                     if let intro = package.storeProduct.introductoryDiscount {
@@ -258,22 +303,31 @@ struct PaywallView: View {
     private var footerSection: some View {
         VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
             Button {
-                dismiss()
+                Task { await store.restore() }
             } label: {
-                Text("Continue with Free Version")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, KickIQAICoachTheme.Spacing.md)
-                    .background(KickIQAICoachTheme.surface, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.counterclockwise")
+                    Text("Restore Purchases")
+                }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(KickIQAICoachTheme.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, KickIQAICoachTheme.Spacing.md)
+                .background(KickIQAICoachTheme.accent.opacity(0.1), in: .rect(cornerRadius: KickIQAICoachTheme.Radius.lg))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                        .stroke(KickIQAICoachTheme.accent.opacity(0.3), lineWidth: 1)
+                )
             }
 
             Button {
-                Task { await store.restore() }
+                dismiss()
             } label: {
-                Text("Restore Purchases")
+                Text("Continue with Free Version")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(KickIQAICoachTheme.accent)
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, KickIQAICoachTheme.Spacing.md)
             }
 
             Text("Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. Manage in Settings > Apple ID > Subscriptions.")

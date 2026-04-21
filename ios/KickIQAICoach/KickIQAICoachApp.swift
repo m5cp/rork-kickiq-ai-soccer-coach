@@ -10,6 +10,8 @@ struct KickIQAICoachApp: App {
         #else
         Purchases.configure(withAPIKey: Config.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY)
         #endif
+        AnalyticsService.shared.configure()
+        AnalyticsService.shared.track(.appOpen)
     }
 
     var body: some Scene {

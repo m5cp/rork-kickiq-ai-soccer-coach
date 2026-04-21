@@ -506,6 +506,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = KickIQ;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "KickIQ uses your calendar to schedule training sessions and set reminders";
 				INFOPLIST_KEY_NSCameraUsageDescription = "KickIQ needs camera access to record your training clips";
@@ -543,6 +544,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = KickIQ;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "KickIQ uses your calendar to schedule training sessions and set reminders";
 				INFOPLIST_KEY_NSCameraUsageDescription = "KickIQ needs camera access to record your training clips";

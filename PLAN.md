@@ -1,51 +1,55 @@
-# KickIQ Overhaul — Phase 1: Home Redesign, Drills Page Fixes, Calendar & AI Summaries
+# KickIQ Quick Wins: analytics, crash reporting, paywall polish, sharing & Siri
 
+Scope: Quick Wins (A–J) only. Medium items (K, L, N, O) and Major Upgrades are explicitly deferred. Nothing currently working will be touched beyond the specific points below.
 
-This is a comprehensive update split into two phases, both delivered back-to-back without pause.
+## What will change for users
 
----
+**Paywall & pricing (D, E, F)**
+- Paywall already appears after onboarding — I'll audit that trigger and also add one after the first benchmark result so new users see it after their "aha" moment.
+- Annual plan will be shown first, pre-selected, with a green "SAVE 60%" badge and a "Just $1.44/week, billed yearly" line beneath the price so the weekly framing is always visible.
+- Weekly plan moves to the bottom and shows "$X/week" plainly.
+- "Restore Purchases" button already exists in Settings and on the paywall — I'll make it more prominent (full-width row at the top of the paywall footer) and confirm it's reachable without a paywall in the way.
 
-## Phase 1 — UI Fixes, Home Redesign & Drills Page
+**Milestone share card (H)**
+- When a milestone badge is earned, the celebration screen gets a new "Share" button.
+- Tapping it opens the native iOS share sheet with a pre-rendered image of the badge + streak/score + pre-filled caption: "I just hit [milestone] on KickIQ 🔥 — free soccer training app: [App Store link]". Users can post to Instagram, WhatsApp, iMessage, etc.
 
-### Naming Fixes
-- Home page "DRILLS" card → renamed to **"SKILLS"**
-- Home page "FITNESS" card → renamed to **"CONDITIONING"**
-- Drills tab title stays "Drills" but the Skills/Conditioning toggle labels are consistent
+**Siri & Spotlight shortcuts (J)**
+- "Start next drill" — users can say "Hey Siri, start my next KickIQ drill" or tap a Shortcut to jump straight into today's drill.
+- "Show my streak" — Siri / Spotlight answers with the current streak count and opens the app to the progress screen.
+- These also appear as suggested Shortcuts in the Shortcuts app.
 
-### Home Screen Redesign
-- **Remove** the two generator cards (Skills Generator / Conditioning Generator) from the Home screen — they're redundant
-- **Replace with "Today's Training"** section:
-  - If the user has an active plan, show today's scheduled drills and conditioning with a quick-glance card (drill names, focus area, estimated time)
-  - If no plan exists, auto-suggest drills based on the player's weakest areas (3–4 drills + 1–2 conditioning exercises), with a nudge to generate a full plan from the Drills tab
-  - Each drill in the Today's Training section is tappable to see details
-- Keep all other Home sections (Progress, Training, Benchmark, Focus Areas) as-is
+**App name on home screen (A)**
+- The app icon label will read "KickIQ" instead of the longer target name.
 
-### Drills Tab Enhancements
-- **Add plan generator access** directly on the Drills page — "Generate Skills Plan" and "Generate Conditioning Plan" buttons are now accessible from the Drills tab itself (within each Skills/Conditioning segment)
-- **Add "Reset Plan" option** — a button on the Drills page to clear/reset the active Skills or Conditioning plan, with a confirmation prompt
+**Behind the scenes**
+- Anonymous analytics (TelemetryDeck) and crash reporting (Sentry) are wired up. They only activate once you paste API keys into environment variables — until then they're silent no-ops so nothing breaks. I'll also add a short note in the plan explaining exactly where to sign up (free tiers, takes ~5 min each) and which keys to paste.
+- Apple Pay entitlement (unused — no merchant payments in the app) will be removed. This reduces App Review friction.
 
----
+## Events that will be tracked (once keys are added)
 
-## Phase 2 — Training Calendar & AI Weekly Summaries
+App open, screen views, onboarding step reached, onboarding completed, paywall shown, paywall dismissed, purchase started, purchase succeeded, restore tapped, drill started, drill completed, benchmark completed, milestone earned, share card opened, share completed.
 
-### Training Calendar (Progress Tab)
-- **Calendar button** in the Progress tab toolbar that opens a full calendar view
-- Calendar shows color-coded dots on days: past training days (completed), today, future planned days
-- **Tap any day** to see a detail sheet showing:
-  - Drills and conditioning completed that day
-  - Duration, reps, or other stats recorded
-  - A notes field where the user can annotate what they did, how long, speed, perceived effort, or any freeform text
-  - Annotations are saved and visible when revisiting that day
+## What I will NOT touch
 
-### AI Weekly Training Summary
-- **Auto-generated every week** (Sunday evening) — appears as a card on the Home screen
-- **Also available on demand** — "Weekly Summary" button in the Progress tab
-- Uses **Groq (cloud AI)** for consistent, high-quality output — same engine as the coach chat
-- The summary reads like a **coach's weekly report**: natural language covering training volume, skills practiced, benchmark improvements, streak status, and encouragement
-- Apple Intelligence is used where appropriate (e.g., on-device text refinement if available on iOS 26+ devices)
-- The AI has access to **coach chat history** (via the existing coach memory system) so it can reference topics the player discussed and weave them into the summary
+- Drills data (DrillsService, ConditioningDrillsService) — stays exactly as is.
+- Existing onboarding flow, benchmark flow, AI coach, widget, live activity.
+- Storage format, data models, RevenueCat product IDs.
+- Any working screens outside the specific edits above.
 
-### Design
-- Calendar view uses a clean month-grid layout with the app's accent color for training days
-- Weekly summary card on Home has a distinct coach-style design — quote-like layout with a subtle accent border
-- All new UI follows the existing KickIQ theme (accent colors, card styles, typography)
+## Deferred (your call, not in this pass)
+
+- K (50%-off retry paywall), L (interactive widget), N (reactivation notifications), O (XP system on home/widget) — will be a separate pass.
+- App Store metadata rewrite (skipped per your choice).
+- Superwall migration, SwiftData migration, full onboarding redesign — major upgrades, separate project.
+
+## After I implement
+
+I'll give you a short "keys setup" checklist:
+1. Sign up at telemetrydeck.com (free) → paste app ID.
+2. Sign up at sentry.io (free tier) → paste DSN.
+3. Remove Apple Pay merchant from Apple Developer portal if you want to fully clean it up.
+
+Until you add the keys, analytics and crash reporting stay dormant — zero risk to current builds.
+
+Ready for me to proceed?

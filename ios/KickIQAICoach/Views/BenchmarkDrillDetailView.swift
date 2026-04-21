@@ -9,6 +9,8 @@ struct BenchmarkDrillDetailView: View {
     @State private var appeared = false
     @State private var showSuccess = false
     @State private var showSkipConfirm = false
+    @State private var showPaywall = false
+    @State private var paywallStore = StoreViewModel()
     @FocusState private var isScoreFocused: Bool
 
     private var playerGender: PlayerGender {
@@ -68,6 +70,9 @@ struct BenchmarkDrillDetailView: View {
             withAnimation(.easeOut(duration: 0.4)) { appeared = true }
         }
         .sensoryFeedback(.success, trigger: showSuccess)
+        .sheet(isPresented: $showPaywall) {
+            PaywallView(store: paywallStore)
+        }
         .alert("Did Not Measure", isPresented: $showSkipConfirm) {
             Button("Skip This Test", role: .destructive) {
                 storage.skipBenchmarkDrill(drillID: drill.id, category: drill.category, drillName: drill.name)
@@ -547,8 +552,13 @@ struct BenchmarkDrillDetailView: View {
         withAnimation(.spring(response: 0.3)) {
             showSuccess = true
         }
+        let shouldPresentPaywall = storage.isFirstBenchmarkJustCompleted && !paywallStore.isPremium
+        storage.isFirstBenchmarkJustCompleted = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation { showSuccess = false }
+            if shouldPresentPaywall {
+                showPaywall = true
+            }
         }
     }
 

@@ -34,6 +34,7 @@ class StorageService {
     var weeklySummary: String?
     var weeklySummaryDate: Date?
     var trainingAnnotations: [TrainingAnnotation] = []
+    var isFirstBenchmarkJustCompleted: Bool = false
 
     private let profileKey = "kickiq_profile"
     private let sessionsKey = "kickiq_sessions"
@@ -578,6 +579,7 @@ class StorageService {
     }
 
     func recordBenchmarkScore(drillID: String, category: BenchmarkCategory, drillName: String, score: Double) {
+        let wasFirstScore = !benchmarkResults.contains(where: { !$0.isSkipped && $0.latestScore != nil })
         let attempt = BenchmarkAttempt(benchmarkDrillID: drillID, score: score)
         if let index = benchmarkResults.firstIndex(where: { $0.benchmarkDrillID == drillID }) {
             benchmarkResults[index].attempts.append(attempt)
@@ -585,6 +587,10 @@ class StorageService {
         } else {
             let result = BenchmarkResult(benchmarkDrillID: drillID, category: category, attempts: [attempt], drillName: drillName, isSkipped: false)
             benchmarkResults.append(result)
+        }
+        AnalyticsService.shared.track(.benchmarkCompleted, properties: ["drill": drillName, "first": wasFirstScore ? "true" : "false"])
+        if wasFirstScore {
+            isFirstBenchmarkJustCompleted = true
         }
         if let data = try? JSONEncoder().encode(benchmarkResults) {
             UserDefaults.standard.set(data, forKey: benchmarkResultsKey)

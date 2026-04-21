@@ -36,15 +36,22 @@ class StoreViewModel {
 
     func purchase(package: Package) async {
         isPurchasing = true
+        AnalyticsService.shared.track(.purchaseStarted, properties: ["package": package.identifier])
         do {
             let result = try await Purchases.shared.purchase(package: package)
             if !result.userCancelled {
-                isPremium = result.customerInfo.entitlements["premium"]?.isActive == true
+                let active = result.customerInfo.entitlements["premium"]?.isActive == true
+                isPremium = active
+                if active {
+                    AnalyticsService.shared.track(.purchaseSucceeded, properties: ["package": package.identifier])
+                }
             }
         } catch ErrorCode.purchaseCancelledError {
         } catch ErrorCode.paymentPendingError {
         } catch {
             self.error = error.localizedDescription
+            AnalyticsService.shared.track(.purchaseFailed, properties: ["package": package.identifier])
+            AnalyticsService.shared.recordError(error, context: "purchase")
         }
         isPurchasing = false
     }
@@ -73,11 +80,13 @@ class StoreViewModel {
     }
 
     func restore() async {
+        AnalyticsService.shared.track(.restoreTapped)
         do {
             let info = try await Purchases.shared.restorePurchases()
             isPremium = info.entitlements["premium"]?.isActive == true
         } catch {
             self.error = error.localizedDescription
+            AnalyticsService.shared.recordError(error, context: "restore")
         }
     }
 

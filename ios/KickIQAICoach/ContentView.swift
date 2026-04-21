@@ -18,6 +18,8 @@ struct ContentView: View {
     @State private var appPhase: AppPhase = .welcome
     @State private var showAICoach: Bool = false
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
         ZStack {
             Group {
@@ -75,6 +77,12 @@ struct ContentView: View {
             withAnimation(.easeInOut(duration: 0.8)) {
                 appPhase = storage.hasCompletedOnboarding ? .main : .onboarding
             }
+            handlePendingIntent()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                handlePendingIntent()
+            }
         }
         .onChange(of: storage.hasCompletedOnboarding) { _, completed in
             guard completed else { return }
@@ -90,6 +98,19 @@ struct ContentView: View {
                     ? storage.sessions[0].overallScore - storage.sessions[1].overallScore
                     : 0
                 notificationService.scheduleCustomSummary(drillsCompleted: weeklyDrills, scoreChange: scoreChange)
+            }
+        }
+    }
+
+    private func handlePendingIntent() {
+        guard let action = KickIQIntentBridge.consumePendingAction(), appPhase == .main else { return }
+        AnalyticsService.shared.track(.siriIntentInvoked, properties: ["action": action.rawValue])
+        withAnimation(.spring(response: 0.3)) {
+            switch action {
+            case .startNextDrill:
+                selectedTab = 2
+            case .showStreak:
+                selectedTab = 3
             }
         }
     }

@@ -109,8 +109,14 @@ struct MilestoneCelebrationView: View {
         .sensoryFeedback(.success, trigger: appeared)
         .sheet(isPresented: $showShareSheet) {
             if let image = shareImage {
-                ShareSheetView(image: image)
+                ShareSheetView(
+                    image: image,
+                    caption: "I just hit \(badge.rawValue) on KickIQ 🔥 — free soccer training app: https://apps.apple.com/app/id0"
+                )
             }
+        }
+        .onAppear {
+            AnalyticsService.shared.track(.milestoneEarned, properties: ["badge": badge.rawValue])
         }
     }
 
@@ -125,6 +131,7 @@ struct MilestoneCelebrationView: View {
         ) {
             shareImage = image
             showShareSheet = true
+            AnalyticsService.shared.track(.shareCardOpened, properties: ["type": "milestone", "badge": badge.rawValue])
         }
     }
 }
