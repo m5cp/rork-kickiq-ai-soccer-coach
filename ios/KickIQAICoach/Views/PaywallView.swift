@@ -24,6 +24,7 @@ struct PaywallView: View {
         switch package.identifier {
         case "$rc_annual": divisor = NSDecimalNumber(value: 52)
         case "$rc_monthly": divisor = NSDecimalNumber(value: 4.345)
+        case "$rc_weekly": divisor = NSDecimalNumber(value: 1)
         default: return nil
         }
         let weekly = price.dividing(by: divisor)
@@ -38,6 +39,24 @@ struct PaywallView: View {
         switch package.identifier {
         case "$rc_annual": return "SAVE 60%"
         case "$rc_monthly": return "SAVE 30%"
+        default: return nil
+        }
+    }
+
+    private func subtitle(for package: Package) -> String? {
+        switch package.identifier {
+        case "$rc_annual":
+            if let weekly = weeklyPriceString(for: package) {
+                return "Just \(weekly)/week, billed yearly"
+            }
+            return nil
+        case "$rc_monthly":
+            if let weekly = weeklyPriceString(for: package) {
+                return "Just \(weekly)/week, billed monthly"
+            }
+            return nil
+        case "$rc_weekly":
+            return "Billed weekly"
         default: return nil
         }
     }
@@ -221,15 +240,7 @@ struct PaywallView: View {
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(KickIQAICoachTheme.textPrimary)
 
-                        if isAnnual {
-                            Text("BEST VALUE")
-                                .font(.system(size: 9, weight: .black))
-                                .tracking(0.5)
-                                .foregroundStyle(KickIQAICoachTheme.onAccent)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(KickIQAICoachTheme.accent, in: Capsule())
-                        } else if let savings = savingsBadge(for: package) {
+                        if let savings = savingsBadge(for: package) {
                             Text(savings)
                                 .font(.system(size: 9, weight: .black))
                                 .tracking(0.5)
@@ -238,10 +249,19 @@ struct PaywallView: View {
                                 .padding(.vertical, 2)
                                 .background(Color.green, in: Capsule())
                         }
+                        if isAnnual {
+                            Text("BEST VALUE")
+                                .font(.system(size: 9, weight: .black))
+                                .tracking(0.5)
+                                .foregroundStyle(KickIQAICoachTheme.onAccent)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(KickIQAICoachTheme.accent, in: Capsule())
+                        }
                     }
 
-                    if let weekly = weeklyPriceString(for: package) {
-                        Text("Just \(weekly)/week")
+                    if let sub = subtitle(for: package) {
+                        Text(sub)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(KickIQAICoachTheme.textSecondary)
                     }

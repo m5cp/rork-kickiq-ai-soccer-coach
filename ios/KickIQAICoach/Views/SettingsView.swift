@@ -2,8 +2,12 @@ import SwiftUI
 
 struct SettingsView: View {
     let storage: StorageService
+    var storeVM: StoreViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showDeleteAlert = false
+    @State private var showRestoreAlert = false
+    @State private var restoreMessage = ""
+    @State private var isRestoring = false
     @State private var showNotificationSettings = false
     @State private var appeared = false
     @State private var calendarService = CalendarService()
@@ -25,6 +29,9 @@ struct SettingsView: View {
                     settingsRow(icon: "bell.fill", title: "Notification Preferences") {
                         showNotificationSettings = true
                     }
+
+                    sectionHeader("SUBSCRIPTION")
+                    subscriptionSection
 
                     sectionHeader("CALENDAR")
                     settingsRow(icon: "calendar.badge.plus", title: "Sync Training Plan to Calendar") {
@@ -78,6 +85,11 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This will permanently delete your profile and all session data. This action cannot be undone.")
+            }
+            .alert("Restore Purchases", isPresented: $showRestoreAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(restoreMessage)
             }
             .alert("Calendar Synced", isPresented: $showCalendarSuccess) {
                 Button("OK", role: .cancel) {}
@@ -315,6 +327,76 @@ struct SettingsView: View {
             .padding(KickIQAICoachTheme.Spacing.md)
             .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
         }
+    }
+
+    private var subscriptionSection: some View {
+        VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+            HStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+                Image(systemName: storeVM.isPremium ? "crown.fill" : "figure.soccer")
+                    .font(.subheadline)
+                    .foregroundStyle(storeVM.isPremium ? .yellow : KickIQAICoachTheme.accent)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(storeVM.isPremium ? "KickIQ Premium" : "KickIQ Free")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    Text(storeVM.isPremium ? "Premium features unlocked" : "Upgrade to unlock everything")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+                Spacer()
+            }
+            .padding(KickIQAICoachTheme.Spacing.md)
+            .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
+
+            Button {
+                Task { await handleRestore() }
+            } label: {
+                HStack(spacing: KickIQAICoachTheme.Spacing.sm + 2) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.subheadline)
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                        .frame(width: 24)
+                    Text("Restore Purchases")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    Spacer()
+                    if isRestoring {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.2))
+                    }
+                }
+                .padding(KickIQAICoachTheme.Spacing.md)
+                .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: KickIQAICoachTheme.Radius.md))
+                .frame(minHeight: 44)
+            }
+            .disabled(isRestoring)
+
+            settingsRow(icon: "creditcard.fill", title: "Manage Subscription") {
+                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                    UIApplication.shared.open(url)
+                }
+            }
+        }
+    }
+
+    private func handleRestore() async {
+        isRestoring = true
+        let wasPremium = storeVM.isPremium
+        await storeVM.restore()
+        isRestoring = false
+        if storeVM.isPremium && !wasPremium {
+            restoreMessage = "Your premium subscription has been restored."
+        } else if storeVM.isPremium {
+            restoreMessage = "Your premium subscription is active."
+        } else {
+            restoreMessage = "No previous purchases were found on this Apple ID."
+        }
+        showRestoreAlert = true
     }
 
     private func syncCalendar() async {

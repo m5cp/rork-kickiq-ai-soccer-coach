@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var previousBadgeCount: Int = 0
     @State private var appPhase: AppPhase = .welcome
     @State private var showAICoach: Bool = false
+    @State private var showPostBenchmarkPaywall: Bool = false
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -55,6 +56,20 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(themeManager.appearanceMode.colorScheme)
+        .onChange(of: storage.isFirstBenchmarkJustCompleted) { _, flagged in
+            guard flagged, !storeVM.isPremium else {
+                storage.isFirstBenchmarkJustCompleted = false
+                return
+            }
+            storage.isFirstBenchmarkJustCompleted = false
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.2))
+                showPostBenchmarkPaywall = true
+            }
+        }
+        .sheet(isPresented: $showPostBenchmarkPaywall) {
+            PaywallView(store: storeVM)
+        }
         .onChange(of: storage.earnedBadges.count) { oldValue, newValue in
             guard newValue > oldValue, oldValue > 0 else {
                 previousBadgeCount = newValue

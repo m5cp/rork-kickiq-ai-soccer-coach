@@ -111,7 +111,7 @@ struct MilestoneCelebrationView: View {
             if let image = shareImage {
                 ShareSheetView(
                     image: image,
-                    caption: "I just hit \(badge.rawValue) on KickIQ 🔥 — free soccer training app: https://apps.apple.com/app/id0"
+                    caption: "I just hit \(badge.rawValue) on KickIQ 🔥 — AI soccer coaching: \(AppConfig.appStoreURL)"
                 )
             }
         }

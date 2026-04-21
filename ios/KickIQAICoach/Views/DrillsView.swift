@@ -36,6 +36,8 @@ struct DrillsView: View {
                 VStack(spacing: KickIQAICoachTheme.Spacing.md) {
                     categoryPicker
 
+                    SiriTipCard(phrase: "Hey Siri, start my next KickIQ drill", systemImage: "figure.soccer")
+
                     if selectedCategory == .skills {
                         skillsPlanSection
                         skillsHeroCards

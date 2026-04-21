@@ -69,6 +69,13 @@ struct HomeView: View {
                         }
                     }
 
+                    sectionBlock(title: "SIRI SHORTCUTS", icon: "mic.fill") {
+                        VStack(spacing: KickIQAICoachTheme.Spacing.sm) {
+                            SiriTipCard(phrase: "Hey Siri, start my next KickIQ drill", systemImage: "figure.soccer")
+                            SiriTipCard(phrase: "Hey Siri, show my KickIQ streak", systemImage: "flame.fill")
+                        }
+                    }
+
                     if storage.shouldShowMonthlyReassessment {
                         sectionBlock(title: "ACTION NEEDED", icon: "exclamationmark.circle.fill") {
                             reassessmentCard
@@ -97,7 +104,7 @@ struct HomeView: View {
                 }
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView(storage: storage)
+                SettingsView(storage: storage, storeVM: storeVM)
             }
             .sheet(isPresented: $showWeeklyGoal) {
                 WeeklyGoalSheet(storage: storage)

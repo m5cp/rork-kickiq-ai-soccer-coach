@@ -52,7 +52,7 @@ struct ProfileView: View {
                 ProfileEditSheet(storage: storage)
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView(storage: storage)
+                SettingsView(storage: storage, storeVM: storeVM)
             }
             .sheet(isPresented: $showCoachReport) {
                 CoachReportView(storage: storage)
