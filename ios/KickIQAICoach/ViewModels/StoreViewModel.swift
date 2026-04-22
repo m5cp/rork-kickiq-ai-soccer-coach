@@ -12,9 +12,35 @@ class StoreViewModel {
     var error: String?
     var lastPurchasedTokenPack: TokenPackSize?
 
+    private let creditedTransactionsKey = "kickiq_credited_tx_ids"
+
     init() {
         Task { await listenForUpdates() }
         Task { await fetchOfferings() }
+    }
+
+    func reconcileTokenPurchases(storage: StorageService) async {
+        do {
+            let info = try await Purchases.shared.customerInfo()
+            var credited = Set(UserDefaults.standard.stringArray(forKey: creditedTransactionsKey) ?? [])
+            var didCredit = false
+            for tx in info.nonSubscriptionTransactions {
+                guard !credited.contains(tx.transactionIdentifier) else { continue }
+                let tokens = tokenAmountForIdentifier(tx.productIdentifier)
+                if tokens > 0 {
+                    storage.addTokens(tokens)
+                    didCredit = true
+                }
+                credited.insert(tx.transactionIdentifier)
+            }
+            if didCredit {
+                UserDefaults.standard.set(Array(credited), forKey: creditedTransactionsKey)
+            } else {
+                UserDefaults.standard.set(Array(credited), forKey: creditedTransactionsKey)
+            }
+        } catch {
+            self.error = error.localizedDescription
+        }
     }
 
     private func listenForUpdates() async {
@@ -68,6 +94,11 @@ class StoreViewModel {
                 if tokens > 0 {
                     storage.addTokens(tokens)
                     lastPurchasedTokenPack = tokenPackSizeForIdentifier(identifier)
+                    var credited = Set(UserDefaults.standard.stringArray(forKey: creditedTransactionsKey) ?? [])
+                    for tx in result.customerInfo.nonSubscriptionTransactions where tx.productIdentifier == identifier {
+                        credited.insert(tx.transactionIdentifier)
+                    }
+                    UserDefaults.standard.set(Array(credited), forKey: creditedTransactionsKey)
                     return true
                 }
             }
