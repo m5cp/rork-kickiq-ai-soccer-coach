@@ -1,0 +1,117 @@
+import Foundation
+
+@Observable
+@MainActor
+class CoachStorageService {
+    var sessions: [CoachSession] = []
+    var blocks: [TrainingBlock] = []
+    var evaluations: [PlayerEvaluation] = []
+
+    private let sessionsKey = "coach_sessions"
+    private let blocksKey = "coach_blocks"
+    private let evaluationsKey = "coach_evaluations"
+
+    init() {
+        load()
+        if sessions.isEmpty {
+            sessions = CoachSessionTemplates.defaultSessions
+            save()
+        }
+    }
+
+    func save() {
+        if let data = try? JSONEncoder().encode(sessions) {
+            UserDefaults.standard.set(data, forKey: sessionsKey)
+        }
+        if let data = try? JSONEncoder().encode(blocks) {
+            UserDefaults.standard.set(data, forKey: blocksKey)
+        }
+        if let data = try? JSONEncoder().encode(evaluations) {
+            UserDefaults.standard.set(data, forKey: evaluationsKey)
+        }
+    }
+
+    func load() {
+        if let data = UserDefaults.standard.data(forKey: sessionsKey),
+           let decoded = try? JSONDecoder().decode([CoachSession].self, from: data) {
+            sessions = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: blocksKey),
+           let decoded = try? JSONDecoder().decode([TrainingBlock].self, from: data) {
+            blocks = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: evaluationsKey),
+           let decoded = try? JSONDecoder().decode([PlayerEvaluation].self, from: data) {
+            evaluations = decoded
+        }
+    }
+
+    func addSession(_ session: CoachSession) {
+        sessions.append(session)
+        save()
+    }
+
+    func updateSession(_ session: CoachSession) {
+        if let index = sessions.firstIndex(where: { $0.id == session.id }) {
+            sessions[index] = session
+            save()
+        }
+    }
+
+    func deleteSession(_ session: CoachSession) {
+        sessions.removeAll { $0.id == session.id }
+        save()
+    }
+
+    func duplicateSession(_ session: CoachSession) {
+        var copy = session
+        copy.id = UUID()
+        copy.title = session.displayTitle + " (Copy)"
+        copy.customTitle = nil
+        copy.createdAt = Date()
+        sessions.append(copy)
+        save()
+    }
+
+    func addBlock(_ block: TrainingBlock) {
+        blocks.append(block)
+        save()
+    }
+
+    func updateBlock(_ block: TrainingBlock) {
+        if let index = blocks.firstIndex(where: { $0.id == block.id }) {
+            blocks[index] = block
+            save()
+        }
+    }
+
+    func deleteBlock(_ block: TrainingBlock) {
+        blocks.removeAll { $0.id == block.id }
+        save()
+    }
+
+    func addEvaluation(_ evaluation: PlayerEvaluation) {
+        evaluations.append(evaluation)
+        save()
+    }
+
+    func updateEvaluation(_ evaluation: PlayerEvaluation) {
+        if let index = evaluations.firstIndex(where: { $0.id == evaluation.id }) {
+            evaluations[index] = evaluation
+            save()
+        }
+    }
+
+    func deleteEvaluation(_ evaluation: PlayerEvaluation) {
+        evaluations.removeAll { $0.id == evaluation.id }
+        save()
+    }
+
+    func sessionsByMoment() -> [(moment: GameMoment, sessions: [CoachSession])] {
+        GameMoment.allCases.compactMap { moment in
+            let filtered = sessions.filter { $0.gameMoment == moment }
+            guard !filtered.isEmpty else { return nil }
+            return (moment: moment, sessions: filtered)
+        }
+    }
+}
