@@ -98,6 +98,54 @@ enum CoachSessionTemplates {
                     SessionActivity(order: 4, title: "Scrimmage With Counter Rules", duration: 25, fieldSize: "Full field", playerNumbers: "Equal numbers + 2 GK", setupDescription: "Full game with counter scoring bonus.", instructions: "Play normal game. Fast counter goals worth more.", phases: ["Phase 1: Goal within 5 seconds of winning = 3pts", "Phase 2: Normal goal = 1pt"], coachingPoints: ["Transition mentality at all times", "Protect the ball then strike fast", "Numbers forward — do not let attack become isolated"])
                 ],
                 notes: "High intensity. Demand urgency on every transition. Rest periods between activities."
+            ),
+            CoachSession(
+                title: "Overload Play",
+                gameMoment: .overloadPlay,
+                objective: "Exploit Overload",
+                duration: 75,
+                intensity: 7,
+                ageGroup: "U15-U19",
+                playerCount: 16,
+                activities: [
+                    SessionActivity(order: 1, title: "Rondo Overload Progression", duration: 15, fieldSize: "10x10 to 20x20", playerNumbers: "4v1 then 5v2 then 6v2", setupDescription: "Progress through overload rondos. Each stage adds one defender.", instructions: "Maintain possession and exploit the numerical advantage.", phases: ["Phase 1: 4v1 maintain possession", "Phase 2: 5v2 exploit the numbers", "Phase 3: 6v2 combine and switch"], coachingPoints: ["Find and play to the free player immediately", "Move the ball quickly", "Make the defenders chase"]),
+                    SessionActivity(order: 2, title: "Overload to Finish", duration: 20, fieldSize: "30x25", playerNumbers: "6v4 attackers + GK", setupDescription: "Attacking team has numerical advantage and must create and finish chances.", instructions: "Find the overload and exploit it to score.", phases: ["Phase 1: Find the overload and attack", "Phase 2: Must play through wide channel before shooting"], coachingPoints: ["Identify the overload immediately", "Use width to stretch defenders", "Finish early before defenders recover"]),
+                    SessionActivity(order: 3, title: "Switch to Find Overload", duration: 20, fieldSize: "40x30", playerNumbers: "7v6", setupDescription: "Attacking team must switch ball to create overload on weak side.", instructions: "Patient build then explosive switch to create and exploit.", phases: ["Phase 1: Switch pass creates overload — attack it", "Phase 2: Must switch before entering final third"], coachingPoints: ["Patient build to create the switch", "Explosive movement after the switch", "Exploit before defenders recover"]),
+                    SessionActivity(order: 4, title: "Scrimmage With Width Rules", duration: 25, fieldSize: "Full field", playerNumbers: "Equal numbers + 2 GK", setupDescription: "Full game. Goal from wide overload worth double.", instructions: "Play normal game. Create and exploit wide overloads.", phases: ["Phase 1: Goal from wide overload = 2pts", "Phase 2: Standard goal = 1pt"], coachingPoints: ["Use the full width of the field", "Recognize and attack overloads", "Switch quickly when overload appears"])
+                ],
+                notes: "Teach players to recognize numerical advantages and exploit them immediately."
+            ),
+            CoachSession(
+                title: "Defend the Box",
+                gameMoment: .defendTheBox,
+                objective: "Win Aerial Duels",
+                duration: 75,
+                intensity: 7,
+                ageGroup: "U15-U19",
+                playerCount: 16,
+                activities: [
+                    SessionActivity(order: 1, title: "Crossing and Defending Warm-Up", duration: 15, fieldSize: "Wide channel and box", playerNumbers: "3 attackers vs 2 defenders", setupDescription: "Ball delivered from wide positions. Defenders organize to defend the cross.", instructions: "Defenders organize shape to deal with every cross type.", phases: ["Phase 1: Zonal defending — cover zones", "Phase 2: Man marking — track runners"], coachingPoints: ["GK communication leads the defense", "Defenders step to meet the ball", "Clearance quality — distance and direction"]),
+                    SessionActivity(order: 2, title: "Box Defense Game", duration: 20, fieldSize: "Penalty area", playerNumbers: "5 defenders vs 6 attackers + GK", setupDescription: "Attackers cross and combine around box. Defenders clear and organize.", instructions: "Defend every ball into the box. Clear and counter.", phases: ["Phase 1: Attackers score from crosses only", "Phase 2: Attackers can also shoot from outside"], coachingPoints: ["Compact box", "Win first ball and clear second ball", "GK command is non-negotiable"]),
+                    SessionActivity(order: 3, title: "Defend the Box Live", duration: 20, fieldSize: "Full width final third", playerNumbers: "8v8 + GK", setupDescription: "Full width attacking play. Defending team organizes to deny goal.", instructions: "Defend crosses combinations and shots from all positions.", phases: ["Phase 1: Standard defending", "Phase 2: Add set piece — corner and wide free kick"], coachingPoints: ["Organize quickly on every delivery", "Communication between GK and defenders", "Win every aerial duel"]),
+                    SessionActivity(order: 4, title: "Scrimmage With Box Defending Rules", duration: 25, fieldSize: "Full field", playerNumbers: "Equal numbers + 2 GK", setupDescription: "Full game. Defending team scores for winning clearances from inside box.", instructions: "Play normal game. Reward defending team for winning box duels.", phases: ["Phase 1: Clearance from inside box = 1pt", "Phase 2: Goal = 3pts"], coachingPoints: ["Defend box as a unit", "GK leads the organization", "Win first ball — hunt second ball"])
+                ],
+                notes: "Aerial duels and communication are the focus. GK must be vocal throughout."
+            ),
+            CoachSession(
+                title: "High Percentage Finishing",
+                gameMoment: .highPercentageFinishing,
+                objective: "First Time Finish",
+                duration: 75,
+                intensity: 7,
+                ageGroup: "U15-U19",
+                playerCount: 16,
+                activities: [
+                    SessionActivity(order: 1, title: "Finishing Technique Warm-Up", duration: 15, fieldSize: "Penalty area", playerNumbers: "Groups of 4 + GK", setupDescription: "Players shoot from 6 12 and 18 yards from various angles.", instructions: "Focus on technique. Pick your spot before the ball arrives.", phases: ["Phase 1: Placement shots — accuracy", "Phase 2: Power shots — driven low", "Phase 3: First time finish — feed and finish"], coachingPoints: ["Pick your spot before ball arrives", "Strike clean through center of ball", "Follow up every shot for rebounds"]),
+                    SessionActivity(order: 2, title: "Combination to Finish", duration: 20, fieldSize: "Attacking third", playerNumbers: "5v3 + GK", setupDescription: "Attacking team combines to create and finish in high percentage zones.", instructions: "Combine and finish in the box.", phases: ["Phase 1: Must touch ball into box before shooting", "Phase 2: One touch finish only"], coachingPoints: ["Arrive into box at pace", "Attack the ball — do not wait for it", "Composure on the shot"]),
+                    SessionActivity(order: 3, title: "Crossing and Finishing", duration: 20, fieldSize: "Full width attacking half", playerNumbers: "6v5 + GK", setupDescription: "Wide players deliver crosses. Strikers and midfielders attack the box.", instructions: "Create and attack crossing situations. Score from deliveries.", phases: ["Phase 1: Driven low cross only", "Phase 2: Mixed low and high delivery", "Phase 3: Add pressing defender chasing the striker"], coachingPoints: ["Movement before the cross — create separation", "Meet ball at pace", "Attack near post first"]),
+                    SessionActivity(order: 4, title: "Scrimmage With Finishing Rules", duration: 25, fieldSize: "Full field", playerNumbers: "Equal numbers + 2 GK", setupDescription: "Full game with finishing bonus scoring.", instructions: "Play normal game. Bonus for box finishes.", phases: ["Phase 1: Shot inside penalty area = 2pts", "Phase 2: Goal = 3pts"], coachingPoints: ["Get in the box", "Shoot early when chance appears", "Rebound mentality — follow every shot"])
+                ],
+                notes: "Finishing sessions require high repetition. Keep rest periods short to build composure under fatigue."
             )
         ]
     }
