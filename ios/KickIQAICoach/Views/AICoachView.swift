@@ -11,12 +11,27 @@ struct AICoachView: View {
     @State private var showPaywall = false
     @FocusState private var isInputFocused: Bool
 
-    private let quickPrompts = [
+    private let playerPrompts = [
         "What should I work on today?",
         "Give me a 20-min drill session",
         "How are my benchmark scores?",
         "Tips for game day preparation"
     ]
+
+    private let coachPrompts = [
+        "Build a 45-min pressing session for U14",
+        "Design a preseason week focused on fitness",
+        "Give me 3 drills for improving transitions",
+        "How should I periodize a 12-week season?"
+    ]
+
+    private var isCoach: Bool {
+        storage.profile?.position == .coachTrainer
+    }
+
+    private var quickPrompts: [String] {
+        isCoach ? coachPrompts : playerPrompts
+    }
 
     init(storage: StorageService, isPremium: Bool = false, storeVM: StoreViewModel) {
         self.storage = storage
@@ -52,10 +67,16 @@ struct AICoachView: View {
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(KickIQAICoachTheme.accent)
                         }
-                        Text("AI COACH")
-                            .font(.system(.subheadline, design: .default, weight: .black))
-                            .tracking(1.5)
-                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("AI COACH")
+                                .font(.system(.subheadline, design: .default, weight: .black))
+                                .tracking(1.5)
+                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                            Text(isCoach ? "Coach mode" : "Player mode")
+                                .font(.system(size: 9, weight: .bold))
+                                .tracking(0.8)
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                        }
                     }
                 }
 
@@ -139,12 +160,27 @@ struct AICoachView: View {
                     }
 
                     VStack(spacing: 8) {
-                        Text("YOUR AI COACH")
+                        HStack(spacing: 5) {
+                            Image(systemName: isCoach ? "clipboard.fill" : "figure.soccer")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(isCoach ? "COACH MODE" : "PLAYER MODE")
+                                .font(.system(size: 10, weight: .black))
+                                .tracking(1.2)
+                        }
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(KickIQAICoachTheme.accent.opacity(0.12), in: Capsule())
+                        .overlay(Capsule().stroke(KickIQAICoachTheme.accent.opacity(0.3), lineWidth: 1))
+
+                        Text(isCoach ? "YOUR AI ASSISTANT" : "YOUR AI COACH")
                             .font(.system(.title3, design: .default, weight: .black))
                             .tracking(2)
                             .foregroundStyle(KickIQAICoachTheme.textPrimary)
 
-                        Text("I know your scores, your streaks, and\nyour weak spots. Ask me anything.")
+                        Text(isCoach
+                            ? "Session design, periodization, and\nplayer insights. Ask me anything."
+                            : "I know your scores, your streaks, and\nyour weak spots. Ask me anything.")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(KickIQAICoachTheme.textSecondary)
                             .multilineTextAlignment(.center)
