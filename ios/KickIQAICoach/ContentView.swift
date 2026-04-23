@@ -130,15 +130,38 @@ struct ContentView: View {
         }
     }
 
+    private var isCoachMode: Bool {
+        storage.profile?.position == .coachTrainer
+    }
+
     private var mainTabView: some View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: 0) {
-                HomeView(storage: storage, customContentService: customContentService, selectedTab: $selectedTab, storeVM: storeVM)
-                    .environment(customContentService)
+                ZStack(alignment: .topTrailing) {
+                    HomeView(storage: storage, customContentService: customContentService, selectedTab: $selectedTab, storeVM: storeVM)
+                        .environment(customContentService)
+
+                    if isCoachMode {
+                        Text("COACH")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(KickIQAICoachTheme.accent.opacity(0.15), in: Capsule())
+                            .padding(.trailing, 16)
+                            .padding(.top, 8)
+                    }
+                }
             }
 
-            Tab("Benchmark", systemImage: "chart.bar.doc.horizontal.fill", value: 1) {
-                BenchmarkView(storage: storage, customContentService: customContentService)
+            if isCoachMode {
+                Tab("Plan", systemImage: "clipboard.fill", value: 1) {
+                    CoachPlanView()
+                }
+            } else {
+                Tab("Benchmark", systemImage: "chart.bar.doc.horizontal.fill", value: 1) {
+                    BenchmarkView(storage: storage, customContentService: customContentService)
+                }
             }
 
             Tab("Drills", systemImage: "figure.soccer", value: 2) {
