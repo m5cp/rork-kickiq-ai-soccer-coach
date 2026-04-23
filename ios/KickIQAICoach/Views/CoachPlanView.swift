@@ -2,6 +2,7 @@ import SwiftUI
 
 private enum CoachTab: String, CaseIterable, Identifiable {
     case builder = "Builder"
+    case campaign = "Campaign"
     case blocks = "Blocks"
     case library = "Library"
     case evaluations = "Evals"
@@ -28,6 +29,8 @@ struct CoachPlanView: View {
                     switch selectedTab {
                     case .builder:
                         SessionBuilderView(coachStorage: coachStorage, onSaved: { selectedTab = .library })
+                    case .campaign:
+                        CoachCampaignView(coachStorage: coachStorage)
                     case .blocks:
                         BlockPlannerView(coachStorage: coachStorage)
                     case .library:
@@ -68,7 +71,7 @@ private struct SessionLibraryView: View {
                         VStack(spacing: 10) {
                             ForEach(group.sessions) { session in
                                 NavigationLink {
-                                    SessionDetailView(coachStorage: coachStorage, session: session)
+                                    LibrarySessionDetailWrapper(coachStorage: coachStorage, sessionID: session.id)
                                 } label: {
                                     SessionCardView(session: session)
                                 }
@@ -145,7 +148,33 @@ private struct SessionCardView: View {
     }
 }
 
-// MARK: - Session Detail
+// MARK: - Session Detail Wrapper
+
+private struct LibrarySessionDetailWrapper: View {
+    @Bindable var coachStorage: CoachStorageService
+    let sessionID: UUID
+    @State private var showShare = false
+
+    var body: some View {
+        if let idx = coachStorage.sessions.firstIndex(where: { $0.id == sessionID }) {
+            SessionPhaseDetailView(
+                session: Binding(
+                    get: { coachStorage.sessions[idx] },
+                    set: { coachStorage.sessions[idx] = $0 }
+                ),
+                onUpdate: { coachStorage.updateSession($0) },
+                onShare: { showShare = true }
+            )
+            .sheet(isPresented: $showShare) {
+                CoachShareSheet(shareable: .session(coachStorage.sessions[idx]))
+            }
+        } else {
+            ContentUnavailableView("Session not found", systemImage: "questionmark.folder")
+        }
+    }
+}
+
+// MARK: - Legacy Session Detail (unused)
 
 private struct SessionDetailView: View {
     @Bindable var coachStorage: CoachStorageService

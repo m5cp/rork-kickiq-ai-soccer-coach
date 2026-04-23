@@ -6,10 +6,12 @@ class CoachStorageService {
     var sessions: [CoachSession] = []
     var blocks: [TrainingBlock] = []
     var evaluations: [PlayerEvaluation] = []
+    var campaigns: [Campaign] = []
 
     private let sessionsKey = "coach_sessions"
     private let blocksKey = "coach_blocks"
     private let evaluationsKey = "coach_evaluations"
+    private let campaignsKey = "coach_campaigns"
 
     init() {
         load()
@@ -29,6 +31,9 @@ class CoachStorageService {
         if let data = try? JSONEncoder().encode(evaluations) {
             UserDefaults.standard.set(data, forKey: evaluationsKey)
         }
+        if let data = try? JSONEncoder().encode(campaigns) {
+            UserDefaults.standard.set(data, forKey: campaignsKey)
+        }
     }
 
     func load() {
@@ -44,6 +49,31 @@ class CoachStorageService {
            let decoded = try? JSONDecoder().decode([PlayerEvaluation].self, from: data) {
             evaluations = decoded
         }
+        if let data = UserDefaults.standard.data(forKey: campaignsKey),
+           let decoded = try? JSONDecoder().decode([Campaign].self, from: data) {
+            campaigns = decoded
+        }
+    }
+
+    func addCampaign(_ campaign: Campaign) {
+        campaigns.append(campaign)
+        save()
+    }
+
+    func updateCampaign(_ campaign: Campaign) {
+        if let index = campaigns.firstIndex(where: { $0.id == campaign.id }) {
+            campaigns[index] = campaign
+            save()
+        }
+    }
+
+    func deleteCampaign(_ campaign: Campaign) {
+        campaigns.removeAll { $0.id == campaign.id }
+        save()
+    }
+
+    func resolveSession(id: UUID, in campaign: Campaign) -> CoachSession? {
+        campaign.embeddedSessions.first { $0.id == id } ?? sessions.first { $0.id == id }
     }
 
     func addSession(_ session: CoachSession) {

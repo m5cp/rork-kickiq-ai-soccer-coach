@@ -60,6 +60,36 @@ enum GameMoment: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+nonisolated enum TrainingPhase: String, Codable, CaseIterable, Identifiable, Sendable {
+    case warmUp = "Warm-Up"
+    case technical = "Technical"
+    case tactical = "Tactical"
+    case game = "Game"
+    case coolDown = "Cool-Down"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .warmUp: return "flame"
+        case .technical: return "figure.soccer"
+        case .tactical: return "rectangle.3.group"
+        case .game: return "soccerball"
+        case .coolDown: return "leaf"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .warmUp: return "WU"
+        case .technical: return "TEC"
+        case .tactical: return "TAC"
+        case .game: return "GAM"
+        case .coolDown: return "CD"
+        }
+    }
+}
+
 nonisolated struct SessionActivity: Codable, Identifiable {
     var id: UUID = UUID()
     var order: Int
@@ -72,9 +102,20 @@ nonisolated struct SessionActivity: Codable, Identifiable {
     var instructions: String
     var phases: [String]
     var coachingPoints: [String]
+    var trainingPhase: TrainingPhase?
 
     var displayTitle: String {
         customTitle ?? title
+    }
+
+    var resolvedPhase: TrainingPhase {
+        if let trainingPhase { return trainingPhase }
+        switch order {
+        case 1: return .warmUp
+        case 2: return .technical
+        case 3: return .tactical
+        default: return .game
+        }
     }
 }
 

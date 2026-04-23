@@ -1,44 +1,39 @@
-# Add timers to every drill and an all-day step tracker with Apple Watch app
+# Redesign Coach Plan with Periodization, Block Builder & Sharing
 
-## Universal Activity Timer
+## What you'll be able to do
 
-Every drill and coach session activity (technical, tactical, conditioning, fitness) will have a Start button that opens a full-screen countdown timer.
+- **Generate a full multi-week training campaign** in a few taps by picking how many weeks, the age group, level, and the style of periodization (Tactical Morphocycle or Classic Preseason/In-season/Peaking/Taper). The app auto-fills every week and session from the built-in library.
+- **Build sessions in clear phase blocks** instead of a flat list — Warm-up, Technical, Tactical, Game, Cool-down — with the drills grouped under each block and timings shown.
+- **Step through the Builder as tidy cards** — Moment, Focus, Parameters, Activities, Review — each a collapsible card so it's obvious what to do next.
+- **Share any plan or session four ways**: a printable PDF, an iMessage-ready text summary, a QR code that contains the full plan (works offline), and a deep link that opens the plan inside KickIQ on another coach's phone.
+- **See drill instructions clearly** — every drill shows setup, phases, coaching points, and field info so a player or assistant coach can run it.
 
-**Timer screen shows:**
-- Large circular countdown ring in orange that drains as time passes
-- Big monospaced time remaining with WORK / REST label
-- Set indicator dots (for multi-set drills)
-- Play / Pause, Reset, and Skip-to-next controls
-- Audio beeps on 3-2-1 countdown and a final completion tone, with a mute toggle
-- Live Activity on the Lock Screen and Dynamic Island so the timer keeps ticking when the phone is locked
-- Scrollable panel below the ring listing the activity's phases and coaching points so the coach or player can read them while the drill runs
-- A live step counter chip showing steps taken during this drill
+## How it will look and feel
 
-**Coach session runner:**
-- From any saved coach session, a "Run Session" button walks through all activities back-to-back, auto-advancing to the next drill with a short rest screen in between
-- Progress bar at the top shows which activity of the session is active
+- Same dark theme (near-black background, dark cards, orange accent) used throughout the app — fully consistent with the current Coach Plan.
+- The Builder becomes a vertical stack of numbered **step cards** with soft dividers. Only the active step is expanded; completed steps collapse to a one-line summary you can tap to re-open.
+- Activities are shown as **phase blocks** — each block has a small colored bar on the left, the phase name, total minutes, and the drills stacked inside it. Looks like a pro club's session sheet.
+- A new **Campaign** tab (added to the existing segmented control) shows the multi-week plan as a vertical timeline. Each week is a card labeled with its phase (e.g. "Week 2 — Strength") and shows the 2–3 sessions inside.
+- **Share sheet** is a clean bottom sheet with four big icons: PDF, Text, QR, Link.
+- The **PDF** is clean black-and-white typography — like a pro club training document. Club header, week/date/phase, session objective, phase blocks with timings, drill details, and coaching points. Print-friendly, no busy colors.
+- **QR code** screen shows a large QR on a white card with the plan title underneath — ready to scan from a tablet or clipboard on the training field.
 
-## All-Day Step Tracking
+## Screens
 
-A lightweight pedometer runs in the background using motion-only permission (no Apple Health required) so the app tracks steps throughout the day, similar to Apple Fitness.
+- **Coach Plan home** — segmented control expands to 5 tabs: Builder · Campaign · Blocks · Library · Evals.
+- **Campaign tab** — list of saved campaigns plus a big "Generate Campaign" button. Tap a campaign to see its weekly timeline.
+- **Campaign Generator** — pick number of weeks (1–16), age group, level, start date, and periodization style (Tactical Morphocycle or Classic). Tap Generate → full plan appears, editable.
+- **Campaign Detail** — week-by-week timeline, each week showing its phase label and sessions. Tap any session to open and edit. Share button in the nav bar.
+- **Session Builder (redesigned)** — collapsible numbered step cards (Moment → Focus → Parameters → Activities → Review). The Activities step shows drills grouped into phase blocks (Warm-up, Technical, Tactical, Game, Cool-down) with add/remove per block.
+- **Session Detail (redesigned)** — same phase-block layout for reading. Share button added.
+- **Share sheet** — four options: Export PDF, Send as Text, Show QR Code, Copy Link.
+- **QR viewer** — full-screen QR with plan title; tap to save to photos.
+- **PDF preview** — native preview with Share/Save/Print.
 
-**In the main app:**
-- New "Activity" card on the Home/Progress tab showing today's steps, distance, and a 7-day bar chart
-- Weekly and monthly step history
-- Goal ring (default 10,000 steps) that fills as the user walks
+## Notes
 
-## Apple Watch Companion App
+- All existing sessions, evaluations, and blocks remain intact — this is additive plus a visual redesign of the Builder and Session Detail.
+- The QR code embeds the plan data directly so it works with no internet and no backend.
+- Deep links use a `kickiq://plan/...` scheme so tapping a shared link opens the plan in the recipient's KickIQ app.
+- Only the Coach Plan area and its views are touched — no changes to Home, Drills, Progress, or Profile.
 
-A standalone watchOS app paired with the iPhone app:
-- **Today view** — step ring, distance, and active minutes for the day, glanceable at a wrist raise
-- **Timer view** — mirror of the phone's drill timer so a player or coach can start and control any drill from the watch
-- **History** — scrollable list of the last 7 days of steps
-- Complications on the watch face showing current step count
-
-## Permissions
-
-The app will ask for Motion & Fitness permission the first time the user opens the Activity card or starts a drill timer. A friendly explainer screen describes why steps are tracked (training load, daily activity) before the system prompt appears.
-
-## App Icon
-
-No icon change needed — existing icon is reused for both the iPhone and Apple Watch apps.
