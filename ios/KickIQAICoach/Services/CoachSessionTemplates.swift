@@ -50,6 +50,54 @@ enum CoachSessionTemplates {
                     SessionActivity(order: 4, title: "Full Game With Transition Focus", duration: 25, fieldSize: "Full field", playerNumbers: "Equal numbers + 2 GK", setupDescription: "Full scrimmage with immediate press rules.", instructions: "Play normal game. Emphasis on immediate press after every loss.", phases: ["Phase 1: Standard game", "Phase 2: Losing team must press within 3 seconds"], coachingPoints: ["Talk before during and after loss", "Drive intensity in first 3 seconds", "First presser forces — second wins"])
                 ],
                 notes: "Intensity session. Demand maximum effort on every transition moment."
+            ),
+            CoachSession(
+                title: "Build Up Play",
+                gameMoment: .buildUpPlay,
+                objective: "Support Movement",
+                duration: 75,
+                intensity: 6,
+                ageGroup: "U15-U19",
+                playerCount: 16,
+                activities: [
+                    SessionActivity(order: 1, title: "Passing and Movement Pattern", duration: 15, fieldSize: "25x15", playerNumbers: "Groups of 6-8", setupDescription: "Diamond shape with overlapping runners. Pass sequences with movement.", instructions: "Pass and move. Support ahead and behind the ball.", phases: ["Phase 1: Pass move support", "Phase 2: Add overlap and receive", "Phase 3: Add switch and combine"], coachingPoints: ["Foot placement on receive", "Weight of pass to match the run", "Move off ball immediately after passing"]),
+                    SessionActivity(order: 2, title: "Build Out of Back", duration: 20, fieldSize: "30x25", playerNumbers: "4v4 + 2 GK", setupDescription: "Team builds from GK through defenders into midfield. Pressing team applies soft pressure.", instructions: "Build from back. GK is a player. Score by reaching far endline.", phases: ["Phase 1: Free build", "Phase 2: 3-touch max for defenders", "Phase 3: GK must play to feet — no long balls"], coachingPoints: ["Create passing angles", "Support ahead and behind the ball", "GK as a player not a spectator"]),
+                    SessionActivity(order: 3, title: "Line Breaking Passing Game", duration: 20, fieldSize: "35x25", playerNumbers: "5v5 + 5 neutral midfielders", setupDescription: "Two teams with neutral players in central zone. Score by playing through central zone.", instructions: "Find and play through the neutrals in middle zone to score.", phases: ["Phase 1: Neutrals are 1 touch", "Phase 2: Neutrals restricted to zone"], coachingPoints: ["Identify when to play through the lines", "Weight and timing of pass into neutrals", "Movement ahead of the ball"]),
+                    SessionActivity(order: 4, title: "Scrimmage With Build Up Rules", duration: 25, fieldSize: "Full field", playerNumbers: "Equal numbers + 2 GK", setupDescription: "Full scrimmage. Must build from back — no long balls.", instructions: "No long balls from GK or defenders. Build through the thirds.", phases: ["Phase 1: Goal after 8 or more passes = 2pts", "Phase 2: Normal goal = 1pt"], coachingPoints: ["Patience in build up", "Recognize when to go forward vs recycle", "Width and depth in every moment"])
+                ],
+                notes: "Technical and positional session. Low intensity but high concentration required."
+            ),
+            CoachSession(
+                title: "Combination Play",
+                gameMoment: .combinationPlay,
+                objective: "Wall Pass",
+                duration: 75,
+                intensity: 7,
+                ageGroup: "U15-U19",
+                playerCount: 16,
+                activities: [
+                    SessionActivity(order: 1, title: "Combination Pattern Warm-Up", duration: 15, fieldSize: "20x15", playerNumbers: "Groups of 6", setupDescription: "Pairs and triangles. Wall pass third man run and overlap sequences.", instructions: "Walk through each combination then add pace. Finish each with a shot.", phases: ["Phase 1: Walk through each combination", "Phase 2: Add movement and pace", "Phase 3: Finish each with a shot"], coachingPoints: ["Timing of the run", "Weight of pass", "Communication before the combination"]),
+                    SessionActivity(order: 2, title: "Combination in Tight Space", duration: 20, fieldSize: "15x15", playerNumbers: "4v4", setupDescription: "Small sided game with combination scoring rules.", instructions: "Score by combining. Bonus points for specific combinations.", phases: ["Phase 1: Any goal = 1pt", "Phase 2: Goal after wall pass = 2pts", "Phase 3: Goal after third man run = 3pts"], coachingPoints: ["Create combinations under pressure", "Quick decision making", "Body shape on receive"]),
+                    SessionActivity(order: 3, title: "Final Third Combination", duration: 20, fieldSize: "30x25 attacking third", playerNumbers: "6v4 + GK", setupDescription: "Attackers combine to create and finish chances. Defenders reset after each attempt.", instructions: "Build combination from top of zone and finish.", phases: ["Phase 1: Build combination from top of zone", "Phase 2: Add wide players for crossing opportunities"], coachingPoints: ["Quick combinations in tight spaces", "Shoot early when chance appears", "Movement into box before the shot"]),
+                    SessionActivity(order: 4, title: "Scrimmage With Combination Rules", duration: 25, fieldSize: "Full field", playerNumbers: "Equal numbers + 2 GK", setupDescription: "Full game. Goals from combinations worth double.", instructions: "Play normal game. Combination goals worth double points.", phases: ["Phase 1: Combination goal = 2pts", "Phase 2: Standard goal = 1pt"], coachingPoints: ["Be brave in tight spaces", "Play simple then combine", "Third man runs unlock every combination"])
+                ],
+                notes: "Timing and communication are the keys. Slow the warm-up down to get the timing right."
+            ),
+            CoachSession(
+                title: "Counter Attack",
+                gameMoment: .counterAttack,
+                objective: "Quick Transition",
+                duration: 75,
+                intensity: 8,
+                ageGroup: "U15-U19",
+                playerCount: 16,
+                activities: [
+                    SessionActivity(order: 1, title: "Transition Finishing Warm-Up", duration: 15, fieldSize: "Half field", playerNumbers: "Groups of 4", setupDescription: "Players start in defensive position. On signal they receive a pass and attack goal.", instructions: "React to signal receive and attack goal within 4 seconds.", phases: ["Phase 1: 1v0 technique and composure", "Phase 2: 2v1 decision making", "Phase 3: 3v2 read the defender"], coachingPoints: ["First touch forward", "Decision speed", "Pick shot or pass early"]),
+                    SessionActivity(order: 2, title: "Win and Counter Game", duration: 20, fieldSize: "35x25", playerNumbers: "6v6", setupDescription: "Team that wins ball must get a shot off within 6 seconds.", instructions: "Score normally. Bonus for quick shot after winning.", phases: ["Phase 1: Shot within 6 seconds of winning = 2pts", "Phase 2: Reduce to 4 seconds"], coachingPoints: ["Immediate forward pass on win", "Runners go before ball is won", "Keep numbers forward"]),
+                    SessionActivity(order: 3, title: "Counter Against Recovering Defenders", duration: 20, fieldSize: "Full field", playerNumbers: "4v4 + midfielders", setupDescription: "Midfielders play possession. When ball is won they launch a 4v4 counter against recovering defense.", instructions: "Counter quickly. Defenders start from goal and sprint to recover.", phases: ["Phase 1: Defenders start from goal and sprint to recover", "Phase 2: Defenders get 3-second head start"], coachingPoints: ["Exploit space before defenders recover", "Decision to run or pass — make it early", "Finish first time when possible"]),
+                    SessionActivity(order: 4, title: "Scrimmage With Counter Rules", duration: 25, fieldSize: "Full field", playerNumbers: "Equal numbers + 2 GK", setupDescription: "Full game with counter scoring bonus.", instructions: "Play normal game. Fast counter goals worth more.", phases: ["Phase 1: Goal within 5 seconds of winning = 3pts", "Phase 2: Normal goal = 1pt"], coachingPoints: ["Transition mentality at all times", "Protect the ball then strike fast", "Numbers forward — do not let attack become isolated"])
+                ],
+                notes: "High intensity. Demand urgency on every transition. Rest periods between activities."
             )
         ]
     }
