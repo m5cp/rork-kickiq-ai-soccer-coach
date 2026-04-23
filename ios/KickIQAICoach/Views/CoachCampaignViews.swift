@@ -85,17 +85,75 @@ struct CoachCampaignView: View {
     }
 }
 
+private enum SeasonLengthMode: String, CaseIterable, Identifiable {
+    case weeks = "Total Weeks"
+    case dates = "Start & End Dates"
+    var id: String { rawValue }
+}
+
+private enum ScopeKind: String, CaseIterable, Identifiable {
+    case fullSeason = "Full Season"
+    case singlePhase = "Single Phase"
+    case singleMonth = "Single Month"
+    case singleWeek = "Single Week"
+    case singleSession = "Single Session"
+    case dateRange = "Date Range"
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .fullSeason: return "calendar"
+        case .singlePhase: return "square.stack.3d.up"
+        case .singleMonth: return "calendar.badge.clock"
+        case .singleWeek: return "7.square"
+        case .singleSession: return "figure.soccer"
+        case .dateRange: return "calendar.day.timeline.left"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .fullSeason: return "All phases across the entire season"
+        case .singlePhase: return "One phase: Preseason, Playoffs, etc."
+        case .singleMonth: return "A single month of training"
+        case .singleWeek: return "One specific week"
+        case .singleSession: return "A single session on a specific date"
+        case .dateRange: return "Custom start and end dates"
+        }
+    }
+}
+
 struct CampaignGeneratorSheet: View {
     @Bindable var coachStorage: CoachStorageService
     @Environment(\.dismiss) private var dismiss
 
     @State private var title: String = ""
-    @State private var style: PeriodizationStyle = .tacticalMorphocycle
-    @State private var weeks: Int = 6
+    @State private var style: PeriodizationStyle = .classic
     @State private var sessionsPerWeek: Int = 3
     @State private var ageGroup: String = "U15-U19"
     @State private var level: String = "Competitive"
+
+    @State private var lengthMode: SeasonLengthMode = .weeks
+    @State private var weeks: Int = 26
     @State private var startDate: Date = Date()
+    @State private var endDate: Date = Calendar.current.date(byAdding: .weekOfYear, value: 26, to: Date()) ?? Date()
+
+    @State private var scopeKind: ScopeKind = .fullSeason
+    @State private var selectedPhase: CampaignPhaseLabel = .preseason
+    @State private var selectedMonth: Int = 1
+    @State private var selectedWeek: Int = 1
+    @State private var sessionDate: Date = Date()
+    @State private var rangeStart: Date = Date()
+    @State private var rangeEnd: Date = Calendar.current.date(byAdding: .weekOfYear, value: 4, to: Date()) ?? Date()
+
+    private var computedWeeks: Int {
+        switch lengthMode {
+        case .weeks: return max(1, weeks)
+        case .dates:
+            let w = Calendar.current.dateComponents([.weekOfYear], from: startDate, to: endDate).weekOfYear ?? 1
+            return max(1, w)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -105,11 +163,57 @@ struct CampaignGeneratorSheet: View {
                         .submitLabel(.done)
                 }
 
-                Section("Periodization Style") {
-                    ForEach(PeriodizationStyle.allCases) { s in
+                Section("Season Length") {
+                    Picker("Mode", selection: $lengthMode) {
+                        ForEach(SeasonLengthMode.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if lengthMode == .weeks {
+                        Stepper("Weeks: \(weeks)", value: $weeks, in: 1...52)
+                    } else {
+                        DatePicker("Start", selection: $startDate, displayedComponents: .date)
+                        DatePicker("End", selection: $endDate, in: startDate..., displayedComponents: .date)
+                        HStack {
+                            Text("Duration")
+                                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                            Spacer()
+                            Text("\(computedWeeks) week\(computedWeeks == 1 ? "" : "s")")
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                                .fontWeight(.semibold)
+                        }
+                    }
+                }
+
+                Section("What to Generate") {
+                    ForEach(ScopeKind.allCases) { kind in
                         Button {
-                            style = s
+                            scopeKind = kind
                         } label: {
+                            HStack(alignment: .top, spacing: 12) {
+                                Image(systemName: scopeKind == kind ? "largecircle.fill.circle" : "circle")
+                                    .foregroundStyle(KickIQAICoachTheme.accent)
+                                    .padding(.top, 2)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Label(kind.rawValue, systemImage: kind.icon)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                                    Text(kind.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    scopeDetail
+                }
+
+                Section("Style") {
+                    ForEach(PeriodizationStyle.allCases) { s in
+                        Button { style = s } label: {
                             HStack(alignment: .top, spacing: 12) {
                                 Image(systemName: style == s ? "largecircle.fill.circle" : "circle")
                                     .foregroundStyle(KickIQAICoachTheme.accent)
@@ -129,15 +233,13 @@ struct CampaignGeneratorSheet: View {
                     }
                 }
 
-                Section("Plan") {
-                    Stepper("Weeks: \(weeks)", value: $weeks, in: 1...16)
+                Section("Team") {
                     Stepper("Sessions per week: \(sessionsPerWeek)", value: $sessionsPerWeek, in: 1...5)
                     TextField("Age Group", text: $ageGroup)
                     TextField("Level", text: $level)
-                    DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
                 }
             }
-            .navigationTitle("Generate Campaign")
+            .navigationTitle("Generate Plan")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -153,15 +255,59 @@ struct CampaignGeneratorSheet: View {
         }
     }
 
+    @ViewBuilder
+    private var scopeDetail: some View {
+        switch scopeKind {
+        case .fullSeason:
+            EmptyView()
+        case .singlePhase:
+            Picker("Phase", selection: $selectedPhase) {
+                ForEach(CampaignPhaseLabel.seasonPhases) { Text($0.rawValue).tag($0) }
+            }
+            Text(selectedPhase.focusDescription)
+                .font(.caption)
+                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+        case .singleMonth:
+            let totalMonths = max(1, computedWeeks / 4)
+            Stepper("Month \(selectedMonth) of \(totalMonths)", value: $selectedMonth, in: 1...max(1, totalMonths))
+        case .singleWeek:
+            Stepper("Week \(selectedWeek) of \(computedWeeks)", value: $selectedWeek, in: 1...max(1, computedWeeks))
+        case .singleSession:
+            DatePicker("Date", selection: $sessionDate, displayedComponents: .date)
+        case .dateRange:
+            DatePicker("From", selection: $rangeStart, displayedComponents: .date)
+            DatePicker("To", selection: $rangeEnd, in: rangeStart..., displayedComponents: .date)
+        }
+    }
+
+    private func resolveScope() -> GeneratorScope {
+        switch scopeKind {
+        case .fullSeason: return .fullSeason
+        case .singlePhase: return .singlePhase(selectedPhase)
+        case .singleMonth: return .singleMonth(selectedMonth)
+        case .singleWeek: return .singleWeek(selectedWeek)
+        case .singleSession: return .singleSession(sessionDate)
+        case .dateRange: return .customDateRange(rangeStart, rangeEnd)
+        }
+    }
+
     private func generate() {
+        let effectiveStart: Date = {
+            switch lengthMode {
+            case .weeks: return Date()
+            case .dates: return startDate
+            }
+        }()
+
         let campaign = CampaignGenerator.generate(
             title: title,
             style: style,
-            weeks: weeks,
+            scope: resolveScope(),
+            totalWeeks: computedWeeks,
             sessionsPerWeek: sessionsPerWeek,
             ageGroup: ageGroup,
             level: level,
-            startDate: startDate,
+            startDate: effectiveStart,
             library: coachStorage.sessions
         )
         coachStorage.addCampaign(campaign)

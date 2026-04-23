@@ -50,43 +50,35 @@ struct CoachPlanView: View {
 
 // MARK: - Session Library
 
+private struct LibraryCategory: Identifiable {
+    let name: String
+    let icon: String
+    var id: String { name }
+}
+
+private let libraryCategories: [LibraryCategory] = [
+    .init(name: "Defending", icon: "shield.lefthalf.filled"),
+    .init(name: "Attacking", icon: "arrow.up.forward.circle.fill"),
+    .init(name: "Attacking Transition", icon: "hare.fill"),
+    .init(name: "Defensive Transition", icon: "arrow.uturn.backward.circle.fill"),
+]
+
 private struct SessionLibraryView: View {
     @Bindable var coachStorage: CoachStorageService
     var onNew: () -> Void
+    @State private var sharingSessionID: UUID?
+
+    private func sessions(for category: String) -> [CoachSession] {
+        coachStorage.sessions.filter { $0.gameMoment.category == category }
+    }
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 20) {
-                ForEach(coachStorage.sessionsByMoment(), id: \.moment) { group in
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 8) {
-                            Image(systemName: group.moment.icon)
-                                .foregroundStyle(KickIQAICoachTheme.accent)
-                            Text(group.moment.rawValue)
-                                .font(.headline)
-                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                        }
-                        .padding(.horizontal, 16)
-
-                        VStack(spacing: 10) {
-                            ForEach(group.sessions) { session in
-                                NavigationLink {
-                                    LibrarySessionDetailWrapper(coachStorage: coachStorage, sessionID: session.id)
-                                } label: {
-                                    SessionCardView(session: session)
-                                }
-                                .buttonStyle(.plain)
-                                .contextMenu {
-                                    Button {
-                                        coachStorage.duplicateSession(session)
-                                    } label: { Label("Duplicate", systemImage: "doc.on.doc") }
-                                    Button(role: .destructive) {
-                                        coachStorage.deleteSession(session)
-                                    } label: { Label("Delete", systemImage: "trash") }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
+            LazyVStack(alignment: .leading, spacing: 24) {
+                ForEach(libraryCategories) { cat in
+                    let sessions = sessions(for: cat.name)
+                    if !sessions.isEmpty {
+                        categorySection(cat, sessions: sessions)
                     }
                 }
 
@@ -107,44 +99,127 @@ private struct SessionLibraryView: View {
                 }
             }
         }
+        .sheet(item: Binding(
+            get: { sharingSessionID.map { IDWrapper(id: $0) } },
+            set: { sharingSessionID = $0?.id }
+        )) { wrap in
+            if let s = coachStorage.sessions.first(where: { $0.id == wrap.id }) {
+                CoachShareSheet(shareable: .session(s))
+            }
+        }
+    }
+
+    private func categorySection(_ cat: LibraryCategory, sessions: [CoachSession]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: cat.icon)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                    .frame(width: 28, height: 28)
+                    .background(KickIQAICoachTheme.accent.opacity(0.15), in: Circle())
+                Text(cat.name)
+                    .font(.title3.bold())
+                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                Spacer()
+                Text("\(sessions.count)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(KickIQAICoachTheme.surface, in: Capsule())
+            }
+            .padding(.horizontal, 16)
+
+            VStack(spacing: 12) {
+                ForEach(sessions) { session in
+                    NavigationLink {
+                        LibrarySessionDetailWrapper(coachStorage: coachStorage, sessionID: session.id)
+                    } label: {
+                        LibraryTileView(session: session)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            sharingSessionID = session.id
+                        } label: { Label("Share", systemImage: "square.and.arrow.up") }
+                        Button {
+                            coachStorage.duplicateSession(session)
+                        } label: { Label("Duplicate", systemImage: "doc.on.doc") }
+                        Button(role: .destructive) {
+                            coachStorage.deleteSession(session)
+                        } label: { Label("Delete", systemImage: "trash") }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+        }
     }
 }
 
-private struct SessionCardView: View {
+private struct IDWrapper: Identifiable { let id: UUID }
+
+private struct LibraryTileView: View {
     let session: CoachSession
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: session.gameMoment.icon)
-                .font(.title3)
-                .foregroundStyle(KickIQAICoachTheme.accent)
-                .frame(width: 40, height: 40)
-                .background(KickIQAICoachTheme.accent.opacity(0.15), in: Circle())
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(session.displayTitle)
-                    .font(.headline)
-                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                Text(session.displayGameMoment)
-                    .font(.caption)
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
-
-                HStack(spacing: 10) {
-                    Label("\(session.duration)m", systemImage: "clock")
-                    Label("\(session.intensity)", systemImage: "flame.fill")
-                    Label("\(session.activities.count)", systemImage: "square.stack.3d.up")
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: session.gameMoment.icon)
+                    .font(.title3)
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(KickIQAICoachTheme.accent, in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(session.displayGameMoment.uppercased())
+                        .font(.caption2.weight(.heavy))
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                        .tracking(0.8)
+                    Text(session.displayTitle)
+                        .font(.headline)
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
                 }
-                .font(.caption2)
-                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
             }
+            .padding(14)
 
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption)
+            Divider().background(KickIQAICoachTheme.divider)
+
+            HStack(spacing: 0) {
+                statPill(icon: "clock.fill", value: "\(session.duration)m", label: "Duration")
+                Divider().background(KickIQAICoachTheme.divider).frame(height: 28)
+                statPill(icon: "flame.fill", value: "\(session.intensity)", label: "Intensity")
+                Divider().background(KickIQAICoachTheme.divider).frame(height: 28)
+                statPill(icon: "square.stack.3d.up.fill", value: "\(session.activities.count)", label: "Drills")
+            }
+            .padding(.vertical, 10)
+        }
+        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(KickIQAICoachTheme.divider.opacity(0.4), lineWidth: 0.5)
+        )
+    }
+
+    private func statPill(icon: String, value: String, label: String) -> some View {
+        VStack(spacing: 3) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.caption2)
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                Text(value)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+            }
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .bold))
+                .tracking(0.6)
                 .foregroundStyle(KickIQAICoachTheme.textSecondary)
         }
-        .padding(14)
-        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: 14))
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -784,18 +859,18 @@ private struct BlockPlannerView: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                ForEach(coachStorage.blocks) { block in
-                    NavigationLink {
-                        BlockDetailView(coachStorage: coachStorage, block: block)
-                    } label: {
-                        blockCard(block)
-                    }
-                    .buttonStyle(.plain)
-                }
-
                 if coachStorage.blocks.isEmpty {
-                    ContentUnavailableView("No Training Blocks", systemImage: "calendar", description: Text("Tap + to create a new block."))
-                        .padding(.top, 40)
+                    emptyIntroCard
+                } else {
+                    infoBanner
+                    ForEach(coachStorage.blocks) { block in
+                        NavigationLink {
+                            BlockDetailView(coachStorage: coachStorage, block: block)
+                        } label: {
+                            blockCard(block)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
             .padding(16)
@@ -813,6 +888,73 @@ private struct BlockPlannerView: View {
         .sheet(isPresented: $showNew) {
             NewBlockSheet(coachStorage: coachStorage)
         }
+    }
+
+    private var emptyIntroCard: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "calendar.badge.plus")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(KickIQAICoachTheme.accent)
+                .padding(18)
+                .background(KickIQAICoachTheme.accent.opacity(0.12), in: Circle())
+
+            VStack(spacing: 8) {
+                Text("Training Blocks")
+                    .font(.title2.bold())
+                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                Text("Group 4–8 weeks of sessions into a focused training block. Blocks help you progress one theme — like finishing or pressing — over time.")
+                    .font(.subheadline)
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                bulletRow(icon: "1.circle.fill", text: "Name your block and set a duration")
+                bulletRow(icon: "2.circle.fill", text: "Assign sessions to each week")
+                bulletRow(icon: "3.circle.fill", text: "Share as PDF, link, or QR code")
+            }
+            .padding(.horizontal, 4)
+
+            Button {
+                showNew = true
+            } label: {
+                Label("Create Block", systemImage: "plus")
+                    .font(.headline)
+                    .foregroundStyle(KickIQAICoachTheme.onAccent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(KickIQAICoachTheme.accent, in: .rect(cornerRadius: 14))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity)
+        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: 20))
+        .padding(.top, 20)
+    }
+
+    private func bulletRow(icon: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .foregroundStyle(KickIQAICoachTheme.accent)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var infoBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(KickIQAICoachTheme.accent)
+            Text("Blocks group weeks of sessions around a single focus.")
+                .font(.caption)
+                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+            Spacer()
+        }
+        .padding(12)
+        .background(KickIQAICoachTheme.accent.opacity(0.08), in: .rect(cornerRadius: 12))
     }
 
     private func blockCard(_ block: TrainingBlock) -> some View {
@@ -996,11 +1138,13 @@ private struct SessionPickerSheet: View {
 private struct EvaluationsView: View {
     @Bindable var coachStorage: CoachStorageService
     @State private var showAdd = false
+    @State private var showEditCriteria = false
     @State private var editing: PlayerEvaluation?
 
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 10) {
+                criteriaBar
                 ForEach(coachStorage.evaluations.sorted(by: { $0.evaluationDate > $1.evaluationDate })) { e in
                     Button {
                         editing = e
@@ -1030,6 +1174,38 @@ private struct EvaluationsView: View {
         .sheet(item: $editing) { e in
             AddEvaluationSheet(coachStorage: coachStorage, existing: e)
         }
+        .sheet(isPresented: $showEditCriteria) {
+            EditCriteriaSheet(coachStorage: coachStorage)
+        }
+    }
+
+    private var criteriaBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "slider.horizontal.3")
+                .foregroundStyle(KickIQAICoachTheme.accent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Criteria")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                Text(coachStorage.evaluationCriteria.map(\.name).joined(separator: " · "))
+                    .font(.caption)
+                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Button {
+                showEditCriteria = true
+            } label: {
+                Text("Edit")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(KickIQAICoachTheme.accent.opacity(0.15), in: Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: 12))
     }
 
     private func evaluationCard(_ e: PlayerEvaluation) -> some View {
@@ -1050,10 +1226,9 @@ private struct EvaluationsView: View {
                     .padding(.horizontal, 10).padding(.vertical, 6)
                     .background(KickIQAICoachTheme.accent, in: Capsule())
             }
-            bar("Technical", value: e.technical)
-            bar("Tactical", value: e.tactical)
-            bar("Physical", value: e.physical)
-            bar("Character", value: e.character)
+            ForEach(coachStorage.evaluationCriteria) { c in
+                bar(c.name, value: e.score(for: c.id))
+            }
         }
         .padding(14)
         .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: 14))
@@ -1088,10 +1263,7 @@ private struct AddEvaluationSheet: View {
 
     @State private var name: String = ""
     @State private var date: Date = Date()
-    @State private var technical: Double = 5
-    @State private var tactical: Double = 5
-    @State private var physical: Double = 5
-    @State private var character: Double = 5
+    @State private var scores: [String: Double] = [:]
     @State private var notes: String = ""
 
     var body: some View {
@@ -1102,10 +1274,12 @@ private struct AddEvaluationSheet: View {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                 }
                 Section("Ratings") {
-                    ratingSlider("Technical", value: $technical)
-                    ratingSlider("Tactical", value: $tactical)
-                    ratingSlider("Physical", value: $physical)
-                    ratingSlider("Character", value: $character)
+                    ForEach(coachStorage.evaluationCriteria) { c in
+                        ratingSlider(c.name, value: Binding(
+                            get: { scores[c.id] ?? 5 },
+                            set: { scores[c.id] = $0 }
+                        ))
+                    }
                 }
                 Section("Notes") {
                     TextField("Notes", text: $notes, axis: .vertical)
@@ -1126,11 +1300,14 @@ private struct AddEvaluationSheet: View {
                 if let e = existing {
                     name = e.playerName
                     date = e.evaluationDate
-                    technical = Double(e.technical)
-                    tactical = Double(e.tactical)
-                    physical = Double(e.physical)
-                    character = Double(e.character)
                     notes = e.notes
+                    for c in coachStorage.evaluationCriteria {
+                        scores[c.id] = Double(e.score(for: c.id))
+                    }
+                } else {
+                    for c in coachStorage.evaluationCriteria where scores[c.id] == nil {
+                        scores[c.id] = 5
+                    }
                 }
             }
         }
@@ -1154,17 +1331,93 @@ private struct AddEvaluationSheet: View {
         var eval = existing ?? PlayerEvaluation(playerName: "", evaluationDate: Date(), technical: 5, tactical: 5, physical: 5, character: 5, notes: "")
         eval.playerName = name
         eval.evaluationDate = date
-        eval.technical = Int(technical)
-        eval.tactical = Int(tactical)
-        eval.physical = Int(physical)
-        eval.character = Int(character)
         eval.notes = notes
-
+        for c in coachStorage.evaluationCriteria {
+            let v = Int(scores[c.id] ?? 5)
+            eval.setScore(v, for: c.id)
+        }
         if existing == nil {
             coachStorage.addEvaluation(eval)
         } else {
             coachStorage.updateEvaluation(eval)
         }
         dismiss()
+    }
+}
+
+private struct EditCriteriaSheet: View {
+    @Bindable var coachStorage: CoachStorageService
+    @Environment(\.dismiss) private var dismiss
+    @State private var working: [EvaluationCriterion] = []
+    @State private var newName: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Rename, reorder, add or remove evaluation criteria. Changes apply to all future evaluations.")
+                        .font(.caption)
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                }
+
+                Section("Criteria") {
+                    ForEach($working) { $c in
+                        TextField("Name", text: $c.name)
+                    }
+                    .onDelete { working.remove(atOffsets: $0) }
+                    .onMove { working.move(fromOffsets: $0, toOffset: $1) }
+                }
+
+                Section("Add Criterion") {
+                    HStack {
+                        TextField("e.g. Leadership, Speed", text: $newName)
+                        Button {
+                            addCriterion()
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundStyle(KickIQAICoachTheme.accent)
+                        }
+                        .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        working = EvaluationCriterion.defaults
+                    } label: {
+                        Label("Reset to Defaults", systemImage: "arrow.counterclockwise")
+                    }
+                }
+            }
+            .environment(\.editMode, .constant(.active))
+            .navigationTitle("Edit Criteria")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Save") {
+                        let cleaned = working.map { EvaluationCriterion(id: $0.id, name: $0.name.trimmingCharacters(in: .whitespaces).isEmpty ? "Criterion" : $0.name) }
+                        coachStorage.updateCriteria(cleaned)
+                        dismiss()
+                    }
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                    .fontWeight(.semibold)
+                    .disabled(working.isEmpty)
+                }
+            }
+            .onAppear {
+                if working.isEmpty { working = coachStorage.evaluationCriteria }
+            }
+        }
+    }
+
+    private func addCriterion() {
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let id = trimmed.lowercased().replacingOccurrences(of: " ", with: "_") + "_" + String(UUID().uuidString.prefix(4))
+        working.append(EvaluationCriterion(id: id, name: trimmed))
+        newName = ""
     }
 }

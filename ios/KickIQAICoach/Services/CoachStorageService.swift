@@ -7,11 +7,13 @@ class CoachStorageService {
     var blocks: [TrainingBlock] = []
     var evaluations: [PlayerEvaluation] = []
     var campaigns: [Campaign] = []
+    var evaluationCriteria: [EvaluationCriterion] = EvaluationCriterion.defaults
 
     private let sessionsKey = "coach_sessions"
     private let blocksKey = "coach_blocks"
     private let evaluationsKey = "coach_evaluations"
     private let campaignsKey = "coach_campaigns"
+    private let criteriaKey = "coach_eval_criteria"
 
     init() {
         load()
@@ -34,6 +36,9 @@ class CoachStorageService {
         if let data = try? JSONEncoder().encode(campaigns) {
             UserDefaults.standard.set(data, forKey: campaignsKey)
         }
+        if let data = try? JSONEncoder().encode(evaluationCriteria) {
+            UserDefaults.standard.set(data, forKey: criteriaKey)
+        }
     }
 
     func load() {
@@ -53,6 +58,15 @@ class CoachStorageService {
            let decoded = try? JSONDecoder().decode([Campaign].self, from: data) {
             campaigns = decoded
         }
+        if let data = UserDefaults.standard.data(forKey: criteriaKey),
+           let decoded = try? JSONDecoder().decode([EvaluationCriterion].self, from: data), !decoded.isEmpty {
+            evaluationCriteria = decoded
+        }
+    }
+
+    func updateCriteria(_ list: [EvaluationCriterion]) {
+        evaluationCriteria = list.isEmpty ? EvaluationCriterion.defaults : list
+        save()
     }
 
     func addCampaign(_ campaign: Campaign) {

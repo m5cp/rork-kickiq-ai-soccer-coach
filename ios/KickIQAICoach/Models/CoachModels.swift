@@ -151,6 +151,18 @@ nonisolated struct TrainingBlock: Codable, Identifiable {
     var startDate: Date
 }
 
+nonisolated struct EvaluationCriterion: Codable, Identifiable, Sendable, Hashable {
+    var id: String
+    var name: String
+
+    static let defaults: [EvaluationCriterion] = [
+        .init(id: "technical", name: "Technical"),
+        .init(id: "tactical", name: "Tactical"),
+        .init(id: "physical", name: "Physical"),
+        .init(id: "character", name: "Character"),
+    ]
+}
+
 nonisolated struct PlayerEvaluation: Codable, Identifiable {
     var id: UUID = UUID()
     var playerName: String
@@ -160,8 +172,35 @@ nonisolated struct PlayerEvaluation: Codable, Identifiable {
     var physical: Int
     var character: Int
     var notes: String
+    var scores: [String: Int] = [:]
 
     var averageScore: Double {
-        Double(technical + tactical + physical + character) / 4.0
+        if !scores.isEmpty {
+            let values = Array(scores.values)
+            return Double(values.reduce(0, +)) / Double(max(1, values.count))
+        }
+        return Double(technical + tactical + physical + character) / 4.0
+    }
+
+    func score(for criterionID: String) -> Int {
+        if let v = scores[criterionID] { return v }
+        switch criterionID {
+        case "technical": return technical
+        case "tactical": return tactical
+        case "physical": return physical
+        case "character": return character
+        default: return 5
+        }
+    }
+
+    mutating func setScore(_ value: Int, for criterionID: String) {
+        scores[criterionID] = value
+        switch criterionID {
+        case "technical": technical = value
+        case "tactical": tactical = value
+        case "physical": physical = value
+        case "character": character = value
+        default: break
+        }
     }
 }
