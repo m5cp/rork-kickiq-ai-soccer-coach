@@ -28,6 +28,7 @@ struct ProgressTabView: View {
                     if storage.sessions.isEmpty && storage.benchmarkResults.isEmpty {
                         emptyState
                     } else {
+                        ActivityStepsCard()
                         levelOverviewCard
                         if !storage.benchmarkResults.isEmpty {
                             benchmarkProgressCard

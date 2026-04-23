@@ -155,12 +155,30 @@ private struct SessionDetailView: View {
     @State private var titleDraft = ""
     @State private var momentDraft = ""
     @State private var editingActivity: SessionActivity?
+    @State private var runningActivity: SessionActivity?
+    @State private var runningSession: Bool = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 titleRow
                 momentRow
+
+                Button {
+                    runningSession = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "play.fill")
+                        Text("Run Session")
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundStyle(KickIQAICoachTheme.onAccent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(KickIQAICoachTheme.accent, in: .rect(cornerRadius: 14))
+                }
+                .disabled(session.activities.isEmpty)
+                .opacity(session.activities.isEmpty ? 0.5 : 1)
 
                 VStack(spacing: 0) {
                     infoRow("Objective", value: session.objective)
@@ -181,12 +199,15 @@ private struct SessionDetailView: View {
 
                 VStack(spacing: 10) {
                     ForEach(session.activities) { activity in
-                        Button {
-                            editingActivity = activity
-                        } label: {
-                            activityRow(activity)
-                        }
-                        .buttonStyle(.plain)
+                        activityRow(activity)
+                            .contextMenu {
+                                Button {
+                                    runningActivity = activity
+                                } label: { Label("Start Timer", systemImage: "play.fill") }
+                                Button {
+                                    editingActivity = activity
+                                } label: { Label("Edit", systemImage: "pencil") }
+                            }
                     }
                 }
 
@@ -216,6 +237,12 @@ private struct SessionDetailView: View {
                     coachStorage.updateSession(session)
                 }
             }
+        }
+        .sheet(item: $runningActivity) { activity in
+            SessionActivityTimerView(activity: activity, sessionTitle: session.displayTitle)
+        }
+        .fullScreenCover(isPresented: $runningSession) {
+            SessionRunnerView(session: session)
         }
     }
 
@@ -305,21 +332,33 @@ private struct SessionDetailView: View {
                 .background(KickIQAICoachTheme.accent.opacity(0.15), in: Circle())
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(activity.displayTitle)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
-                    Spacer()
-                    Text("\(activity.duration)m")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(KickIQAICoachTheme.accent)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(KickIQAICoachTheme.accent.opacity(0.15), in: Capsule())
+                Button { editingActivity = activity } label: {
+                    HStack {
+                        Text(activity.displayTitle)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                        Spacer()
+                        Text("\(activity.duration)m")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(KickIQAICoachTheme.accent.opacity(0.15), in: Capsule())
+                    }
                 }
+                .buttonStyle(.plain)
                 Text("\(activity.fieldSize) · \(activity.playerNumbers)")
                     .font(.caption)
                     .foregroundStyle(KickIQAICoachTheme.textSecondary)
             }
+
+            Button {
+                runningActivity = activity
+            } label: {
+                Image(systemName: "play.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+            }
+            .buttonStyle(.plain)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)

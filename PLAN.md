@@ -1,35 +1,44 @@
-# Home layout changes, modern legal pages, onboarding cleanup, disclaimer update
+# Add timers to every drill and an all-day step tracker with Apple Watch app
 
-Here's what I'll change. I won't touch any other working screens or flows.
+## Universal Activity Timer
 
-**Home screen**
-- When a full training plan has been generated, show a new **"Your Workout"** section at the top of the home feed (above "Suggested for You").
-- Both **"Your Workout"** and **"Suggested for You"** become collapsible dropdowns — tap the header to expand or collapse, with a chevron that rotates and a smooth animation. Default state: Your Workout expanded, Suggested for You collapsed once a plan exists.
-- Until a plan is generated, only Suggested for You shows (as today).
+Every drill and coach session activity (technical, tactical, conditioning, fitness) will have a Start button that opens a full-screen countdown timer.
 
-**Onboarding**
-- Remove the fake testimonials step (Marcus J., Sofia R., Aiden K.) and its "Players Like You" screen entirely from the onboarding flow so users go straight to the next step.
+**Timer screen shows:**
+- Large circular countdown ring in orange that drains as time passes
+- Big monospaced time remaining with WORK / REST label
+- Set indicator dots (for multi-set drills)
+- Play / Pause, Reset, and Skip-to-next controls
+- Audio beeps on 3-2-1 countdown and a final completion tone, with a mute toggle
+- Live Activity on the Lock Screen and Dynamic Island so the timer keeps ticking when the phone is locked
+- Scrollable panel below the ring listing the activity's phases and coaching points so the coach or player can read them while the drill runs
+- A live step counter chip showing steps taken during this drill
 
-**Legal pages (Privacy Policy, Terms, EULA, Disclaimers, Risks & Safety)**
-- Redesign so they no longer look like a wall of text. Each section becomes a modern card with:
-  - A small colored icon badge in the corner (SF Symbol matching the section topic)
-  - A bold title with subtle accent underline
-  - Cleaner spacing, bullet lists rendered with real bullet styling (icon + text rows, not plain "•")
-  - Section dividers and soft card shadow
-- Header gets a larger hero treatment with the page icon in a tinted circle, page title, and "Last updated" chip.
-- Content wording stays the same except for the disclaimer update below.
+**Coach session runner:**
+- From any saved coach session, a "Run Session" button walks through all activities back-to-back, auto-advancing to the next drill with a short rest screen in between
+- Progress bar at the top shows which activity of the session is active
 
-**Disclaimer — positioning and safety**
-- Update the Disclaimers page (and surface the same copy where relevant) to clearly state:
-  - KickIQ is a **tracking and organization tool** for workouts, drills, and conditioning programs recommended by the user's own coaches and trainers. The app sorts, schedules, and tracks exercises — it does not prescribe medical or professional training advice.
-  - The user should **consult a physician and obtain medical clearance** before beginning any drills, conditioning, or physical activity in the app.
-  - Performing drills and conditioning carries inherent risk of injury; the user accepts full responsibility for their own safety, proper warm-up, technique, environment, and stopping if they feel pain.
-  - Minors should train under adult supervision.
+## All-Day Step Tracking
 
-**Token purchases (RevenueCat)**
-- Confirmed already wired through RevenueCat (Small / Medium / Large token packs via the `token_packs` offering, purchased through `Purchases.shared.purchase(package:)`). No change needed — I'll just verify the packs load and purchase path is clean while making the above edits.
+A lightweight pedometer runs in the background using motion-only permission (no Apple Health required) so the app tracks steps throughout the day, similar to Apple Fitness.
 
-**Not touching**
-- Benchmark, Drills, Progress, Profile tabs, AI Coach, paywall, subscription plans, existing drills data, analytics, streak logic.
+**In the main app:**
+- New "Activity" card on the Home/Progress tab showing today's steps, distance, and a 7-day bar chart
+- Weekly and monthly step history
+- Goal ring (default 10,000 steps) that fills as the user walks
 
-Once you approve I'll implement and run a build to confirm everything compiles.
+## Apple Watch Companion App
+
+A standalone watchOS app paired with the iPhone app:
+- **Today view** — step ring, distance, and active minutes for the day, glanceable at a wrist raise
+- **Timer view** — mirror of the phone's drill timer so a player or coach can start and control any drill from the watch
+- **History** — scrollable list of the last 7 days of steps
+- Complications on the watch face showing current step count
+
+## Permissions
+
+The app will ask for Motion & Fitness permission the first time the user opens the Activity card or starts a drill timer. A friendly explainer screen describes why steps are tracked (training load, daily activity) before the system prompt appears.
+
+## App Icon
+
+No icon change needed — existing icon is reused for both the iPhone and Apple Watch apps.

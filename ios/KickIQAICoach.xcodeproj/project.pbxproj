@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		XX04F26848145D50BC4182XX /* KickIQWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = XX5FCC46B52D16D8FEA01AXX /* KickIQWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		XX1CF0E0B84495E338AE1FXX /* KickIQWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = XX999404EA78BA538080ABXX /* KickIQWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		XX298127CFBB2CF3FA631BXX /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = XXDCC169DE7B2F3C1C8B10XX /* RevenueCat */; };
 /* End PBXBuildFile section */
 
@@ -33,6 +34,13 @@
 			remoteGlobalIDString = XX5A9363A7B7539FBA2C85XX;
 			remoteInfo = KickIQWidget;
 		};
+		XXEE57A03DA6D78D26897DXX /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 105FC5722E9EAD3100EA8BCF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = XX86A365EA923C173E1B5AXX;
+			remoteInfo = KickIQWatch;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -47,6 +55,17 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		XX14C6F1A57EA82ED90A87XX /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				XX1CF0E0B84495E338AE1FXX /* KickIQWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +73,7 @@
 		105FC5892E9EAD3200EA8BCF /* KickIQAICoachTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KickIQAICoachTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5932E9EAD3200EA8BCF /* KickIQAICoachUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KickIQAICoachUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		XX5FCC46B52D16D8FEA01AXX /* KickIQWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KickIQWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		XX999404EA78BA538080ABXX /* KickIQWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KickIQWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -67,13 +87,25 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		XXA647312772BAA0C64433XX /* KickIQWidget */ = {
+		105FC57C2E9EAD3100EA8BCF /* KickIQAICoach */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = KickIQWidget;
+			path = KickIQAICoach;
 			sourceTree = "<group>";
-			exceptions = (
-				XX59FF957993BDFFA06C74XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
-			);
+		};
+		105FC58C2E9EAD3200EA8BCF /* KickIQAICoachTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KickIQAICoachTests;
+			sourceTree = "<group>";
+		};
+		105FC5962E9EAD3200EA8BCF /* KickIQAICoachUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KickIQAICoachUITests;
+			sourceTree = "<group>";
+		};
+		XX6CE51ACBCD8F026DE79DXX /* KickIQWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KickIQWatch;
+			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -100,6 +132,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		XX28A9A27FCA465D91AA27XX /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		XX75B8358D2242CEB782C5XX /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -110,20 +149,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		105FC57C2E9EAD3100EA8BCF /* KickIQAICoach */ = {
+		XXA647312772BAA0C64433XX /* KickIQWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = KickIQAICoach;
+			path = KickIQWidget;
 			sourceTree = "<group>";
-		};
-		105FC58C2E9EAD3200EA8BCF /* KickIQAICoachTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = KickIQAICoachTests;
-			sourceTree = "<group>";
-		};
-		105FC5962E9EAD3200EA8BCF /* KickIQAICoachUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = KickIQAICoachUITests;
-			sourceTree = "<group>";
+			exceptions = (
+				XX59FF957993BDFFA06C74XX /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -136,6 +168,7 @@
 				105FC5962E9EAD3200EA8BCF /* KickIQAICoachUITests */,
 				105FC57B2E9EAD3100EA8BCF /* Products */,
 				XXA647312772BAA0C64433XX /* KickIQWidget */,
+				XX6CE51ACBCD8F026DE79DXX /* KickIQWatch */,
 			);
 			sourceTree = "<group>";
 		};
@@ -146,6 +179,7 @@
 				105FC5892E9EAD3200EA8BCF /* KickIQAICoachTests.xctest */,
 				105FC5932E9EAD3200EA8BCF /* KickIQAICoachUITests.xctest */,
 				XX5FCC46B52D16D8FEA01AXX /* KickIQWidget.appex */,
+				XX999404EA78BA538080ABXX /* KickIQWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -161,11 +195,13 @@
 				105FC5772E9EAD3100EA8BCF /* Frameworks */,
 				105FC5782E9EAD3100EA8BCF /* Resources */,
 				XX09EE5F3ECC1F469D01BFXX /* Embed Foundation Extensions */,
+				XX14C6F1A57EA82ED90A87XX /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				XX86ECCD9D084DBFDDA233XX /* PBXTargetDependency */,
+				XX80FCA7617A187868967EXX /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				105FC57C2E9EAD3100EA8BCF /* KickIQAICoach */,
@@ -244,6 +280,26 @@
 				XXA647312772BAA0C64433XX /* KickIQWidget */,
 			);
 		};
+		XX86A365EA923C173E1B5AXX /* KickIQWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = XX297E7EC5537374A91C45XX /* Build configuration list for PBXNativeTarget "KickIQWatch" */;
+			buildPhases = (
+				XX178B45C53EB340DB4155XX /* Sources */,
+				XX28A9A27FCA465D91AA27XX /* Frameworks */,
+				XX4FEB6E8356710642DD83XX /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KickIQWatch;
+			productName = KickIQWatch;
+			productReference = XX999404EA78BA538080ABXX /* KickIQWatch.app */;
+			productType = "com.apple.product-type.application";
+			fileSystemSynchronizedGroups = (
+				XX6CE51ACBCD8F026DE79DXX /* KickIQWatch */,
+			);
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -286,6 +342,7 @@
 				105FC5882E9EAD3200EA8BCF /* KickIQAICoachTests */,
 				105FC5922E9EAD3200EA8BCF /* KickIQAICoachUITests */,
 				XX5A9363A7B7539FBA2C85XX /* KickIQWidget */,
+				XX86A365EA923C173E1B5AXX /* KickIQWatch */,
 			);
 			packageReferences = (
 				XX4AC81916604C4344ADC0XX /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
@@ -309,6 +366,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		105FC5912E9EAD3200EA8BCF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		XX4FEB6E8356710642DD83XX /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -346,6 +410,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		XX178B45C53EB340DB4155XX /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		XXE0FD6AFA7551401BFCEBXX /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -365,6 +436,11 @@
 			isa = PBXTargetDependency;
 			target = 105FC5792E9EAD3100EA8BCF /* KickIQAICoach */;
 			targetProxy = 105FC5942E9EAD3200EA8BCF /* PBXContainerItemProxy */;
+		};
+		XX80FCA7617A187868967EXX /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = XX86A365EA923C173E1B5AXX /* KickIQWatch */;
+			targetProxy = XXEE57A03DA6D78D26897DXX /* PBXContainerItemProxy */;
 		};
 		XX86ECCD9D084DBFDDA233XX /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -510,6 +586,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "KickIQ uses your calendar to schedule training sessions and set reminders";
 				INFOPLIST_KEY_NSCameraUsageDescription = "KickIQ needs camera access to record your training clips";
+				INFOPLIST_KEY_NSMotionUsageDescription = "KickIQ uses motion data to count your steps and distance during training and throughout the day, like Apple Fitness.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "KickIQ needs photo library access to upload your training clips";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -548,6 +625,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "KickIQ uses your calendar to schedule training sessions and set reminders";
 				INFOPLIST_KEY_NSCameraUsageDescription = "KickIQ needs camera access to record your training clips";
+				INFOPLIST_KEY_NSMotionUsageDescription = "KickIQ uses motion data to count your steps and distance during training and throughout the day, like Apple Fitness.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "KickIQ needs photo library access to upload your training clips";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -701,6 +779,62 @@
 			};
 			name = Debug;
 		};
+		XXBBDA182F0AD9A6F705B9XX /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.06v1jbxc3wfuggmi1ea7t.kickiqwatch;
+				PRODUCT_NAME = KickIQWatch;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = watchos;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				GENERATE_INFOPLIST_FILE = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				TARGETED_DEVICE_FAMILY = 4;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				ENABLE_PREVIEWS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = app.rork.06v1jbxc3wfuggmi1ea7t;
+			};
+			name = Debug;
+		};
+		XXC68220E1D1E8D146CB52XX /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = app.rork.06v1jbxc3wfuggmi1ea7t.kickiqwatch;
+				PRODUCT_NAME = KickIQWatch;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = watchos;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				GENERATE_INFOPLIST_FILE = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				TARGETED_DEVICE_FAMILY = 4;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				ENABLE_PREVIEWS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = app.rork.06v1jbxc3wfuggmi1ea7t;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -736,6 +870,15 @@
 			buildConfigurations = (
 				105FC5A42E9EAD3200EA8BCF /* Debug */,
 				105FC5A52E9EAD3200EA8BCF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		XX297E7EC5537374A91C45XX /* Build configuration list for PBXNativeTarget "KickIQWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				XXBBDA182F0AD9A6F705B9XX /* Debug */,
+				XXC68220E1D1E8D146CB52XX /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
