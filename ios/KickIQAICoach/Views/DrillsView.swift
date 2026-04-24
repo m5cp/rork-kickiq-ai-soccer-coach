@@ -36,6 +36,8 @@ struct DrillsView: View {
                 VStack(spacing: KickIQAICoachTheme.Spacing.md) {
                     categoryPicker
 
+                    coachPlanningHero
+
                     SiriTipCard(phrase: "Hey Siri, start my next KickIQ drill", systemImage: "figure.soccer")
 
                     if selectedCategory == .skills {
@@ -90,6 +92,67 @@ struct DrillsView: View {
             loadDrills()
             withAnimation(.easeOut(duration: 0.5)) { appeared = true }
         }
+    }
+
+    private var coachPlanningHero: some View {
+        NavigationLink {
+            CoachPlanView()
+        } label: {
+            HStack(spacing: KickIQAICoachTheme.Spacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(
+                            LinearGradient(
+                                colors: [KickIQAICoachTheme.accent, KickIQAICoachTheme.accent.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 54, height: 54)
+                    Image(systemName: "clipboard.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("Coach Planning")
+                            .font(.headline.weight(.heavy))
+                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                        Text("PRO")
+                            .font(.system(size: 9, weight: .black))
+                            .tracking(1)
+                            .foregroundStyle(KickIQAICoachTheme.onAccent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(KickIQAICoachTheme.accent, in: Capsule())
+                    }
+                    Text("Build sessions, campaigns & full seasons")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+            }
+            .padding(KickIQAICoachTheme.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                    .fill(KickIQAICoachTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KickIQAICoachTheme.Radius.lg)
+                            .stroke(KickIQAICoachTheme.accent.opacity(0.25), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .animation(.spring(response: 0.45).delay(0.05), value: appeared)
     }
 
     private var categoryPicker: some View {

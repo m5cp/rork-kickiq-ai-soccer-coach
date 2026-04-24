@@ -1,12 +1,42 @@
 import SwiftUI
 
 private enum CoachTab: String, CaseIterable, Identifiable {
-    case builder = "Builder"
-    case campaign = "Campaign"
-    case blocks = "Blocks"
+    case builder = "Session Builder"
+    case campaign = "Season Generator"
+    case blocks = "Phase Blocks"
     case library = "Library"
-    case evaluations = "Evals"
+    case evaluations = "Evaluations"
     var id: String { rawValue }
+
+    var shortLabel: String {
+        switch self {
+        case .builder: return "Build"
+        case .campaign: return "Season"
+        case .blocks: return "Blocks"
+        case .library: return "Library"
+        case .evaluations: return "Evals"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .builder: return "hammer.fill"
+        case .campaign: return "calendar"
+        case .blocks: return "square.stack.3d.up.fill"
+        case .library: return "books.vertical.fill"
+        case .evaluations: return "person.text.rectangle.fill"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .builder: return "Build a single training session step-by-step"
+        case .campaign: return "Full season, phase, month, week or custom range"
+        case .blocks: return "Group weeks of sessions around a focus theme"
+        case .library: return "All saved sessions, grouped by category"
+        case .evaluations: return "Rate players and customize criteria"
+        }
+    }
 }
 
 struct CoachPlanView: View {
@@ -14,37 +44,63 @@ struct CoachPlanView: View {
     @State private var selectedTab: CoachTab = .library
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                Picker("", selection: $selectedTab) {
+        VStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
                     ForEach(CoachTab.allCases) { tab in
-                        Text(tab.rawValue).tag(tab)
+                        Button {
+                            withAnimation(.spring(response: 0.3)) { selectedTab = tab }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: tab.icon)
+                                    .font(.caption.weight(.bold))
+                                Text(tab.shortLabel)
+                                    .font(.subheadline.weight(.bold))
+                            }
+                            .foregroundStyle(selectedTab == tab ? KickIQAICoachTheme.onAccent : KickIQAICoachTheme.textSecondary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(selectedTab == tab ? KickIQAICoachTheme.accent : KickIQAICoachTheme.card, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .pickerStyle(.segmented)
                 .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-
-                Group {
-                    switch selectedTab {
-                    case .builder:
-                        SessionBuilderView(coachStorage: coachStorage, onSaved: { selectedTab = .library })
-                    case .campaign:
-                        CoachCampaignView(coachStorage: coachStorage)
-                    case .blocks:
-                        BlockPlannerView(coachStorage: coachStorage)
-                    case .library:
-                        SessionLibraryView(coachStorage: coachStorage, onNew: { selectedTab = .builder })
-                    case .evaluations:
-                        EvaluationsView(coachStorage: coachStorage)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .background(KickIQAICoachTheme.background.ignoresSafeArea())
-            .navigationTitle("Coach Plan")
-            .navigationBarTitleDisplayMode(.inline)
+            .padding(.top, 8)
+
+            HStack(spacing: 8) {
+                Image(systemName: selectedTab.icon)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+                Text(selectedTab.subtitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 4)
+
+            Group {
+                switch selectedTab {
+                case .builder:
+                    SessionBuilderView(coachStorage: coachStorage, onSaved: { selectedTab = .library })
+                case .campaign:
+                    CoachCampaignView(coachStorage: coachStorage)
+                case .blocks:
+                    BlockPlannerView(coachStorage: coachStorage)
+                case .library:
+                    SessionLibraryView(coachStorage: coachStorage, onNew: { selectedTab = .builder })
+                case .evaluations:
+                    EvaluationsView(coachStorage: coachStorage)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .background(KickIQAICoachTheme.background.ignoresSafeArea())
+        .navigationTitle("Coach Planning")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -572,20 +628,50 @@ private struct ActivityEditSheet: View {
     }
 }
 
-// MARK: - Session Builder
+// MARK: - Session Builder (4-Step Guided Flow)
+
+private enum BuilderStep: Int, CaseIterable {
+    case objective = 0
+    case subObjective = 1
+    case activities = 2
+    case review = 3
+
+    var title: String {
+        switch self {
+        case .objective: return "Objective"
+        case .subObjective: return "Sub-objective"
+        case .activities: return "Activities"
+        case .review: return "Review"
+        }
+    }
+
+    var headline: String {
+        switch self {
+        case .objective: return "What's the focus?"
+        case .subObjective: return "Narrow it down"
+        case .activities: return "Plan the activities"
+        case .review: return "Review & save"
+        }
+    }
+
+    var helper: String {
+        switch self {
+        case .objective: return "Pick the main game moment this session will train."
+        case .subObjective: return "Choose the specific concept you want players to learn."
+        case .activities: return "Add the drills players will run. Tap each to edit details."
+        case .review: return "Name your session and add any final notes."
+        }
+    }
+}
 
 private struct SessionBuilderView: View {
     @Bindable var coachStorage: CoachStorageService
     var onSaved: () -> Void
 
-    @State private var selectedMoment: GameMoment?
-    @State private var customMomentName: [GameMoment: String] = [:]
-    @State private var renamingMoment: GameMoment?
-    @State private var renameDraft = ""
+    @State private var step: BuilderStep = .objective
 
+    @State private var selectedMoment: GameMoment?
     @State private var selectedObjective: String?
-    @State private var customObjectives: [String: String] = [:]
-    @State private var renamingObjective: String?
 
     @State private var duration: Int = 75
     @State private var intensity: Double = 6
@@ -600,15 +686,30 @@ private struct SessionBuilderView: View {
     private let categories = ["Defending", "Attacking", "Attacking Transition", "Defensive Transition"]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                step1
-                if selectedMoment != nil { step2 }
-                if selectedObjective != nil { step3 }
-                if selectedObjective != nil { step4 }
-                if selectedObjective != nil { step5 }
+        VStack(spacing: 0) {
+            progressHeader
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    stepIntro
+
+                    Group {
+                        switch step {
+                        case .objective: objectiveStep
+                        case .subObjective: subObjectiveStep
+                        case .activities: activitiesStep
+                        case .review: reviewStep
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 24)
             }
-            .padding(16)
+
+            Divider()
+
+            footerBar
         }
         .sheet(item: $editingActivity) { activity in
             ActivityEditSheet(activity: activity) { updated in
@@ -617,34 +718,61 @@ private struct SessionBuilderView: View {
                 }
             }
         }
-        .alert("Rename", isPresented: Binding(get: { renamingMoment != nil }, set: { if !$0 { renamingMoment = nil } })) {
-            TextField("Name", text: $renameDraft)
-            Button("Save") {
-                if let m = renamingMoment { customMomentName[m] = renameDraft }
-                renamingMoment = nil
-            }
-            Button("Cancel", role: .cancel) { renamingMoment = nil }
-        }
-        .alert("Rename Objective", isPresented: Binding(get: { renamingObjective != nil }, set: { if !$0 { renamingObjective = nil } })) {
-            TextField("Name", text: $renameDraft)
-            Button("Save") {
-                if let o = renamingObjective { customObjectives[o] = renameDraft }
-                renamingObjective = nil
-            }
-            Button("Cancel", role: .cancel) { renamingObjective = nil }
-        }
     }
 
-    private var step1: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            stepHeader(number: 1, title: "Game Moment")
+    // MARK: Progress header
+
+    private var progressHeader: some View {
+        HStack(spacing: 6) {
+            ForEach(BuilderStep.allCases, id: \.rawValue) { s in
+                VStack(spacing: 6) {
+                    Capsule()
+                        .fill(s.rawValue <= step.rawValue ? KickIQAICoachTheme.accent : KickIQAICoachTheme.surface)
+                        .frame(height: 4)
+                    Text(s.title)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(s == step ? KickIQAICoachTheme.accent : KickIQAICoachTheme.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+
+    private var stepIntro: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("STEP \(step.rawValue + 1) OF \(BuilderStep.allCases.count)")
+                .font(.caption2.weight(.black))
+                .tracking(1.2)
+                .foregroundStyle(KickIQAICoachTheme.accent)
+            Text(step.headline)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+            Text(step.helper)
+                .font(.subheadline)
+                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: Step 1 — Objective
+
+    private var objectiveStep: some View {
+        VStack(alignment: .leading, spacing: 18) {
             ForEach(categories, id: \.self) { cat in
-                Text(cat)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    ForEach(GameMoment.allCases.filter { $0.category == cat }) { m in
-                        momentCard(m)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(cat.uppercased())
+                        .font(.caption.weight(.heavy))
+                        .tracking(1)
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                        ForEach(GameMoment.allCases.filter { $0.category == cat }) { m in
+                            momentCard(m)
+                        }
                     }
                 }
             }
@@ -652,121 +780,178 @@ private struct SessionBuilderView: View {
     }
 
     private func momentCard(_ m: GameMoment) -> some View {
-        let name = customMomentName[m] ?? m.rawValue
         let isSelected = selectedMoment == m
         return Button {
+            if selectedMoment != m { selectedObjective = nil }
             selectedMoment = m
-            selectedObjective = nil
         } label: {
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 Image(systemName: m.icon)
                     .font(.title2)
-                Text(name)
-                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isSelected ? Color.white : KickIQAICoachTheme.accent)
+                    .frame(width: 44, height: 44)
+                    .background(isSelected ? Color.white.opacity(0.18) : KickIQAICoachTheme.accent.opacity(0.12), in: Circle())
+                Text(m.rawValue)
+                    .font(.subheadline.weight(.bold))
                     .multilineTextAlignment(.center)
+                    .foregroundStyle(isSelected ? Color.white : KickIQAICoachTheme.textPrimary)
             }
-            .foregroundStyle(isSelected ? Color.white : KickIQAICoachTheme.textPrimary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, minHeight: 120)
+            .padding(12)
             .background(
                 isSelected ? AnyShapeStyle(KickIQAICoachTheme.accent) : AnyShapeStyle(KickIQAICoachTheme.card),
-                in: .rect(cornerRadius: 12)
+                in: .rect(cornerRadius: 16)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? Color.white.opacity(0.3) : KickIQAICoachTheme.divider.opacity(0.4), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
-        .contextMenu {
-            Button {
-                renameDraft = name
-                renamingMoment = m
-            } label: { Label("Rename", systemImage: "pencil") }
-        }
+        .sensoryFeedback(.selection, trigger: isSelected)
     }
 
-    private var step2: some View {
+    // MARK: Step 2 — Sub-objective
+
+    private var subObjectiveStep: some View {
         VStack(alignment: .leading, spacing: 10) {
-            stepHeader(number: 2, title: "Sub-Objective")
+            if let moment = selectedMoment {
+                HStack(spacing: 8) {
+                    Image(systemName: moment.icon)
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                    Text(moment.rawValue)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(KickIQAICoachTheme.accent.opacity(0.12), in: Capsule())
+            }
+
             ForEach(selectedMoment?.subObjectives ?? [], id: \.self) { obj in
-                let name = customObjectives[obj] ?? obj
                 let isSelected = selectedObjective == obj
                 Button {
                     selectedObjective = obj
                 } label: {
-                    HStack {
-                        Text(name)
+                    HStack(spacing: 12) {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.title3)
+                            .foregroundStyle(isSelected ? Color.white : KickIQAICoachTheme.textSecondary.opacity(0.5))
+                        Text(obj)
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(isSelected ? Color.white : KickIQAICoachTheme.textPrimary)
                         Spacer()
-                        if isSelected {
-                            Image(systemName: "checkmark").foregroundStyle(.white)
-                        }
                     }
                     .padding(14)
                     .frame(maxWidth: .infinity)
                     .background(
                         isSelected ? AnyShapeStyle(KickIQAICoachTheme.accent) : AnyShapeStyle(KickIQAICoachTheme.card),
-                        in: .rect(cornerRadius: 12)
+                        in: .rect(cornerRadius: 14)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(KickIQAICoachTheme.divider.opacity(0.4), lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
-                .contextMenu {
-                    Button {
-                        renameDraft = name
-                        renamingObjective = obj
-                    } label: { Label("Rename", systemImage: "pencil") }
-                }
             }
         }
     }
 
-    private var step3: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            stepHeader(number: 3, title: "Session Parameters")
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Duration").font(.caption).foregroundStyle(KickIQAICoachTheme.textSecondary)
+    // MARK: Step 3 — Activities
+
+    private var activitiesStep: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("SESSION PARAMETERS")
+                    .font(.caption.weight(.heavy))
+                    .tracking(1)
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+
                 Picker("Duration", selection: $duration) {
                     ForEach([45, 60, 75, 90], id: \.self) { Text("\($0) min").tag($0) }
                 }
                 .pickerStyle(.segmented)
 
-                Text("Intensity: \(Int(intensity))").font(.caption).foregroundStyle(KickIQAICoachTheme.textSecondary)
+                HStack {
+                    Text("Intensity")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    Spacer()
+                    Text("\(Int(intensity)) / 10")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                }
                 Slider(value: $intensity, in: 1...10, step: 1)
                     .tint(KickIQAICoachTheme.accent)
 
-                TextField("Age Group", text: $ageGroup)
-                    .textFieldStyle(.roundedBorder)
                 Stepper("Players: \(playerCount)", value: $playerCount, in: 4...30)
+                    .font(.subheadline.weight(.semibold))
+
+                HStack {
+                    Text("Age Group")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    TextField("U15-U19", text: $ageGroup)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 140)
+                }
             }
             .padding(14)
             .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: 14))
-        }
-    }
 
-    private var step4: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            stepHeader(number: 4, title: "Activities")
+            HStack {
+                Text("DRILLS")
+                    .font(.caption.weight(.heavy))
+                    .tracking(1)
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                Spacer()
+                Text("\(activities.count)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+            }
+
             if activities.isEmpty {
                 Button {
                     activities = (1...4).map { i in
                         SessionActivity(order: i, title: "Activity \(i)", duration: 15, fieldSize: "", playerNumbers: "", setupDescription: "", instructions: "", phases: [], coachingPoints: [])
                     }
                 } label: {
-                    Label("Generate 4 Activities", systemImage: "wand.and.stars")
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(KickIQAICoachTheme.accent, in: .rect(cornerRadius: 12))
+                    HStack(spacing: 8) {
+                        Image(systemName: "wand.and.stars")
+                        Text("Generate 4 Activities")
+                            .fontWeight(.bold)
+                    }
+                    .foregroundStyle(KickIQAICoachTheme.onAccent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(KickIQAICoachTheme.accent, in: .rect(cornerRadius: 12))
                 }
+                .buttonStyle(.plain)
             }
 
             ForEach(activities) { a in
                 Button { editingActivity = a } label: {
-                    HStack {
-                        Text("\(a.order). \(a.displayTitle)")
-                            .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                    HStack(spacing: 12) {
+                        Text("\(a.order)")
+                            .font(.subheadline.weight(.black))
+                            .foregroundStyle(KickIQAICoachTheme.accent)
+                            .frame(width: 28, height: 28)
+                            .background(KickIQAICoachTheme.accent.opacity(0.15), in: Circle())
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(a.displayTitle)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                            Text("\(a.duration) min")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        }
                         Spacer()
-                        Text("\(a.duration)m").foregroundStyle(KickIQAICoachTheme.accent)
-                        Image(systemName: "chevron.right").foregroundStyle(KickIQAICoachTheme.textSecondary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(KickIQAICoachTheme.textSecondary)
                     }
-                    .padding(14)
+                    .padding(12)
                     .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
@@ -783,46 +968,117 @@ private struct SessionBuilderView: View {
                     activities.append(SessionActivity(order: next, title: "Activity \(next)", duration: 15, fieldSize: "", playerNumbers: "", setupDescription: "", instructions: "", phases: [], coachingPoints: []))
                 } label: {
                     Label("Add Activity", systemImage: "plus")
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(KickIQAICoachTheme.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(KickIQAICoachTheme.accent.opacity(0.12), in: .rect(cornerRadius: 12))
                 }
+                .buttonStyle(.plain)
             }
         }
     }
 
-    private var step5: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            stepHeader(number: 5, title: "Save")
-            TextField("Session Title", text: $title)
-                .textFieldStyle(.roundedBorder)
-            TextField("Notes", text: $notes, axis: .vertical)
-                .lineLimit(3...8)
-                .textFieldStyle(.roundedBorder)
+    // MARK: Step 4 — Review
+
+    private var reviewStep: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("NAME THIS SESSION")
+                    .font(.caption.weight(.heavy))
+                    .tracking(1)
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                TextField("e.g. Wednesday Finishing", text: $title)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                summaryRow(label: "Objective", value: selectedMoment?.rawValue ?? "—")
+                summaryRow(label: "Sub-objective", value: selectedObjective ?? "—")
+                summaryRow(label: "Duration", value: "\(duration) min")
+                summaryRow(label: "Intensity", value: "\(Int(intensity)) / 10")
+                summaryRow(label: "Players", value: "\(playerCount)")
+                summaryRow(label: "Age Group", value: ageGroup)
+                summaryRow(label: "Activities", value: "\(activities.count)")
+            }
+            .padding(14)
+            .background(KickIQAICoachTheme.card, in: .rect(cornerRadius: 14))
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("NOTES (OPTIONAL)")
+                    .font(.caption.weight(.heavy))
+                    .tracking(1)
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                TextField("Anything to remember for this session", text: $notes, axis: .vertical)
+                    .lineLimit(3...6)
+                    .textFieldStyle(.roundedBorder)
+            }
+        }
+    }
+
+    private func summaryRow(label: String, value: String) -> some View {
+        HStack(alignment: .top) {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(KickIQAICoachTheme.textSecondary)
+            Spacer()
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    // MARK: Footer
+
+    private var footerBar: some View {
+        HStack(spacing: 12) {
+            if step != .objective {
+                Button {
+                    withAnimation(.spring(response: 0.35)) {
+                        step = BuilderStep(rawValue: step.rawValue - 1) ?? .objective
+                    }
+                } label: {
+                    Text("Back")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(KickIQAICoachTheme.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(KickIQAICoachTheme.accent.opacity(0.12), in: .rect(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
 
             Button {
-                save()
+                if step == .review {
+                    save()
+                } else {
+                    withAnimation(.spring(response: 0.35)) {
+                        step = BuilderStep(rawValue: step.rawValue + 1) ?? .review
+                    }
+                }
             } label: {
-                Text("Save Session")
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                Text(step == .review ? "Save Session" : "Continue")
+                    .font(.subheadline.weight(.black))
+                    .foregroundStyle(KickIQAICoachTheme.onAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(KickIQAICoachTheme.accent, in: .rect(cornerRadius: 12))
+                    .background(isContinueEnabled ? KickIQAICoachTheme.accent : KickIQAICoachTheme.accent.opacity(0.3), in: .rect(cornerRadius: 12))
             }
-            .disabled(title.isEmpty || selectedMoment == nil || selectedObjective == nil)
-            .opacity((title.isEmpty || selectedMoment == nil || selectedObjective == nil) ? 0.5 : 1)
+            .buttonStyle(.plain)
+            .disabled(!isContinueEnabled)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(KickIQAICoachTheme.background)
     }
 
-    private func stepHeader(number: Int, title: String) -> some View {
-        HStack(spacing: 8) {
-            Text("\(number)")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 22, height: 22)
-                .background(KickIQAICoachTheme.accent, in: Circle())
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(KickIQAICoachTheme.textPrimary)
+    private var isContinueEnabled: Bool {
+        switch step {
+        case .objective: return selectedMoment != nil
+        case .subObjective: return selectedObjective != nil
+        case .activities: return !activities.isEmpty
+        case .review: return !title.trimmingCharacters(in: .whitespaces).isEmpty
         }
     }
 
@@ -831,8 +1087,8 @@ private struct SessionBuilderView: View {
         let session = CoachSession(
             title: title,
             gameMoment: moment,
-            customGameMoment: customMomentName[moment],
-            objective: customObjectives[obj] ?? obj,
+            customGameMoment: nil,
+            objective: obj,
             duration: duration,
             intensity: Int(intensity),
             ageGroup: ageGroup,

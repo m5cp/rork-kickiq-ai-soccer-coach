@@ -11,6 +11,7 @@ struct ProfileView: View {
     @State private var showSettings = false
     @State private var showCoachReport = false
     @State private var showDeleteAlert = false
+    @State private var showResetAlert = false
     @State private var showRestoreAlert = false
     @State private var restoreMessage = ""
     @State private var isRestoring = false
@@ -374,12 +375,24 @@ struct ProfileView: View {
     }
 
     private var dangerSection: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 2) {
             sectionHeader("ACCOUNT")
+
+            settingsActionRow(icon: "arrow.counterclockwise.circle.fill", title: "Reset All Settings", isDestructive: true) {
+                showResetAlert = true
+            }
 
             settingsActionRow(icon: "trash.fill", title: "Delete Account", isDestructive: true) {
                 showDeleteAlert = true
             }
+        }
+        .alert("Reset All Settings?", isPresented: $showResetAlert) {
+            Button("Reset", role: .destructive) {
+                storage.resetOnboarding()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This clears your profile preferences (position, skill level, goals) and returns you to onboarding. Your training history stays saved.")
         }
         .alert("Delete Account?", isPresented: $showDeleteAlert) {
             Button("Delete Everything", role: .destructive) {
