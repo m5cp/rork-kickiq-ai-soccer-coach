@@ -492,6 +492,7 @@ class StorageService {
         tokenBalance = 0
         coachMemory = []
 
+        AgeSafetyService.shared.reset()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
 

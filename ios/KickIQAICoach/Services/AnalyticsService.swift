@@ -41,6 +41,7 @@ final class AnalyticsService {
     }
 
     func track(_ event: AnalyticsEvent, properties: [String: String] = [:]) {
+        guard AgeSafetyService.shared.isAnalyticsAllowed else { return }
         let propsString = properties.isEmpty ? "" : " " + properties.map { "\($0.key)=\($0.value)" }.joined(separator: " ")
         logger.debug("event=\(event.rawValue, privacy: .public)\(propsString, privacy: .public)")
         // Forward to TelemetryDeck / Sentry / other providers here once SDKs are added.

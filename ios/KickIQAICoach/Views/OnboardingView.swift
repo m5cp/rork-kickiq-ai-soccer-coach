@@ -29,6 +29,7 @@ struct OnboardingView: View {
     let storage: StorageService
     @State private var storeVM = StoreViewModel()
     @State private var currentStep: Int = 0
+    @State private var dateOfBirth: Date = Calendar.current.date(byAdding: .year, value: -16, to: .now) ?? .now
     @State private var position: PlayerPosition = .midfielder
     @State private var ageRange: AgeRange = .fifteen18
     @State private var skillLevel: SkillLevel = .beginner
@@ -39,8 +40,11 @@ struct OnboardingView: View {
     @State private var isPurchasing: Bool = false
     @State private var isRestoring: Bool = false
     @State private var showLegalPage: LegalPage?
+    @State private var showParentalConsent: Bool = false
+    @State private var showTeenNotice: Bool = false
+    @State private var safety = AgeSafetyService.shared
 
-    private let totalSteps = 7
+    private let totalSteps = 8
 
     var body: some View {
         ZStack {
@@ -59,23 +63,44 @@ struct OnboardingView: View {
                 .padding(.horizontal, 20)
 
                 TabView(selection: $currentStep) {
-                    positionStep.tag(0)
-                    ageStep.tag(1)
-                    skillLevelStep.tag(2)
-                    weaknessStep.tag(3)
-                    conditioningStep.tag(4)
-                    painStep.tag(5)
-                    paywallStep.tag(6)
+                    dobStep.tag(0)
+                    positionStep.tag(1)
+                    ageStep.tag(2)
+                    skillLevelStep.tag(3)
+                    weaknessStep.tag(4)
+                    conditioningStep.tag(5)
+                    painStep.tag(6)
+                    paywallStep.tag(7)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.spring(response: 0.4), value: currentStep)
 
-                if currentStep < 6 {
+                if currentStep < 7 {
                     continueButton
                 }
             }
         }
         .preferredColorScheme(.dark)
+        .fullScreenCover(isPresented: $showParentalConsent) {
+            ParentalConsentView(
+                onConsent: { parentName, parentEmail, enableChat in
+                    safety.setDateOfBirth(dateOfBirth)
+                    safety.grantParentalConsent(parentName: parentName, parentEmail: parentEmail, enableChat: enableChat)
+                    showParentalConsent = false
+                    withAnimation(.spring(response: 0.4)) { currentStep = 1 }
+                },
+                onCancel: {
+                    showParentalConsent = false
+                }
+            )
+        }
+        .fullScreenCover(isPresented: $showTeenNotice) {
+            TeenSafetyNoticeView(onContinue: {
+                safety.setDateOfBirth(dateOfBirth)
+                showTeenNotice = false
+                withAnimation(.spring(response: 0.4)) { currentStep = 1 }
+            })
+        }
         .sheet(item: $showLegalPage) { page in
             NavigationStack {
                 LegalPageView(page: page)
@@ -145,6 +170,12 @@ struct OnboardingView: View {
         }
         .frame(height: 5)
         .padding(.horizontal, 8)
+    }
+
+    // MARK: - DOB Step
+
+    private var dobStep: some View {
+        OnboardingDOBStep(dateOfBirth: $dateOfBirth)
     }
 
     // MARK: - Position Step
@@ -543,12 +574,16 @@ struct OnboardingView: View {
     private var continueButton: some View {
         let isDisabled: Bool = {
             switch currentStep {
-            case 3: return selectedWeaknesses.isEmpty
+            case 4: return selectedWeaknesses.isEmpty
             default: return false
             }
         }()
 
         return Button {
+            if currentStep == 0 {
+                handleDOBContinue()
+                return
+            }
             withAnimation(.spring(response: 0.4)) { currentStep += 1 }
         } label: {
             Text("Continue")
@@ -708,6 +743,23 @@ struct OnboardingView: View {
         if storeVM.isPremium {
             completeOnboarding()
         }
+    }
+
+    private func handleDOBContinue() {
+        safety.setDateOfBirth(dateOfBirth)
+        switch safety.ageGroup {
+        case .child:
+            if !safety.parentalConsentGranted {
+                showParentalConsent = true
+                return
+            }
+        case .teen:
+            showTeenNotice = true
+            return
+        case .adult:
+            break
+        }
+        withAnimation(.spring(response: 0.4)) { currentStep = 1 }
     }
 
     private func completeOnboarding() {

@@ -15,6 +15,9 @@ struct SettingsView: View {
     @State private var calendarEventsAdded = 0
     @State private var exportURL: URL?
     @State private var showExportShare = false
+    @State private var showParentalControls = false
+    @State private var showLegalPage: LegalPage?
+    @State private var safety = AgeSafetyService.shared
 
     var body: some View {
         NavigationStack {
@@ -36,6 +39,24 @@ struct SettingsView: View {
                     sectionHeader("CALENDAR")
                     settingsRow(icon: "calendar.badge.plus", title: "Sync Training Plan to Calendar") {
                         Task { await syncCalendar() }
+                    }
+
+                    if safety.showsParentalControls {
+                        sectionHeader("PARENTAL CONTROLS")
+                        settingsRow(icon: "lock.shield.fill", title: "Manage Parental Controls") {
+                            showParentalControls = true
+                        }
+                    }
+
+                    sectionHeader("PRIVACY & LEGAL")
+                    settingsRow(icon: "lock.shield.fill", title: "Privacy Policy") {
+                        showLegalPage = .privacyPolicy
+                    }
+                    settingsRow(icon: "doc.text.fill", title: "Terms of Use") {
+                        showLegalPage = .termsOfUse
+                    }
+                    settingsRow(icon: "exclamationmark.triangle.fill", title: "Disclaimers") {
+                        showLegalPage = .disclaimer
                     }
 
                     sectionHeader("DATA")
@@ -102,6 +123,19 @@ struct SettingsView: View {
             .sheet(isPresented: $showExportShare) {
                 if let exportURL {
                     ShareSheet(items: [exportURL])
+                }
+            }
+            .sheet(isPresented: $showParentalControls) {
+                ParentalControlsView()
+            }
+            .sheet(item: $showLegalPage) { page in
+                NavigationStack {
+                    LegalPageView(page: page)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Done") { showLegalPage = nil }.fontWeight(.bold)
+                            }
+                        }
                 }
             }
         }

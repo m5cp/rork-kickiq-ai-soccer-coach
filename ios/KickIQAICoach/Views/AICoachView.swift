@@ -10,6 +10,8 @@ struct AICoachView: View {
     @State private var showTokenPacks = false
     @State private var showPaywall = false
     @FocusState private var isInputFocused: Bool
+    @State private var safety = AgeSafetyService.shared
+    @State private var reportingMessage: CoachMessage?
 
     private let playerPrompts = [
         "What should I work on today?",
@@ -45,14 +47,18 @@ struct AICoachView: View {
             ZStack {
                 KickIQAICoachTheme.background.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    if coachService.messages.isEmpty {
-                        emptyState
-                    } else {
-                        messageList
-                    }
+                if !safety.isChatAllowed {
+                    chatLockedView
+                } else {
+                    VStack(spacing: 0) {
+                        if coachService.messages.isEmpty {
+                            emptyState
+                        } else {
+                            messageList
+                        }
 
-                    inputBar
+                        inputBar
+                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -121,6 +127,13 @@ struct AICoachView: View {
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView(store: storeVM)
+            }
+            .sheet(item: $reportingMessage) { message in
+                ReportContentSheet(contextLabel: "AI Coach response") { _ in
+                    if let index = coachService.messages.firstIndex(where: { $0.id == message.id }) {
+                        coachService.messages.remove(at: index)
+                    }
+                }
             }
         }
         .onAppear {
@@ -353,6 +366,17 @@ struct AICoachView: View {
                         )
                     }
 
+                if message.role == .coach && !message.content.contains("no tokens used") {
+                    Button {
+                        reportingMessage = message
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "flag.fill").font(.system(size: 9, weight: .bold))
+                            Text("Report").font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundStyle(KickIQAICoachTheme.textSecondary.opacity(0.5))
+                    }
+                }
                 if message.role == .coach && message.content.contains("no tokens used") && coachService.lastFailedUserText != nil {
                     Button {
                         Task { await coachService.retryLastMessage() }
@@ -529,6 +553,36 @@ struct AICoachView: View {
         .padding(.horizontal, KickIQAICoachTheme.Spacing.md)
         .padding(.vertical, KickIQAICoachTheme.Spacing.sm + 2)
         .background(.orange.opacity(0.08))
+    }
+
+    private var chatLockedView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            ZStack {
+                Circle().fill(KickIQAICoachTheme.accent.opacity(0.1)).frame(width: 120, height: 120)
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 50, weight: .bold))
+                    .foregroundStyle(KickIQAICoachTheme.accent)
+            }
+            VStack(spacing: 10) {
+                Text("AI Coach Locked")
+                    .font(.title2.weight(.black))
+                    .foregroundStyle(KickIQAICoachTheme.textPrimary)
+                Text("A parent or guardian needs to turn on AI Coach in Parental Controls before you can chat.")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 30)
+            }
+            Text("Settings → Parental Controls")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(KickIQAICoachTheme.accent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(KickIQAICoachTheme.accent.opacity(0.1), in: Capsule())
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var canSend: Bool {

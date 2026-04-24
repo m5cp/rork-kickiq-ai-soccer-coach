@@ -141,7 +141,7 @@ class AICoachService {
 
         let playerContext = storage.coachContextSummary
 
-        self.systemPrompt = """
+        var prompt = """
         You are KickIQ Coach, an elite AI soccer coaching assistant. You are knowledgeable, motivating, and direct — like a top-tier youth academy coach.
 
         PLAYER DATA (this is real, live data from the player's app — use it):
@@ -164,6 +164,10 @@ class AICoachService {
         - If they're on a training streak, praise their consistency
         - Suggest specific drills from their weak areas to keep them on track
         """
+        if let addendum = AgeSafetyService.shared.minorSafetyPromptAddendum {
+            prompt += addendum
+        }
+        self.systemPrompt = prompt
 
         hasShownOnboarding = UserDefaults.standard.bool(forKey: Self.onboardingKey)
         loadCachedMessages()
@@ -248,6 +252,14 @@ class AICoachService {
     private let appleSessionHolder = AppleAISessionHolder()
 
     func sendMessage(_ text: String) async {
+        if let redirect = AgeSafetyService.shared.unsafeRedirectIfNeeded(for: text) {
+            let userMessage = CoachMessage(role: .user, content: text)
+            messages.append(userMessage)
+            let safetyMsg = CoachMessage(role: .coach, content: redirect)
+            messages.append(safetyMsg)
+            cacheMessages()
+            return
+        }
         refreshTokenBudget()
         guard !isAtLimit else {
             let capMsg = CoachMessage(role: .coach, content: "You've used all your coaching tokens for today. \(isPremium ? "Your daily budget resets at midnight, or you can grab a token pack for extra coaching." : "Upgrade to Premium for 20x more daily coaching, or grab a token pack to keep going.")")
