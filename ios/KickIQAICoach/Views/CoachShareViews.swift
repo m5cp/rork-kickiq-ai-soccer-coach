@@ -44,6 +44,7 @@ struct CoachShareSheet: View {
     @State private var shareItems: [Any] = []
     @State private var showActivity = false
     @State private var copiedFlash = false
+    @State private var showReport = false
 
     var body: some View {
         NavigationStack {
@@ -82,6 +83,22 @@ struct CoachShareSheet: View {
                 }
 
                 Spacer()
+
+                Button {
+                    showReport = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "flag.fill")
+                            .font(.caption)
+                        Text("Report this content")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(KickIQAICoachTheme.textSecondary)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 14)
+                    .background(KickIQAICoachTheme.card.opacity(0.6), in: Capsule())
+                }
+                .padding(.bottom, 12)
             }
             .padding(.top, 8)
             .background(KickIQAICoachTheme.background.ignoresSafeArea())
@@ -101,6 +118,9 @@ struct CoachShareSheet: View {
             }
             .sheet(isPresented: $showActivity) {
                 ActivityShareView(items: shareItems)
+            }
+            .sheet(isPresented: $showReport) {
+                ReportContentSheet(contextLabel: "shared content") { _ in }
             }
         }
         .presentationDetents([.medium])
